@@ -1,3 +1,9 @@
+kkfetch (0.14.5-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.14.5: Hotfix release syncing binary version string and package distributions.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 12 Sep 2026 13:05:00 +0530
+
 kkfetch (0.14.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.14.0: Hardware-fingerprinted GPU cache invalidation for SSD swaps, updated Fastfetch benchmarks.

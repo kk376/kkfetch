@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.5] - 2026-09-12
+
+### Fixed
+- **Version String & Binary Synchronization**: Hotfix release synchronizing binary `--version` output, packaging manifests, and documentation sample output with the latest system information metrics.
+
+### Changed
+- **Updated Sample Output**: Refreshed system info display in README with latest Linux 7.2.4 kernel, updated uptime, package counts, and environment metrics.
+
+### Packaging
+- **Horizon-Wide Package Release**: Refreshed release packages across Fedora Copr, Ubuntu Launchpad PPA, Homebrew tap, Arch Linux, Termux, Windows standalone binaries, and musl static builds.
+
 ## [0.14.0] - 2026-09-12
 
 ### Fixed

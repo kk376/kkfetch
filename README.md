@@ -7,29 +7,27 @@ A fast, lightweight, zero-subprocess system information fetch tool written in Ru
          .';:cccccccccccc:;,.            ------------
       .;cccccccccccccccccccccc;.         OS: Fedora Linux 44 (Workstation Edition) x86_64
     .:cccccccccccccccccccccccccc:.       Host: Thin A15 B7UCX REV:1.0
-  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.1.12-200.fc44.x86_64
- .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (12 days ago)
-.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 4 hours, 53 mins
-,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2789 (rpm), 3 (flatpak), 2 (cargo), 2 (pip)
-:cccccccccccccc;MMM.;cccccccccccccccc:   Shell: zsh 5.9
+  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.4-200.fc44.x86_64
+ .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (20 days ago)
+.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 7 hours, 5 mins
+,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2801 (rpm), 2 (flatpak), 1 (cargo), 26 (pip)
+:cccccccccccccc;MMM.;cccccccccccccccc:   Shell: fish 4.6.0
 :ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 in 15", 144 Hz [Built-in]
 cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   Desktop: GNOME 50.4 (Wayland)
 ccccc;XM0';cccc;MMM.;cccccccccccccccc'   WM: Mutter
 ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    WM Theme: Adwaita
-ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Terminal: kitty 0.47.1
-cccccc;dNMWXXXWM0:;cccccccccccccc:,      Terminal Font: Fira Code (12pt)
-cccccccc;.:odl:.;cccccccccccccc:,.       CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.415GHz [4.60GHz max]
-:cccccccccccccccccccccccccccc:'.         GPU0: AMD Radeon 680M (512 MiB) [Integrated]
-.:cccccccccccccccccccccc:;,..            GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
-  '::cccccccccccccc::;,.                 Memory: 8.40 GiB / 14.82 GiB (57%)
-                                         Swap: 1.10 GiB / 14.82 GiB (7%) - ZSTD
-                                         Disk0: (/) 121.4 GiB / 215.6 GiB (56%) - btrfs
+ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Terminal: ghostty 1.3.1-4.fc44
+cccccc;dNMWXXXWM0:;cccccccccccccc:,      CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.217GHz [4.60GHz max]
+cccccccc;.:odl:.;cccccccccccccc:,.       GPU0: AMD Radeon 680M (512 MiB) [Integrated]
+:cccccccccccccccccccccccccccc:'.         GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
+.:cccccccccccccccccccccc:;,..            Memory: 9.49 GiB / 14.82 GiB (64%)
+  '::cccccccccccccc::;,.                 Swap: 1.88 GiB / 14.82 GiB (13%) - ZSTD
+                                         Disk0: (/) 134.9 GiB / 474.7 GiB (28%) - btrfs
                                          Disk1: (/boot) 0.9 GiB / 1.9 GiB (48%) - ext4
-                                         Disk2: (/boot/efi) 52 MiB / 196 MiB (26%) - vfat
-                                         Disk3: (/home) 121.4 GiB / 215.6 GiB (56%) - btrfs
-                                         Disk4: (/media/Backup) 444.8 GiB / 931.5 GiB (48%) - fuseblk
-                                         Disk5: (/media/Windows) 133.5 GiB / 258.4 GiB (52%) - fuseblk
-                                         Battery: 93% [AC Connected]
+                                         Disk2: (/boot/efi) 20 MiB / 196 MiB (10%) - vfat
+                                         Disk3: (/home) 134.9 GiB / 474.7 GiB (28%) - btrfs
+                                         Disk4: (/media/Backup) 455.7 GiB / 931.5 GiB (49%) - fuseblk
+                                         Battery: 91% [AC Connected]
                                          Local IP: 192.168.29.219
                                          Theme: Adwaita (dark) [GTK/GNOME]
                                          Icons: Adwaita [GTK/GNOME]
@@ -116,8 +114,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch_0.14.0-1_amd64.deb
-sudo dpkg -i kkfetch_0.14.0-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch_0.14.5-1_amd64.deb
+sudo dpkg -i kkfetch_0.14.5-1_amd64.deb
 ```
 
 ---
@@ -136,8 +134,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-0.14.0-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.14.0-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-0.14.5-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.14.5-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -155,8 +153,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch_0.14.0-1_termux_aarch64.deb
-dpkg -i kkfetch_0.14.0-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch_0.14.5-1_termux_aarch64.deb
+dpkg -i kkfetch_0.14.5-1_termux_aarch64.deb
 ```
 
 ---
@@ -167,7 +165,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -183,7 +181,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -193,8 +191,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-0.14.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.14.0-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-0.14.5-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.14.5-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
