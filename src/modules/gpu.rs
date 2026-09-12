@@ -906,24 +906,104 @@ pub fn get_gpu_list() -> Vec<String> {
     GPU_CACHE.get_or_init(get_gpu_list_uncached).clone()
 }
 
+/// Computes a display hardware fingerprint from a given PCI sysfs directory.
+/// Scans for PCI class 0x03xxxx devices, sorting their vendor:device pairs.
+pub fn get_gpu_hardware_fingerprint_from_pci_dir(pci_dir: &Path) -> Option<String> {
+    let mut dev_ids = Vec::new();
+    if let Ok(entries) = fs::read_dir(pci_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Ok(class_str) = fs::read_to_string(path.join("class")) {
+                let class_trimmed = class_str.trim().to_lowercase();
+                if class_trimmed.starts_with("0x03") || class_trimmed.starts_with("3") {
+                    let vendor = fs::read_to_string(path.join("vendor"))
+                        .unwrap_or_default()
+                        .trim()
+                        .trim_start_matches("0x")
+                        .trim_start_matches("0X")
+                        .to_lowercase();
+                    let device = fs::read_to_string(path.join("device"))
+                        .unwrap_or_default()
+                        .trim()
+                        .trim_start_matches("0x")
+                        .trim_start_matches("0X")
+                        .to_lowercase();
+                    if !vendor.is_empty() && !device.is_empty() {
+                        dev_ids.push(format!("{}:{}", vendor, device));
+                    }
+                }
+            }
+        }
+    }
+
+    if !dev_ids.is_empty() {
+        dev_ids.sort();
+        Some(format!("PCI:{}", dev_ids.join(",")))
+    } else {
+        None
+    }
+}
+
+/// Computes an ultra-fast hardware fingerprint for display controllers to invalidate stale GPU caches.
+/// Scans `/sys/bus/pci/devices` for display class devices (`0x03xxxx`), extracting and sorting
+/// vendor and device hex IDs (e.g. `PCI:1002:1681,10de:25ad`).
+/// Falls back to CPU model name for virtualized environments (WSL2) or non-PCI SoCs.
+pub fn get_gpu_hardware_fingerprint() -> String {
+    if let Some(pci_fp) =
+        get_gpu_hardware_fingerprint_from_pci_dir(Path::new("/sys/bus/pci/devices"))
+    {
+        return pci_fp;
+    }
+
+    // Fallback for WSL or non-PCI systems:
+    if let Ok(cpuinfo) = fs::read_to_string("/proc/cpuinfo") {
+        for line in cpuinfo.lines() {
+            if line.starts_with("model name") {
+                if let Some((_, val)) = line.split_once(':') {
+                    return format!("CPU:{}", val.trim());
+                }
+            }
+        }
+    }
+
+    "GENERIC".to_string()
+}
+
+/// Parses and validates a cached GPU list payload against an expected hardware fingerprint.
+/// Returns Some(Vec<String>) if and only if the header contains `# FINGERPRINT:<expected_fingerprint>`
+/// and at least one cached GPU entry exists.
+pub fn parse_cached_gpu_list(content: &str, expected_fingerprint: &str) -> Option<Vec<String>> {
+    let (fp_line, rest) = content.split_once('\n')?;
+    let cached_fp = fp_line.strip_prefix("# FINGERPRINT:")?.trim();
+    if cached_fp != expected_fingerprint || cached_fp.is_empty() {
+        return None;
+    }
+    let list: Vec<String> = rest
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .collect();
+    if list.is_empty() {
+        None
+    } else {
+        Some(list)
+    }
+}
+
 #[cfg(not(windows))]
 fn get_gpu_list_uncached() -> Vec<String> {
-    // 0. Fast-path: Check persistent cache
     let cache_dir = std::env::var_os("XDG_CACHE_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
         .map(|p| p.join("kkfetch"));
 
     let cache_file = cache_dir.as_ref().map(|d| d.join("gpu_list_v2.cache"));
+    let current_fingerprint = get_gpu_hardware_fingerprint();
 
+    // 0. Fast-path: Check persistent cache validated by current hardware fingerprint
     if let Some(ref path) = cache_file {
         if let Ok(content) = fs::read_to_string(path) {
-            let list: Vec<String> = content
-                .lines()
-                .map(|l| l.trim().to_string())
-                .filter(|l| !l.is_empty())
-                .collect();
-            if !list.is_empty() {
+            if let Some(list) = parse_cached_gpu_list(&content, &current_fingerprint) {
                 return list;
             }
         }
@@ -979,7 +1059,12 @@ fn get_gpu_list_uncached() -> Vec<String> {
             let _ = fs::create_dir_all(dir);
         }
         if let Some(ref path) = cache_file {
-            let _ = fs::write(path, result.join("\n"));
+            let payload = format!(
+                "# FINGERPRINT:{}\n{}",
+                current_fingerprint,
+                result.join("\n")
+            );
+            let _ = fs::write(path, payload);
         }
     }
 
@@ -1376,5 +1461,64 @@ mod tests {
             single_out[0].value,
             "AMD Radeon 610M (512 MiB) [Integrated]"
         );
+    }
+
+    #[test]
+    fn test_parse_cached_gpu_list_matching_fingerprint() {
+        let content = "# FINGERPRINT:PCI:1002:15c8\nAMD Radeon 610M (512 MiB)\n";
+        let parsed = parse_cached_gpu_list(content, "PCI:1002:15c8");
+        assert_eq!(parsed, Some(vec!["AMD Radeon 610M (512 MiB)".to_string()]));
+    }
+
+    #[test]
+    fn test_parse_cached_gpu_list_mismatched_fingerprint_ssd_swap() {
+        // Simulates Kombat's SSD swap: cache contains Intel GPU from old laptop,
+        // but current host fingerprint is AMD Vivobook Go. Must invalidate!
+        let content = "# FINGERPRINT:PCI:8086:5917\nIntel HD Graphics 620 (256 MiB)\n";
+        let parsed = parse_cached_gpu_list(content, "PCI:1002:15c8");
+        assert_eq!(
+            parsed, None,
+            "Cache with mismatched fingerprint must be invalidated"
+        );
+    }
+
+    #[test]
+    fn test_parse_cached_gpu_list_legacy_unfingerprinted_cache() {
+        // Old cache format without # FINGERPRINT header must be invalidated
+        let legacy_content = "Intel HD Graphics 620 (256 MiB)\n";
+        let parsed = parse_cached_gpu_list(legacy_content, "PCI:1002:15c8");
+        assert_eq!(
+            parsed, None,
+            "Legacy cache without fingerprint header must be invalidated"
+        );
+    }
+
+    #[test]
+    fn test_get_gpu_hardware_fingerprint_from_pci_dir_mock() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pci_dir = temp_dir.path();
+
+        // GPU 1: AMD Radeon 610M
+        let gpu1 = pci_dir.join("0000:01:00.0");
+        fs::create_dir_all(&gpu1).unwrap();
+        fs::write(gpu1.join("class"), "0x030000\n").unwrap();
+        fs::write(gpu1.join("vendor"), "0x1002\n").unwrap();
+        fs::write(gpu1.join("device"), "0x15c8\n").unwrap();
+
+        // GPU 2: NVIDIA dGPU
+        let gpu2 = pci_dir.join("0000:02:00.0");
+        fs::create_dir_all(&gpu2).unwrap();
+        fs::write(gpu2.join("class"), "0x030200\n").unwrap();
+        fs::write(gpu2.join("vendor"), "0x10de\n").unwrap();
+        fs::write(gpu2.join("device"), "0x25ad\n").unwrap();
+
+        // Non-display device (e.g. NVMe)
+        let nvme = pci_dir.join("0000:03:00.0");
+        fs::create_dir_all(&nvme).unwrap();
+        fs::write(nvme.join("class"), "0x010802\n").unwrap();
+        fs::write(nvme.join("vendor"), "0x144d\n").unwrap();
+
+        let fp = get_gpu_hardware_fingerprint_from_pci_dir(pci_dir);
+        assert_eq!(fp, Some("PCI:1002:15c8,10de:25ad".to_string()));
     }
 }

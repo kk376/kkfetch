@@ -1,3 +1,9 @@
+kkfetch (0.14.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.14.0: Hardware-fingerprinted GPU cache invalidation for SSD swaps, updated Fastfetch benchmarks.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 12 Sep 2026 12:05:00 +0530
+
 kkfetch (0.13.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.13.0: Darwin support, Win32 alignment hardening, no-plugins flag, and cross-platform CI matrix.

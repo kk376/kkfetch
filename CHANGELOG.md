@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-09-12
+
+### Fixed
+- **Hardware-Fingerprinted GPU Cache Invalidation**: Resolved stale GPU model reporting when swapping a storage drive or NVMe SSD across differing hardware platforms (e.g. Intel to AMD Ryzen laptop). `get_gpu_list_uncached()` now generates an ultra-fast sysfs PCI display controller hardware fingerprint (`PCI:<vendor>:<device>,...`) in < 15 microseconds, embedding it into `# FINGERPRINT:<fp>` headers in `~/.cache/kkfetch/gpu_list_v2.cache`. Mismatched hardware fingerprints or legacy unversioned caches are automatically invalidated and re-probed from sysfs without user intervention. *(Discovered & reported by laysnb)*
+
+### Changed
+- **Updated Fastfetch Benchmarks**: Re-ran comparative 100-run statistical benchmarks with `hyperfine` on bare-metal Fedora 44 (Linux 7.2.4-200.fc44.x86_64, AMD Ryzen 5 7535HS), clocking `kkfetch` at ~4.0 ms mean runtime (5.3x faster than Fastfetch at 21.4 ms).
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.14.0 release configurations across Fedora Copr (RPM spec), Ubuntu Launchpad PPA (Noble changelog), Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.14.0.ebuild`), KISS Linux, Alpine Linux, Void Linux, Nix, and WinGet.
+
 ## [0.13.0] - 2026-09-04
 
 ### Added

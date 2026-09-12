@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.13.0
+Version:        0.14.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -58,6 +58,9 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %changelog
+* Sat Sep 12 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.14.0-1
+- Release version 0.14.0: Hardware-fingerprinted GPU cache invalidation for SSD swaps, updated Fastfetch benchmarks
+
 * Fri Sep 04 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.13.0-1
 - Release version 0.13.0: Darwin support, Win32 alignment hardening, no-plugins flag, cross-platform CI matrix
 

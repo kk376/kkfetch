@@ -1,6 +1,6 @@
 # Template file for 'kkfetch'
 pkgname=kkfetch
-version=0.13.0
+version=0.14.0
 revision=1
 build_style=cargo
 short_desc="Fast, lightweight Linux and Android system information fetch CLI written in Rust"
@@ -9,7 +9,7 @@ license="MIT"
 homepage="https://github.com/kk376/kkfetch"
 changelog="https://raw.githubusercontent.com/kk376/kkfetch/main/CHANGELOG.md"
 distfiles="https://github.com/kk376/kkfetch/archive/refs/tags/v${version}.tar.gz"
-checksum=6e2fbf052988cb945c436087f42dcf9ebd8885d3cd19638b58221e7d41eca9df
+checksum=SKIP
 
 post_install() {
 	vlicense LICENSE

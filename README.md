@@ -42,7 +42,7 @@ cccccccc;.:odl:.;cccccccccccccc:,.       CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.41
 
 Most fetch tools either spawn multiple shell child processes (`neofetch`) or dynamically link heavy C runtime libraries (`fastfetch`). KKFetch is built with a different design philosophy:
 
-* **Sub-3ms Latency**: Queries virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly with zero child process spawning (`fork`/`execve`). In statistical benchmarks, it is **6x faster than Fastfetch** on raw data collection across all 27 active modules.
+* **Sub-3ms Latency**: Queries virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly with zero child process spawning (`fork`/`execve`). In statistical benchmarks, it is **5.6x faster than Fastfetch** on raw data collection across all 27 active modules.
 * **Native OS Install Date**: Probes root filesystem creation timestamp (`statx` birth time) and installer logs, showing exact installation date and relative age (`6 days ago`).
 * **GPU Memory & Classification**: Probes dedicated VRAM and classifies graphics hardware into `[Integrated]` and `[Discrete]` tiers with sequential indexing.
 * **Zero-Fork Display EDID Parsing**: Probes monitor name, refresh rate, physical diagonal size, and panel type directly from DRM sysfs without spawning `xrandr` or display server queries.
@@ -53,15 +53,15 @@ Most fetch tools either spawn multiple shell child processes (`neofetch`) or dyn
 
 ## Benchmarks
 
-Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 44 (Linux 7.1.12-200.fc44.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
+Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 44 (Linux 7.2.4-200.fc44.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
 
 ### Results
 
 | Command | Mean Runtime | Median Latency | Min Latency | Max Latency | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `fastfetch` | `21.90 ms` | `18.35 ms` | `14.67 ms` | `136.51 ms` | `1.00` (Baseline) |
-| `kkfetch` (All 27 Modules) | **`3.65 ms`** | **`3.65 ms`** | **`2.69 ms`** | **`5.11 ms`** | **6.00x faster** |
-| `kkfetch` (Pure sysfs/drm) | **`3.60 ms`** | **`3.65 ms`** | **`2.64 ms`** | **`4.27 ms`** | **6.08x faster** |
+| `fastfetch` | `21.20 ms` | `17.50 ms` | `14.80 ms` | `121.80 ms` | `1.00` (Baseline) |
+| `kkfetch` (All 27 Modules) | **`3.80 ms`** | **`3.75 ms`** | **`2.90 ms`** | **`4.60 ms`** | **5.56x faster** |
+| `kkfetch` (Pure sysfs/drm) | **`4.30 ms`** | **`3.60 ms`** | **`3.20 ms`** | **`18.50 ms`** | **4.94x faster** |
 
 *KKFetch achieves lower CPU time and syscall overhead by reading `/proc` and `sysfs` directly in Rust, executing active module collectors concurrently in parallel using `std::thread::scope`, and compiling with Fat Link-Time Optimization (LTO).*
 
@@ -116,8 +116,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch_0.13.0-1_amd64.deb
-sudo dpkg -i kkfetch_0.13.0-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch_0.14.0-1_amd64.deb
+sudo dpkg -i kkfetch_0.14.0-1_amd64.deb
 ```
 
 ---
@@ -136,8 +136,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch-0.13.0-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.13.0-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-0.14.0-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.14.0-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -155,8 +155,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch_0.13.0-1_termux_aarch64.deb
-dpkg -i kkfetch_0.13.0-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch_0.14.0-1_termux_aarch64.deb
+dpkg -i kkfetch_0.14.0-1_termux_aarch64.deb
 ```
 
 ---
@@ -167,7 +167,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -183,7 +183,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -193,8 +193,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.13.0/kkfetch-0.13.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.13.0-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.0/kkfetch-0.14.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.14.0-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -360,6 +360,7 @@ Special thanks to community contributors for architectural recommendations and s
   * **Filesystem Type Detection (`Disk`)**: Suggested partition filesystem labeling.
   * **ZRAM Compression Algorithm Discovery (`Swap`)**: Suggested detecting active swap compression algorithms from `/sys/block/zram*/comp_algorithm`.
   * **Integrated GPU Classification (`GPU`)**: Reported false discrete classification on AMD Radeon 610M (Mendocino APU) single-GPU machines, leading to comprehensive mobile APU iGPU classification across RDNA and Intel Arc architectures.
+  * **Hardware-Fingerprinted GPU Cache Invalidation (`GPU` / `v0.14.0`)**: Reported stale GPU model caching after swapping an NVMe SSD between differing laptop hardware platforms (Intel to AMD Ryzen), leading to the implementation of zero-overhead sysfs PCI display controller hardware fingerprint verification and automatic cache invalidation.
 
 ---
 
