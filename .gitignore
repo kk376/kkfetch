@@ -8,6 +8,8 @@ vendor/
 *.buildinfo
 *.changes
 *.sh
+!install.sh
+!packaging/**/*.sh
 *.upload
 prep_*.sh
 build_*.sh

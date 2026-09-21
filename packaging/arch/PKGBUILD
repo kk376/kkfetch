@@ -1,6 +1,6 @@
 # Maintainer: Kushagra Kumar (kk376) <kk376@users.noreply.github.com>
 pkgname=kkfetch
-pkgver=0.15.0
+pkgver=0.15.1
 pkgrel=1
 pkgdesc="A fast, lightweight Linux system information fetch tool written in Rust"
 arch=('x86_64' 'aarch64')
@@ -8,6 +8,7 @@ url="https://github.com/kk376/kkfetch"
 license=('MIT')
 depends=('glibc')
 makedepends=('cargo' 'rust')
+install=kkfetch.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/kk376/kkfetch/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 

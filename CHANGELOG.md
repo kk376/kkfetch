@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-09-21
+
+### Added
+- **Installation Health Doctor (`--doctor`)**: Added diagnostic tool to scan system `$PATH` for multiple, duplicate, or shadowed `kkfetch` binary installations (such as older binaries installed via `cargo install` residing in `~/.cargo/bin` shadowing system packages in `/usr/bin`). Displays active vs shadowed paths with resolution steps.
+- **Binary Shadowing Warning on Version Query (`-V, --version`)**: Enhanced version check to inspect `$PATH` for conflicting binaries and display an informative notice when an older binary or multiple installations are detected.
+- **Packaging Post-Install Detection**: Added `%post` scriptlet in RPM spec, post-installation hook in Debian package (`postinst`), and Arch Linux install scriptlet (`kkfetch.install`) to inspect the user's home directory for existing Cargo or local binaries upon package installation or upgrade, alerting users to remove shadowed binaries to prevent version conflicts.
+- **Standalone Installer (`install.sh`)**: Added a zero-dependency shell installer script with automatic binary shadowing detection, shell completions setup, and man page installation.
+
+### Changed
+- **Shell Completions**: Updated Bash, Zsh, and Fish completion scripts to include `--doctor`, `--timings`, and `--no-plugins`.
+
 ## [0.15.0] - 2026-09-21
 
 ### Added

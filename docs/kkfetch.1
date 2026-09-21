@@ -1,4 +1,4 @@
-.TH KKFETCH 1 "September 2026" "kkfetch 0.15.0" "User Commands"
+.TH KKFETCH 1 "September 2026" "kkfetch 0.15.1" "User Commands"
 .SH NAME
 kkfetch \- A fast, lightweight Linux system information fetch tool written in Rust
 .SH SYNOPSIS
@@ -37,11 +37,17 @@ Target mount point or directory path for disk usage statistics (default: "/").
 \fB\-\-json\fR
 Output system information in structured JSON format.
 .TP
+\fB\-\-timings\fR
+Show execution latency breakdown per module in microseconds.
+.TP
+\fB\-\-doctor\fR
+Check system environment for multiple or conflicting kkfetch installations.
+.TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help information.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
-Print version information.
+Print version information and check for conflicting installations.
 .SH AUTHORS
 Kushagra Kumar (kk376) <https://github.com/kk376/kkfetch>
 .SH COPYRIGHT

@@ -97,6 +97,9 @@ _kkfetch() {
         '--no-logo[Do not display any ASCII logo]' \
         '--list-modules[List all available information modules and exit]' \
         '--json[Output system information in structured JSON format]' \
+        '--timings[Show execution latency breakdown per module in microseconds]' \
+        '--no-plugins[Disable external plugin execution]' \
+        '--doctor[Check system environment for multiple or conflicting kkfetch installations]' \
         '-h[Print help]' \
         '--help[Print help]' \
         '-V[Print version]' \

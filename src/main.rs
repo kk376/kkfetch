@@ -9,6 +9,20 @@ use kkfetch::output::logo::match_logo;
 fn main() {
     let cli = Cli::parse();
 
+    // Version query with shadowing detection
+    if cli.version {
+        println!("kkfetch {}", env!("CARGO_PKG_VERSION"));
+        kkfetch::doctor::check_binary_shadowing(false);
+        return;
+    }
+
+    // Diagnostic check for installation health and conflicting binaries
+    if cli.doctor {
+        println!("kkfetch doctor: checking system installation");
+        kkfetch::doctor::check_binary_shadowing(true);
+        return;
+    }
+
     // Early exit for shell completion scripts or discovery tooling
     if cli.list_modules {
         for module in ModuleId::all() {

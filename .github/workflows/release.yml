@@ -136,9 +136,11 @@ jobs:
           arch = x86_64
           license = MIT
           depend = glibc
+          install = .INSTALL
           EOF
 
-          (cd "${PKGDIR}" && tar --zstd -cf "../dist/kkfetch-${VERSION}-1-x86_64.pkg.tar.zst" .PKGINFO usr)
+          cp packaging/arch/kkfetch.install "${PKGDIR}/.INSTALL"
+          (cd "${PKGDIR}" && tar --zstd -cf "../dist/kkfetch-${VERSION}-1-x86_64.pkg.tar.zst" .PKGINFO .INSTALL usr)
           rm -rf "${PKGDIR}"
 
           # 8. Generate SHA256 checksums

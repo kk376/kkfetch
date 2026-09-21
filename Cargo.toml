@@ -1,6 +1,6 @@
 [package]
 name = "kkfetch"
-version = "0.15.0"
+version = "0.15.1"
 edition = "2021"
 rust-version = "1.75.0"
 authors = ["Kushagra Kumar <kk376>"]
@@ -42,12 +42,14 @@ assets = [
     { source = "README.md", dest = "/usr/share/doc/kkfetch/README.md", mode = "644", doc = true },
     { source = "LICENSE", dest = "/usr/share/licenses/kkfetch/LICENSE", mode = "644" },
 ]
+post_install_script = "packaging/rpm/postinst.sh"
 
 [package.metadata.deb]
 maintainer = "Kushagra Kumar <kk376>"
 copyright = "2026 Kushagra Kumar (kk376)"
 license-file = ["LICENSE", "4"]
 extended-description = "A fast, lightweight Linux system information fetch tool written in Rust."
+maintainer-scripts = "packaging/debian"
 section = "utils"
 priority = "optional"
 assets = [

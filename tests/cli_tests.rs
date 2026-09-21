@@ -261,3 +261,12 @@ fn test_no_plugins_flag() {
     assert!(stdout.contains("\"os\":"));
     assert!(!stdout.contains("\"plugin\":"));
 }
+
+#[test]
+fn test_doctor_flag() {
+    let mut cmd = Command::cargo_bin("kkfetch").unwrap();
+    cmd.arg("--doctor");
+    cmd.assert().success().stdout(predicate::str::contains(
+        "kkfetch doctor: checking system installation",
+    ));
+}

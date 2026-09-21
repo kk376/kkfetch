@@ -3,10 +3,16 @@ use clap::Parser;
 #[derive(Parser, Debug, Clone, Default)]
 #[command(
     name = "kkfetch",
-    about = "A fast, lightweight Linux system information fetch tool written in Rust",
-    version
+    about = "A fast, lightweight Linux system information fetch tool written in Rust"
 )]
 pub struct Cli {
+    /// Print version information and check for conflicting installations
+    #[arg(short = 'V', long = "version")]
+    pub version: bool,
+
+    /// Check system environment for multiple or conflicting kkfetch installations
+    #[arg(long = "doctor")]
+    pub doctor: bool,
     /// Enable specific modules in order (comma-separated, e.g. "os,kernel,cpu,memory")
     #[arg(short = 'm', long = "modules", value_delimiter = ',')]
     pub modules: Option<Vec<String>>,
