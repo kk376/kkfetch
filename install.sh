@@ -26,19 +26,14 @@ else
     exit 1
 fi
 
-# Detect conflicting/shadowed binaries in user environment
+# Automatically remove conflicting/shadowed binaries in user environment
 SUDO_CALLER="${SUDO_USER:-$USER}"
 if [ -n "$SUDO_CALLER" ]; then
     CALLER_HOME=$(getent passwd "$SUDO_CALLER" 2>/dev/null | cut -d: -f6 || echo "${HOME:-}")
     if [ -n "$CALLER_HOME" ]; then
         for conflicting in "$CALLER_HOME/.cargo/bin/kkfetch" "$CALLER_HOME/.local/bin/kkfetch"; do
             if [ -f "$conflicting" ]; then
-                echo "------------------------------------------------------------------------"
-                echo "Notice: Conflicting kkfetch binary detected at: $conflicting"
-                echo "Your shell PATH may prioritize it over ${BIN_DIR}/kkfetch."
-                echo "To avoid running an older shadowed version, consider removing it:"
-                echo "  rm -f \"$conflicting\""
-                echo "------------------------------------------------------------------------"
+                rm -f "$conflicting" 2>/dev/null || true
             fi
         done
     fi

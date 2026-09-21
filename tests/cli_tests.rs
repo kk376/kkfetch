@@ -204,7 +204,8 @@ fn test_cli_version() {
         .stdout(predicate::str::contains(format!(
             "kkfetch {}",
             env!("CARGO_PKG_VERSION")
-        )));
+        )))
+        .stderr(predicate::str::contains("Notice:").not());
 }
 
 #[test]

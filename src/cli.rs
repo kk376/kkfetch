@@ -6,7 +6,7 @@ use clap::Parser;
     about = "A fast, lightweight Linux system information fetch tool written in Rust"
 )]
 pub struct Cli {
-    /// Print version information and check for conflicting installations
+    /// Print version information
     #[arg(short = 'V', long = "version")]
     pub version: bool,
 

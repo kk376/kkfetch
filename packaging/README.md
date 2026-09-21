@@ -272,11 +272,14 @@ brew audit --strict packaging/homebrew/kkfetch.rb
 ```
 
 #### Tap Setup
-1. Create a repository named `homebrew-tap` on GitHub (`github.com/kk376/homebrew-tap`).
+1. Repository named `homebrew-kkfetch` on GitHub (`github.com/kk376/homebrew-kkfetch`).
 2. Add `Formula/kkfetch.rb`.
 3. Users can then install directly via:
    ```bash
-   brew install kk376/tap/kkfetch
+   brew tap kk376/kkfetch
+   brew install kkfetch
+   # Or directly:
+   brew install kk376/kkfetch/kkfetch
    ```
 
 ---

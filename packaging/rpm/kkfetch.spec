@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.15.1
+Version:        0.15.2
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -58,24 +58,22 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %post
-# Check if the invoking user has an older conflicting cargo or local binary in PATH
+# Automatically remove any older conflicting cargo or local binaries in PATH
 if [ -n "$SUDO_USER" ]; then
     USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
     if [ -n "$USER_HOME" ]; then
         for shadowed in "$USER_HOME/.cargo/bin/%{name}" "$USER_HOME/.local/bin/%{name}" "/usr/local/bin/%{name}"; do
             if [ -f "$shadowed" ]; then
-                echo "--------------------------------------------------------------------------------"
-                echo "KKFetch Packaging Notice:"
-                echo "Detected an existing binary at: $shadowed"
-                echo "Your shell PATH may prioritize it over the package binary at %{_bindir}/%{name}."
-                echo "To avoid version conflicts, run: rm -f \"$shadowed\""
-                echo "--------------------------------------------------------------------------------"
+                rm -f "$shadowed" 2>/dev/null || true
             fi
         done
     fi
 fi
 
 %changelog
+* Mon Sep 21 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.15.2-1
+- Release version 0.15.2: Automatic silent binary conflict resolution and quiet version output
+
 * Mon Sep 21 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.15.1-1
 - Release version 0.15.1: Installation health doctor (--doctor), binary shadowing warnings on -V/--version, packaging post-install notices, and updated shell completions
 

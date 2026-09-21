@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-09-21
+
+### Changed
+- **Automatic Silent Binary Conflict Resolution**: Package post-install hooks (RPM `%post`, Debian `postinst`, Arch `kkfetch.install`) and `install.sh` now automatically and silently remove any older conflicting Cargo or local binaries from `$USER_HOME/.cargo/bin/kkfetch` and `$USER_HOME/.local/bin/kkfetch` upon upgrade, eliminating terminal warnings and manual deletion steps.
+- **Clean Version Output**: Removed binary shadowing checks and warning messages from `-V, --version`, preserving quiet single-line output. Diagnostic health inspection remains available via `kkfetch --doctor`.
+- **Homebrew Tap Renamed**: Transitioned official Homebrew tap repository to `kk376/homebrew-kkfetch`, enabling direct installation via `brew tap kk376/kkfetch && brew install kkfetch`.
+
 ## [0.15.1] - 2026-09-21
 
 ### Added

@@ -114,8 +114,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch_0.15.1-1_amd64.deb
-sudo dpkg -i kkfetch_0.15.1-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch_0.15.2-1_amd64.deb
+sudo dpkg -i kkfetch_0.15.2-1_amd64.deb
 ```
 
 ---
@@ -134,8 +134,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch-0.15.1-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.15.1-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch-0.15.2-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.15.2-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -144,7 +144,7 @@ sudo pacman -U kkfetch-0.15.1-1-x86_64.pkg.tar.zst
 
 **Via Homebrew:**
 ```bash
-brew tap kk376/tap
+brew tap kk376/kkfetch
 brew install kkfetch
 ```
 
@@ -153,8 +153,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch_0.15.1-1_termux_aarch64.deb
-dpkg -i kkfetch_0.15.1-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch_0.15.2-1_termux_aarch64.deb
+dpkg -i kkfetch_0.15.2-1_termux_aarch64.deb
 ```
 
 ---
@@ -165,7 +165,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -181,7 +181,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -191,8 +191,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.1/kkfetch-0.15.1-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.15.1-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.2/kkfetch-0.15.2-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.15.2-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -225,7 +225,7 @@ sudo cp target/release/kkfetch /usr/local/bin/
 | `--json` | Output system information in structured JSON format |
 | `--timings` | Show execution latency breakdown per module in microseconds |
 | `-h, --help` | Print help information |
-| `-V, --version` | Print version information (detects and warns if multiple binaries exist in `$PATH`) |
+| `-V, --version` | Print version information |
 | `--doctor` | Check system environment for multiple or conflicting installations |
 
 ### Examples

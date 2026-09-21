@@ -9,10 +9,9 @@ use kkfetch::output::logo::match_logo;
 fn main() {
     let cli = Cli::parse();
 
-    // Version query with shadowing detection
+    // Version query
     if cli.version {
         println!("kkfetch {}", env!("CARGO_PKG_VERSION"));
-        kkfetch::doctor::check_binary_shadowing(false);
         return;
     }
 
