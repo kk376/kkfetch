@@ -13,6 +13,6 @@ Commands:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch-windows-x86_64.zip
-    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    InstallerSha256: bd22d7f58c32d5173b4161a9a88fd1776d45645ca28b0c8bb544f9e768ee3ff5
 ManifestType: installer
 ManifestVersion: 1.6.0
