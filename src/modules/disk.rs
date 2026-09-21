@@ -104,34 +104,35 @@ pub fn get_disk_usage(path: &str) -> Option<DiskUsage> {
 }
 
 /// Formats disk usage into TiB, GiB, or MiB representation.
-pub fn format_disk_usage(info: &DiskUsage) -> String {
+pub fn format_disk_usage(info: &DiskUsage, enable_color: bool) -> String {
     const TIB: f64 = 1024.0 * 1024.0 * 1024.0 * 1024.0;
     const GIB: f64 = 1024.0 * 1024.0 * 1024.0;
     const MIB: f64 = 1024.0 * 1024.0;
 
     let total_f = info.total_bytes as f64;
     let used_f = info.used_bytes as f64;
+    let pct = crate::output::color::format_percentage(info.percentage as u64, false, enable_color);
 
     if total_f >= TIB {
         format!(
-            "{:.2} TiB / {:.2} TiB ({}%)",
+            "{:.2} TiB / {:.2} TiB ({})",
             used_f / TIB,
             total_f / TIB,
-            info.percentage
+            pct
         )
     } else if total_f >= GIB {
         format!(
-            "{:.1} GiB / {:.1} GiB ({}%)",
+            "{:.1} GiB / {:.1} GiB ({})",
             used_f / GIB,
             total_f / GIB,
-            info.percentage
+            pct
         )
     } else {
         format!(
-            "{:.0} MiB / {:.0} MiB ({}%)",
+            "{:.0} MiB / {:.0} MiB ({})",
             used_f / MIB,
             total_f / MIB,
-            info.percentage
+            pct
         )
     }
 }
@@ -295,8 +296,13 @@ pub fn get_volume_fs_type(path: &str) -> Option<String> {
 }
 
 /// Formats a complete disk display string including mount label, capacity, and filesystem type.
-pub fn format_disk_entry(display_label: &str, usage: &DiskUsage, fs_type: Option<&str>) -> String {
-    let base = format!("({}) {}", display_label, format_disk_usage(usage));
+pub fn format_disk_entry(
+    display_label: &str,
+    usage: &DiskUsage,
+    fs_type: Option<&str>,
+    enable_color: bool,
+) -> String {
+    let base = format!("({}) {}", display_label, format_disk_usage(usage, enable_color));
     if let Some(fs) = fs_type {
         if !fs.is_empty() {
             return format!("{} - {}", base, fs);
@@ -478,7 +484,12 @@ impl Collector for DiskCollector {
         Some(ModuleOutput {
             id: ModuleId::Disk,
             label: "Disk0".to_string(),
-            value: format_disk_entry(&display_label, &usage, fs_type.as_deref()),
+            value: format_disk_entry(
+                &display_label,
+                &usage,
+                fs_type.as_deref(),
+                ctx.enable_color,
+            ),
             custom_rendered: None,
         })
     }
@@ -492,7 +503,12 @@ impl Collector for DiskCollector {
                 return vec![ModuleOutput {
                     id: ModuleId::Disk,
                     label: "Disk0".to_string(),
-                    value: format_disk_entry(&ctx.disk_target_path, &usage, fs_type.as_deref()),
+                    value: format_disk_entry(
+                        &ctx.disk_target_path,
+                        &usage,
+                        fs_type.as_deref(),
+                        ctx.enable_color,
+                    ),
                     custom_rendered: None,
                 }];
             } else {
@@ -505,7 +521,12 @@ impl Collector for DiskCollector {
 
         for (idx, entry) in disks.iter().enumerate() {
             let label = format!("Disk{}", idx);
-            let value = format_disk_entry(&entry.display_name, &entry.usage, Some(&entry.fs_type));
+            let value = format_disk_entry(
+                &entry.display_name,
+                &entry.usage,
+                Some(&entry.fs_type),
+                ctx.enable_color,
+            );
             outputs.push(ModuleOutput {
                 id: ModuleId::Disk,
                 label,
@@ -530,8 +551,11 @@ mod tests {
             free_bytes: 218 * 1024 * 1024 * 1024,
             percentage: 13,
         };
-        let s = format_disk_usage(&usage);
+        let s = format_disk_usage(&usage, false);
         assert_eq!(s, "32.0 GiB / 250.0 GiB (13%)");
+
+        let colored = format_disk_usage(&usage, true);
+        assert_eq!(colored, "32.0 GiB / 250.0 GiB (\x1b[32m13%\x1b[0m)");
     }
 
     #[test]
@@ -542,8 +566,11 @@ mod tests {
             free_bytes: 1024 * 1024 * 1024 * 1024,
             percentage: 50,
         };
-        let s = format_disk_usage(&usage);
+        let s = format_disk_usage(&usage, false);
         assert_eq!(s, "1.00 TiB / 2.00 TiB (50%)");
+
+        let colored = format_disk_usage(&usage, true);
+        assert_eq!(colored, "1.00 TiB / 2.00 TiB (\x1b[33m50%\x1b[0m)");
     }
 
     #[test]
@@ -554,7 +581,7 @@ mod tests {
             free_bytes: 400 * 1024 * 1024,
             percentage: 20,
         };
-        let s = format_disk_usage(&usage);
+        let s = format_disk_usage(&usage, false);
         assert_eq!(s, "100 MiB / 500 MiB (20%)");
     }
 
@@ -621,11 +648,17 @@ mod tests {
             free_bytes: 400 * 1024 * 1024 * 1024,
             percentage: 20,
         };
-        let formatted = format_disk_entry("/", &usage, Some("ext4"));
+        let formatted = format_disk_entry("/", &usage, Some("ext4"), false);
         assert_eq!(formatted, "(/) 100.0 GiB / 500.0 GiB (20%) - ext4");
 
-        let formatted_no_fs = format_disk_entry("/", &usage, None);
+        let formatted_no_fs = format_disk_entry("/", &usage, None, false);
         assert_eq!(formatted_no_fs, "(/) 100.0 GiB / 500.0 GiB (20%)");
+
+        let formatted_colored = format_disk_entry("/", &usage, Some("ext4"), true);
+        assert_eq!(
+            formatted_colored,
+            "(/) 100.0 GiB / 500.0 GiB (\x1b[32m20%\x1b[0m) - ext4"
+        );
     }
 
     #[test]

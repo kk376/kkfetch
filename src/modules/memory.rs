@@ -81,21 +81,22 @@ pub fn parse_meminfo(content: &str) -> Option<MemoryInfo> {
 }
 
 /// Formats memory in GiB or MiB.
-pub fn format_memory(info: &MemoryInfo) -> String {
+pub fn format_memory(info: &MemoryInfo, enable_color: bool) -> String {
     let one_gib_kb = 1024.0 * 1024.0;
+    let pct = crate::output::color::format_percentage(info.percent, false, enable_color);
     if info.total_kb as f64 >= one_gib_kb {
         let used_gib = info.used_kb as f64 / one_gib_kb;
         let total_gib = info.total_kb as f64 / one_gib_kb;
         format!(
-            "{:.2} GiB / {:.2} GiB ({}%)",
-            used_gib, total_gib, info.percent
+            "{:.2} GiB / {:.2} GiB ({})",
+            used_gib, total_gib, pct
         )
     } else {
         let used_mib = info.used_kb as f64 / 1024.0;
         let total_mib = info.total_kb as f64 / 1024.0;
         format!(
-            "{:.0} MiB / {:.0} MiB ({}%)",
-            used_mib, total_mib, info.percent
+            "{:.0} MiB / {:.0} MiB ({})",
+            used_mib, total_mib, pct
         )
     }
 }
@@ -140,12 +141,12 @@ impl Collector for MemoryCollector {
         ModuleId::Memory
     }
 
-    fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
+    fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
         let mem = get_memory_info()?;
         Some(ModuleOutput {
             id: ModuleId::Memory,
             label: "Memory".to_string(),
-            value: format_memory(&mem),
+            value: format_memory(&mem, ctx.enable_color),
             custom_rendered: None,
         })
     }
@@ -282,21 +283,22 @@ pub fn get_swap_info() -> Option<SwapInfo> {
 }
 
 /// Formats swap memory with optional ZRAM compression algorithm tag.
-pub fn format_swap(info: &SwapInfo, zram_algo: Option<&str>) -> String {
+pub fn format_swap(info: &SwapInfo, zram_algo: Option<&str>, enable_color: bool) -> String {
     let one_gib_kb = 1024.0 * 1024.0;
+    let pct = crate::output::color::format_percentage(info.percent, false, enable_color);
     let base = if info.total_kb as f64 >= one_gib_kb {
         let used_gib = info.used_kb as f64 / one_gib_kb;
         let total_gib = info.total_kb as f64 / one_gib_kb;
         format!(
-            "{:.2} GiB / {:.2} GiB ({}%)",
-            used_gib, total_gib, info.percent
+            "{:.2} GiB / {:.2} GiB ({})",
+            used_gib, total_gib, pct
         )
     } else {
         let used_mib = info.used_kb as f64 / 1024.0;
         let total_mib = info.total_kb as f64 / 1024.0;
         format!(
-            "{:.0} MiB / {:.0} MiB ({}%)",
-            used_mib, total_mib, info.percent
+            "{:.0} MiB / {:.0} MiB ({})",
+            used_mib, total_mib, pct
         )
     };
 
@@ -315,10 +317,10 @@ impl Collector for SwapCollector {
         ModuleId::Swap
     }
 
-    fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
+    fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
         let swap = get_swap_info()?;
         let zram_algo = detect_zram_algorithm();
-        let value = format_swap(&swap, zram_algo.as_deref());
+        let value = format_swap(&swap, zram_algo.as_deref(), ctx.enable_color);
 
         Some(ModuleOutput {
             id: ModuleId::Swap,
@@ -346,9 +348,12 @@ Cached:          7450000 kB
         assert_eq!(info.total_kb, 16281600);
         assert_eq!(info.used_kb, 16281600 - 11550000);
         assert_eq!(info.percent, 29);
-        let formatted = format_memory(&info);
+        let formatted = format_memory(&info, false);
         assert!(formatted.contains("GiB"));
         assert!(formatted.contains("29%"));
+
+        let colored = format_memory(&info, true);
+        assert!(colored.contains("\x1b[32m29%\x1b[0m"));
     }
 
     #[test]
@@ -359,7 +364,7 @@ MemFree:          100000 kB
 MemAvailable:     300000 kB
 "#;
         let info = parse_meminfo(fixture).unwrap();
-        let formatted = format_memory(&info);
+        let formatted = format_memory(&info, false);
         assert!(formatted.contains("MiB"));
     }
 
@@ -398,10 +403,16 @@ SwapFree:        4194304 kB
         assert_eq!(info.used_kb, 0);
         assert_eq!(info.percent, 0);
 
-        let formatted = format_swap(&info, Some("LZ4"));
+        let formatted = format_swap(&info, Some("LZ4"), false);
         assert_eq!(formatted, "0.00 GiB / 4.00 GiB (0%) - LZ4");
 
-        let formatted_traditional = format_swap(&info, None);
+        let formatted_traditional = format_swap(&info, None, false);
         assert_eq!(formatted_traditional, "0.00 GiB / 4.00 GiB (0%)");
+
+        let formatted_colored = format_swap(&info, Some("LZ4"), true);
+        assert_eq!(
+            formatted_colored,
+            "0.00 GiB / 4.00 GiB (\x1b[32m0%\x1b[0m) - LZ4"
+        );
     }
 }

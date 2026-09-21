@@ -211,6 +211,25 @@ pub struct ModuleRegistry {
     collectors: Vec<Box<dyn Collector>>,
 }
 
+fn is_fast_module(id: ModuleId) -> bool {
+    matches!(
+        id,
+        ModuleId::Title
+            | ModuleId::Os
+            | ModuleId::Kernel
+            | ModuleId::Cpu
+            | ModuleId::Theme
+            | ModuleId::Icons
+            | ModuleId::Font
+            | ModuleId::Cursor
+            | ModuleId::Colors
+            | ModuleId::Wm
+            | ModuleId::WmTheme
+            | ModuleId::Terminal
+            | ModuleId::TerminalFont
+    )
+}
+
 impl ModuleRegistry {
     pub fn new() -> Self {
         let collectors: Vec<Box<dyn Collector>> = vec![
@@ -252,6 +271,7 @@ impl ModuleRegistry {
     }
 
     /// Collects metrics from active modules concurrently while recording microsecond execution duration per module.
+    /// Fast in-memory modules are evaluated directly on the calling thread to eliminate thread creation overhead.
     pub fn collect_all_timed(
         &self,
         ctx: &FetchContext,
@@ -263,23 +283,45 @@ impl ModuleRegistry {
 
         let results: Vec<(Vec<ModuleOutput>, ModuleId, std::time::Duration)> =
             std::thread::scope(|s| {
-                let mut handles = Vec::with_capacity(active.len());
+                enum Task<'scope> {
+                    Direct(Vec<ModuleOutput>, ModuleId, std::time::Duration),
+                    Spawned(
+                        ModuleId,
+                        std::thread::ScopedJoinHandle<
+                            'scope,
+                            (Vec<ModuleOutput>, ModuleId, std::time::Duration),
+                        >,
+                    ),
+                }
+
+                let mut tasks = Vec::with_capacity(active.len());
+
                 for &module_id in active {
                     if let Some(collector) = self.collectors.iter().find(|c| c.id() == module_id) {
-                        let handle = s.spawn(move || {
+                        if is_fast_module(module_id) {
                             let start = std::time::Instant::now();
                             let outputs = collector.collect_multiple(ctx);
                             let elapsed = start.elapsed();
-                            (outputs, module_id, elapsed)
-                        });
-                        handles.push((module_id, handle));
+                            tasks.push(Task::Direct(outputs, module_id, elapsed));
+                        } else {
+                            let handle = s.spawn(move || {
+                                let start = std::time::Instant::now();
+                                let outputs = collector.collect_multiple(ctx);
+                                let elapsed = start.elapsed();
+                                (outputs, module_id, elapsed)
+                            });
+                            tasks.push(Task::Spawned(module_id, handle));
+                        }
                     }
                 }
-                handles
+
+                tasks
                     .into_iter()
-                    .map(|(mod_id, h)| {
-                        h.join()
-                            .unwrap_or_else(|_| (Vec::new(), mod_id, std::time::Duration::ZERO))
+                    .map(|task| match task {
+                        Task::Direct(outs, mod_id, dur) => (outs, mod_id, dur),
+                        Task::Spawned(mod_id, h) => h.join().unwrap_or_else(|_| {
+                            (Vec::new(), mod_id, std::time::Duration::ZERO)
+                        }),
                     })
                     .collect()
             });

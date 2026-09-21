@@ -263,8 +263,11 @@ fn test_fixture_meminfo_16gb() {
     assert_eq!(info.total_kb, 16281600);
     assert_eq!(info.used_kb, 16281600 - 11550000);
     assert_eq!(info.percent, 29);
-    let s = format_memory(&info);
+    let s = format_memory(&info, false);
     assert_eq!(s, "4.51 GiB / 15.53 GiB (29%)");
+
+    let colored = format_memory(&info, true);
+    assert_eq!(colored, "4.51 GiB / 15.53 GiB (\x1b[32m29%\x1b[0m)");
 }
 
 #[test]
@@ -272,7 +275,7 @@ fn test_fixture_meminfo_512mb() {
     let content = include_str!("fixtures/meminfo/low_memory_512mb.txt");
     let info = parse_meminfo(content).expect("Failed to parse 512mb meminfo");
     assert_eq!(info.total_kb, 524288);
-    let s = format_memory(&info);
+    let s = format_memory(&info, false);
     assert!(s.contains("MiB"));
     assert_eq!(s, "256 MiB / 512 MiB (50%)");
 }
@@ -282,7 +285,7 @@ fn test_fixture_meminfo_128gb() {
     let content = include_str!("fixtures/meminfo/large_memory_128gb.txt");
     let info = parse_meminfo(content).expect("Failed to parse 128gb meminfo");
     assert_eq!(info.total_kb, 131828736);
-    let s = format_memory(&info);
+    let s = format_memory(&info, false);
     assert!(s.contains("GiB"));
 }
 

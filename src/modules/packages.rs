@@ -934,24 +934,17 @@ pub fn get_packages_summary() -> Option<String> {
     if let Some(brew) = count_brew() {
         parts.push(format!("{} (brew)", brew));
     }
-    if let Some(winget) = count_winget() {
-        parts.push(format!("{} (winget)", winget));
-    }
-    if let Some(scoop) = count_scoop() {
-        parts.push(format!("{} (scoop)", scoop));
-    }
-    if let Some(choco) = count_choco() {
-        parts.push(format!("{} (choco)", choco));
-    }
     if let Some(nix) = count_nix() {
         parts.push(format!("{} (nix)", nix));
     }
     if let Some(guix) = count_guix() {
         parts.push(format!("{} (guix)", guix));
     }
+    #[cfg(any(target_os = "freebsd", test))]
     if let Some(pkg) = count_pkg() {
         parts.push(format!("{} (pkg)", pkg));
     }
+    #[cfg(any(target_os = "macos", test))]
     if let Some(macports) = count_macports() {
         parts.push(format!("{} (macports)", macports));
     }

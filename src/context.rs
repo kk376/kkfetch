@@ -43,7 +43,7 @@ impl FetchContext {
 
     pub fn with_config(cli: &Cli, config: Config) -> Self {
         let term_width = get_terminal_width();
-        let no_color = cli.no_color || config.no_color.unwrap_or(false);
+        let no_color = cli.no_color || cli.json || config.no_color.unwrap_or(false);
         let caps = detect_terminal_caps(no_color);
         let enable_color = caps.color_level != ColorLevel::None;
         let os_info = detect_os();

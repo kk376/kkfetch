@@ -114,8 +114,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch_0.14.5-1_amd64.deb
-sudo dpkg -i kkfetch_0.14.5-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch_0.15.0-1_amd64.deb
+sudo dpkg -i kkfetch_0.15.0-1_amd64.deb
 ```
 
 ---
@@ -134,8 +134,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-0.14.5-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.14.5-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch-0.15.0-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.15.0-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -153,8 +153,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch_0.14.5-1_termux_aarch64.deb
-dpkg -i kkfetch_0.14.5-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch_0.15.0-1_termux_aarch64.deb
+dpkg -i kkfetch_0.15.0-1_termux_aarch64.deb
 ```
 
 ---
@@ -165,7 +165,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -181,7 +181,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -191,8 +191,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.14.5/kkfetch-0.14.5-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.14.5-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.15.0/kkfetch-0.15.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.15.0-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -374,3 +374,4 @@ Special thanks to community contributors for architectural recommendations and s
 
 * **KKFetch** is authored by **Kushagra Kumar (kk376)** and open-source software licensed under the **[MIT License](LICENSE)**.
 * **ASCII Art Outlines**: Distribution ASCII art boundary outlines are based on the classic art from **[Neofetch](https://github.com/dylanaraps/neofetch)** by Dylan Araps (also licensed under the **MIT License**, Copyright © 2016-2022 Dylan Araps), customized and enhanced in KKFetch with high-contrast white structural framing and distribution brand signature colors.
+* **Colored Percentage Thresholds**: The dynamic color-coded percentage thresholds (transitioning across green, yellow, and red based on resource and battery capacity levels) are inspired by the classic visual formatting in **[Neofetch](https://github.com/dylanaraps/neofetch)**.

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-09-21
+
+### Added
+- **Colorized Battery Time Estimates**: Dynamic color rendering for battery charge and discharge telemetry (`xh ym remaining` / `xh ym until full`). Charging estimates are styled in bright green (`\x1b[32m`), while discharging estimates transition dynamically based on battery capacity (green for >= 50%, yellow for 20% to 49%, red for < 20%).
+- **Instantaneous AC Power Transition Detection**: Probes live AC power supply online status via sysfs (`/sys/class/power_supply/*/online`) in sub-60-microsecond latency. When the AC adapter is plugged in or unplugged, stale battery cache is bypassed immediately, updating battery metrics without delay.
+
+### Changed
+- **Optimized Battery Cache TTL**: Reduced default battery telemetry cache time-to-live from 30 seconds to 5 seconds, providing responsive estimates while preventing excessive battery sysfs wakeups.
+- **In-Memory Module Threading Bypass**: Streamlined execution of 13 pure in-memory collectors (`title`, `os`, `kernel`, `cpu`, `theme`, `icons`, `font`, `cursor`, `colors`, `wm`, `wmtheme`, `terminal`, `terminalfont`) directly on the main thread, avoiding thread spawn and context-switch latency, reducing OS thread pool allocation from 27 down to ~10 threads.
+- **Platform-Targeted Package Manager Scans**: Excluded non-native package managers on Linux (Windows-specific Winget, Scoop, Chocolatey; Darwin MacPorts; FreeBSD pkg) to eliminate unnecessary directory probing and system call overhead.
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.15.0 release metadata across RPM spec, Debian changelog, Homebrew formula, Arch PKGBUILD, Alpine APKBUILD, Gentoo ebuild, KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.14.5] - 2026-09-12
 
 ### Fixed

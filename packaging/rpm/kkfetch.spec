@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.14.5
+Version:        0.15.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -58,6 +58,9 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %changelog
+* Mon Sep 21 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.15.0-1
+- Release version 0.15.0: Colorized battery time estimates, instant AC transition detection, reduced cache TTL, thread pool optimization, and package manager scan refinements
+
 * Sat Sep 12 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.14.5-1
 - Release version 0.14.5: Hotfix release syncing binary version string and package distributions
 

@@ -1,3 +1,9 @@
+kkfetch (0.15.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.15.0: Colorized battery time estimates, instant AC transition detection, reduced cache TTL, thread pool optimization, and package manager scan refinements.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Mon, 21 Sep 2026 06:15:00 +0530
+
 kkfetch (0.14.5-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.14.5: Hotfix release syncing binary version string and package distributions.
