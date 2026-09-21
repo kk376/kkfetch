@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-09-21
+
+### Added
+- **Fractional Display Scaling**: Accurate detection and rendering of compositor fractional scaling multipliers (such as `@ 1.33x in 15", 144 Hz [Built-in]`) by parsing `~/.config/monitors.xml` and Wayland compositor configuration.
+- **Live Desktop Version Invalidation**: Desktop Environment cache validated against binary modification timestamps (`mtime` of `/usr/bin/gnome-shell`, `plasmashell`, etc.) to eliminate stale version reporting immediately after system upgrades.
+- **Categorized Local IP with CIDR Notation**: User-friendly network interface classification (`Local IP (Wi-Fi)`, `Local IP (Ethernet)`, `Local IP (Cellular)`, `Local IP (Loopback)`) with CIDR netmask notation.
+- **Automated SRPM Generation**: Added `.copr/Makefile` for seamless automated builds in Fedora Copr.
+
+### Changed
+- **Packaging Stale Cache Cleanup**: Added automated cleanup of stale user caches (`de_*.cache`, `theme_*.cache`) during package upgrades across RPM, Debian, Arch Linux, and standalone `install.sh`.
+- **Documentation & Credits**: Synchronized all command references and download links in `README.md` to `0.16.0`, with credit given to Fastfetch for CIDR subnet notation.
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.16.0 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA (Noble changelog), Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.16.0.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.15.2] - 2026-09-21
 
 ### Changed
