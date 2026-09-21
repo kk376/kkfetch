@@ -12,8 +12,8 @@ A fast, lightweight, zero-subprocess system information fetch tool written in Ru
 .:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 7 hours, 5 mins
 ,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2801 (rpm), 2 (flatpak), 1 (cargo), 26 (pip)
 :cccccccccccccc;MMM.;cccccccccccccccc:   Shell: fish 4.6.0
-:ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 in 15", 144 Hz [Built-in]
-cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   Desktop: GNOME 50.4 (Wayland)
+:ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 @ 1.33x in 15", 144 Hz [Built-in]
+cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   Desktop: GNOME 50.5 (Wayland)
 ccccc;XM0';cccc;MMM.;cccccccccccccccc'   WM: Mutter
 ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    WM Theme: Adwaita
 ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Terminal: ghostty 1.3.1-4.fc44
@@ -28,7 +28,7 @@ cccccccc;.:odl:.;cccccccccccccc:,.       GPU0: AMD Radeon 680M (512 MiB) [Integr
                                          Disk3: (/home) 134.9 GiB / 474.7 GiB (28%) - btrfs
                                          Disk4: (/media/Backup) 455.7 GiB / 931.5 GiB (49%) - fuseblk
                                          Battery: 91% [AC Connected]
-                                         Local IP: 192.168.29.219
+                                         Local IP (Wi-Fi): 192.168.29.219/24
                                          Theme: Adwaita (dark) [GTK/GNOME]
                                          Icons: Adwaita [GTK/GNOME]
                                          Cursor: Adwaita (24px) [GTK/GNOME]
@@ -399,3 +399,4 @@ Special thanks to community contributors for architectural recommendations and s
 * **KKFetch** is authored by **Kushagra Kumar (kk376)** and open-source software licensed under the **[MIT License](LICENSE)**.
 * **ASCII Art Outlines**: Distribution ASCII art boundary outlines are based on the classic art from **[Neofetch](https://github.com/dylanaraps/neofetch)** by Dylan Araps (also licensed under the **MIT License**, Copyright © 2016-2022 Dylan Araps), customized and enhanced in KKFetch with high-contrast white structural framing and distribution brand signature colors.
 * **Colored Percentage Thresholds**: The dynamic color-coded percentage thresholds (transitioning across green, yellow, and red based on resource and battery capacity levels) are inspired by the classic visual formatting in **[Neofetch](https://github.com/dylanaraps/neofetch)**.
+* **CIDR Subnet Notation**: The inclusion of CIDR subnet mask notation (e.g. `/24`) alongside local IP addresses is inspired by **[Fastfetch](https://github.com/fastfetch-cli/fastfetch)**.

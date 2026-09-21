@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.15.2
+Version:        0.16.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -67,10 +67,14 @@ if [ -n "$SUDO_USER" ]; then
                 rm -f "$shadowed" 2>/dev/null || true
             fi
         done
+        rm -f "$USER_HOME/.cache/%{name}/de_*.cache" "$USER_HOME/.cache/%{name}/theme_*.cache" 2>/dev/null || true
     fi
 fi
 
 %changelog
+* Mon Sep 21 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.16.0-1
+- Release version 0.16.0: Add fractional display scaling, live DE version invalidation, categorized Local IP with CIDR notation
+
 * Mon Sep 21 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.15.2-1
 - Release version 0.15.2: Automatic silent binary conflict resolution and quiet version output
 

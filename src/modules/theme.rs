@@ -274,6 +274,22 @@ fn query_gsettings_theme() -> ThemeInfo {
     }
 
     if let Ok(output) = crate::modules::system_command("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "font-name"])
+        .output()
+    {
+        if output.status.success() {
+            let val = String::from_utf8_lossy(&output.stdout)
+                .trim()
+                .trim_matches('\'')
+                .trim_matches('"')
+                .to_string();
+            if !val.is_empty() {
+                info.font = Some(val);
+            }
+        }
+    }
+
+    if let Ok(output) = crate::modules::system_command("gsettings")
         .args(["get", "org.gnome.desktop.interface", "cursor-theme"])
         .output()
     {

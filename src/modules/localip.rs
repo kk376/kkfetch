@@ -5,15 +5,51 @@ use std::ffi::CStr;
 #[cfg(unix)]
 use std::net::Ipv4Addr;
 
-/// Retrieves the primary local IPv4 address using standard POSIX getifaddrs (UNIX) or UDP socket route query (Windows).
-pub fn detect_local_ip() -> Option<String> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalIpEntry {
+    pub label: String,
+    pub ip: String,
+    pub cidr: u8,
+}
+
+/// Classifies a network interface name into a clean user-facing category.
+pub fn classify_interface_label(name: &str) -> &'static str {
+    let lower = name.to_lowercase();
+    if lower.starts_with("wl")
+        || lower.contains("wlan")
+        || lower.contains("wifi")
+        || lower.contains("wi-fi")
+    {
+        "Local IP (Wi-Fi)"
+    } else if lower.starts_with("en")
+        || lower.starts_with("eth")
+        || lower.starts_with("em")
+        || lower.contains("ethernet")
+    {
+        "Local IP (Ethernet)"
+    } else if lower.starts_with("ww")
+        || lower.contains("cellular")
+        || lower.contains("mobile")
+        || lower.contains("lte")
+    {
+        "Local IP (Cellular)"
+    } else if lower.starts_with("lo") || lower.contains("loopback") {
+        "Local IP (Loopback)"
+    } else {
+        "Local IP"
+    }
+}
+
+/// Probes all active local IPv4 addresses and categorizes them with CIDR netmask notation.
+pub fn detect_local_ips() -> Vec<LocalIpEntry> {
     #[cfg(unix)]
     // SAFETY: libc::getifaddrs safely allocates a linked list of network interfaces. We safely iterate over it and free it with libc::freeifaddrs.
     unsafe {
         let mut ifaddrs: *mut libc::ifaddrs = std::ptr::null_mut();
         if libc::getifaddrs(&mut ifaddrs) == 0 && !ifaddrs.is_null() {
-            let mut primary_ip: Option<String> = None;
-            let mut fallback_ip: Option<String> = None;
+            let mut physical_entries = Vec::new();
+            let mut loopback_entry: Option<LocalIpEntry> = None;
+            let mut fallback_virtual: Option<LocalIpEntry> = None;
 
             let mut curr = ifaddrs;
             while !curr.is_null() {
@@ -27,24 +63,51 @@ pub fn detect_local_ip() -> Option<String> {
                     let is_up = (flags & libc::IFF_UP) != 0;
                     let is_loopback = (flags & libc::IFF_LOOPBACK) != 0;
 
-                    if is_up && !is_loopback {
+                    if is_up {
                         let sin = ifa.ifa_addr as *const libc::sockaddr_in;
                         let ip_raw = u32::from_be((*sin).sin_addr.s_addr);
                         let ip = Ipv4Addr::from(ip_raw);
 
-                        // Skip loopback (127.0.0.1) and non-routable link-local APIPA (169.254.0.0/16)
-                        if !ip.is_loopback() && !ip.is_link_local() {
-                            let ip_str = ip.to_string();
-                            // Filter out container and virtual bridge network adapters to select the physical uplink
-                            if !name.starts_with("docker")
-                                && !name.starts_with("veth")
-                                && !name.starts_with("virbr")
-                                && !name.starts_with("br-")
-                            {
-                                primary_ip = Some(ip_str);
-                                break;
-                            } else if fallback_ip.is_none() {
-                                fallback_ip = Some(ip_str);
+                        let cidr = if !ifa.ifa_netmask.is_null() {
+                            let sin_mask = ifa.ifa_netmask as *const libc::sockaddr_in;
+                            let mask_raw = u32::from_be((*sin_mask).sin_addr.s_addr);
+                            mask_raw.count_ones() as u8
+                        } else {
+                            24
+                        };
+
+                        if is_loopback || ip.is_loopback() {
+                            if loopback_entry.is_none() {
+                                loopback_entry = Some(LocalIpEntry {
+                                    label: "Local IP (Loopback)".to_string(),
+                                    ip: ip.to_string(),
+                                    cidr,
+                                });
+                            }
+                        } else if !ip.is_link_local() {
+                            let label = classify_interface_label(&name).to_string();
+                            let is_virtual = name.starts_with("docker")
+                                || name.starts_with("veth")
+                                || name.starts_with("virbr")
+                                || name.starts_with("br-");
+
+                            if !is_virtual {
+                                if !physical_entries
+                                    .iter()
+                                    .any(|e: &LocalIpEntry| e.ip == ip.to_string())
+                                {
+                                    physical_entries.push(LocalIpEntry {
+                                        label,
+                                        ip: ip.to_string(),
+                                        cidr,
+                                    });
+                                }
+                            } else if fallback_virtual.is_none() {
+                                fallback_virtual = Some(LocalIpEntry {
+                                    label,
+                                    ip: ip.to_string(),
+                                    cidr,
+                                });
                             }
                         }
                     }
@@ -53,25 +116,39 @@ pub fn detect_local_ip() -> Option<String> {
             }
 
             libc::freeifaddrs(ifaddrs);
-            if let Some(ip) = primary_ip.or(fallback_ip) {
-                return Some(ip);
+
+            if !physical_entries.is_empty() {
+                return physical_entries;
+            } else if let Some(virt) = fallback_virtual {
+                return vec![virt];
+            } else if let Some(lb) = loopback_entry {
+                return vec![lb];
             }
         }
     }
 
-    // Cross-platform UDP routing table query (works on Windows, Linux, macOS)
+    // Cross-platform UDP routing table query fallback (works on Windows, Linux, macOS)
     if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
         if socket.connect("8.8.8.8:80").is_ok() {
             if let Ok(local_addr) = socket.local_addr() {
                 let ip = local_addr.ip();
                 if !ip.is_loopback() && !ip.is_unspecified() {
-                    return Some(ip.to_string());
+                    return vec![LocalIpEntry {
+                        label: "Local IP".to_string(),
+                        ip: ip.to_string(),
+                        cidr: 24,
+                    }];
                 }
             }
         }
     }
 
-    None
+    Vec::new()
+}
+
+/// Retrieves the primary local IPv4 address.
+pub fn detect_local_ip() -> Option<String> {
+    detect_local_ips().into_iter().next().map(|e| e.ip)
 }
 
 pub struct LocalIpCollector;
@@ -81,14 +158,21 @@ impl Collector for LocalIpCollector {
         ModuleId::LocalIp
     }
 
-    fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
-        let ip = detect_local_ip()?;
-        Some(ModuleOutput {
-            id: ModuleId::LocalIp,
-            label: "Local IP".to_string(),
-            value: ip,
-            custom_rendered: None,
-        })
+    fn collect_multiple(&self, _ctx: &FetchContext) -> Vec<ModuleOutput> {
+        let entries = detect_local_ips();
+        entries
+            .into_iter()
+            .map(|e| ModuleOutput {
+                id: ModuleId::LocalIp,
+                label: e.label,
+                value: format!("{}/{}", e.ip, e.cidr),
+                custom_rendered: None,
+            })
+            .collect()
+    }
+
+    fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
+        self.collect_multiple(ctx).into_iter().next()
     }
 }
 
@@ -97,8 +181,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_detect_local_ip_live() {
-        // Function executes without panics
-        let _ = detect_local_ip();
+    fn test_classify_interface_label() {
+        assert_eq!(classify_interface_label("wlp4s0"), "Local IP (Wi-Fi)");
+        assert_eq!(classify_interface_label("wlan0"), "Local IP (Wi-Fi)");
+        assert_eq!(classify_interface_label("enp3s0"), "Local IP (Ethernet)");
+        assert_eq!(classify_interface_label("eth0"), "Local IP (Ethernet)");
+        assert_eq!(classify_interface_label("wwan0"), "Local IP (Cellular)");
+        assert_eq!(classify_interface_label("lo"), "Local IP (Loopback)");
+    }
+
+    #[test]
+    fn test_detect_local_ips_live() {
+        let ips = detect_local_ips();
+        for entry in &ips {
+            assert!(!entry.ip.is_empty());
+            assert!(entry.cidr > 0 && entry.cidr <= 32);
+            assert!(entry.label.starts_with("Local IP"));
+        }
     }
 }

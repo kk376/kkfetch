@@ -8,5 +8,6 @@ if [ -n "$SUDO_USER" ]; then
                 rm -f "$shadowed" 2>/dev/null || true
             fi
         done
+        rm -f "$USER_HOME/.cache/kkfetch/de_*.cache" "$USER_HOME/.cache/kkfetch/theme_*.cache" 2>/dev/null || true
     fi
 fi

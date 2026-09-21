@@ -2,13 +2,14 @@ use crate::context::FetchContext;
 use crate::modules::{Collector, ModuleId, ModuleOutput};
 use std::fs;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DisplayInfo {
     pub name: Option<String>,
     pub resolution: String,
     pub refresh_rate: Option<u32>,
     pub size_inches: Option<u32>,
     pub display_type: Option<String>,
+    pub scale: Option<f64>,
 }
 
 /// Parses raw 128-byte EDID binary block into structured DisplayInfo.
@@ -87,7 +88,91 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
         refresh_rate: hz,
         size_inches,
         display_type,
+        scale: None,
     })
+}
+
+/// Parses display scaling factor from GNOME / Mutter monitors.xml.
+pub fn parse_monitors_xml_scale(content: &str, connector: Option<&str>) -> Option<f64> {
+    let conn_suffix = connector.and_then(|c| c.split('-').next_back());
+
+    for block in content.split("<logicalmonitor>") {
+        if !block.contains("</logicalmonitor>") {
+            continue;
+        }
+        let lm = block.split("</logicalmonitor>").next().unwrap_or("");
+        let matched = match (connector, conn_suffix) {
+            (Some(c), Some(s)) => lm.contains(c) || lm.contains(s),
+            (Some(c), None) => lm.contains(c),
+            (None, _) => true,
+        };
+
+        if matched {
+            if let (Some(s_start), Some(s_end)) = (lm.find("<scale>"), lm.find("</scale>")) {
+                let s_val = lm[s_start + 7..s_end].trim();
+                if let Ok(scale) = s_val.parse::<f64>() {
+                    if scale > 0.0 {
+                        return Some(scale);
+                    }
+                }
+            }
+        }
+    }
+
+    if let (Some(s_start), Some(s_end)) = (content.find("<scale>"), content.find("</scale>")) {
+        let s_val = content[s_start + 7..s_end].trim();
+        if let Ok(scale) = s_val.parse::<f64>() {
+            if scale > 0.0 {
+                return Some(scale);
+            }
+        }
+    }
+
+    None
+}
+
+/// Detects display scaling factor from GNOME monitors.xml, KDE config, or environment variables.
+pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
+    let config_dir = std::env::var_os("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
+
+    if let Some(ref dir) = config_dir {
+        let path = dir.join("monitors.xml");
+        if let Ok(xml) = fs::read_to_string(&path) {
+            if let Some(scale) = parse_monitors_xml_scale(&xml, connector) {
+                return Some(scale);
+            }
+        }
+    }
+
+    if let Some(ref dir) = config_dir {
+        let kdeglobals = dir.join("kdeglobals");
+        if let Ok(content) = fs::read_to_string(&kdeglobals) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if let Some(rest) = trimmed.strip_prefix("ScaleFactor=") {
+                    if let Ok(scale) = rest.trim().parse::<f64>() {
+                        if scale > 0.0 {
+                            return Some(scale);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for var in &["GDK_SCALE", "QT_SCALE_FACTOR", "ELM_SCALE"] {
+        if let Ok(val) = std::env::var(var) {
+            if let Ok(scale) = val.trim().parse::<f64>() {
+                if scale > 0.0 {
+                    return Some(scale);
+                }
+            }
+        }
+    }
+
+    None
 }
 
 /// Parses xrandr standard output for current resolution and refresh rate.
@@ -114,6 +199,7 @@ pub fn parse_xrandr_output(output: &str) -> Option<DisplayInfo> {
                         refresh_rate: rate,
                         size_inches: None,
                         display_type: None,
+                        scale: None,
                     });
                 }
             }
@@ -143,6 +229,7 @@ pub fn parse_wlr_randr_output(output: &str) -> Option<DisplayInfo> {
                         refresh_rate: hz,
                         size_inches: None,
                         display_type: None,
+                        scale: None,
                     });
                 }
             }
@@ -165,6 +252,8 @@ pub fn detect_display() -> Option<DisplayInfo> {
                         .unwrap_or_default()
                         .to_string_lossy()
                         .to_string();
+                    let scale = detect_display_scale(Some(&conn_name));
+
                     if let Ok(edid_bytes) = fs::read(path.join("edid")) {
                         if let Some(mut info) = parse_edid_binary(&edid_bytes, &conn_name) {
                             if let Ok(modes) = fs::read_to_string(path.join("modes")) {
@@ -175,6 +264,7 @@ pub fn detect_display() -> Option<DisplayInfo> {
                                     }
                                 }
                             }
+                            info.scale = scale;
                             return Some(info);
                         }
                     }
@@ -189,6 +279,7 @@ pub fn detect_display() -> Option<DisplayInfo> {
                                     refresh_rate: None,
                                     size_inches: None,
                                     display_type: None,
+                                    scale,
                                 });
                             }
                         }
@@ -203,7 +294,8 @@ pub fn detect_display() -> Option<DisplayInfo> {
         if let Ok(output) = crate::modules::system_command("xrandr").output() {
             if output.status.success() {
                 let text = String::from_utf8_lossy(&output.stdout);
-                if let Some(info) = parse_xrandr_output(&text) {
+                if let Some(mut info) = parse_xrandr_output(&text) {
+                    info.scale = detect_display_scale(None);
                     return Some(info);
                 }
             }
@@ -212,7 +304,8 @@ pub fn detect_display() -> Option<DisplayInfo> {
         if let Ok(output) = crate::modules::system_command("wlr-randr").output() {
             if output.status.success() {
                 let text = String::from_utf8_lossy(&output.stdout);
-                if let Some(info) = parse_wlr_randr_output(&text) {
+                if let Some(mut info) = parse_wlr_randr_output(&text) {
+                    info.scale = detect_display_scale(None);
                     return Some(info);
                 }
             }
@@ -238,6 +331,11 @@ impl Collector for DisplayCollector {
         };
 
         let mut main_str = info.resolution;
+        if let Some(scale) = info.scale {
+            if (scale - 1.0).abs() > 0.01 {
+                main_str.push_str(&format!(" @ {:.2}x", scale));
+            }
+        }
         if let Some(inch) = info.size_inches {
             main_str.push_str(&format!(" in {}\"", inch));
         }
@@ -310,5 +408,33 @@ rdp-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0
         assert_eq!(info.size_inches, Some(15));
         assert_eq!(info.refresh_rate, Some(144));
         assert_eq!(info.display_type.as_deref(), Some("[Built-in]"));
+    }
+
+    #[test]
+    fn test_parse_monitors_xml_scale() {
+        let sample = r#"
+<monitors version="2">
+  <configuration>
+    <layoutmode>logical</layoutmode>
+    <logicalmonitor>
+      <x>0</x>
+      <y>0</y>
+      <scale>1.3333333730697632</scale>
+      <primary>yes</primary>
+      <monitor>
+        <monitorspec>
+          <connector>eDP-1</connector>
+          <vendor>AUO</vendor>
+          <product>0xd0a2</product>
+        </monitorspec>
+      </monitor>
+    </logicalmonitor>
+  </configuration>
+</monitors>
+"#;
+        let scale = parse_monitors_xml_scale(sample, Some("card1-eDP-1"));
+        assert!(scale.is_some());
+        let s = scale.unwrap();
+        assert!((s - 1.3333333730697632).abs() < 1e-6);
     }
 }

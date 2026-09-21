@@ -36,6 +36,7 @@ if [ -n "$SUDO_CALLER" ]; then
                 rm -f "$conflicting" 2>/dev/null || true
             fi
         done
+        rm -f "$CALLER_HOME/.cache/kkfetch/de_*.cache" "$CALLER_HOME/.cache/kkfetch/theme_*.cache" 2>/dev/null || true
     fi
 fi
 

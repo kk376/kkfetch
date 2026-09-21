@@ -89,6 +89,43 @@ pub fn format_desktop_info(
     }
 }
 
+#[cfg(not(windows))]
+fn get_de_binary(de_lower: &str) -> Option<&'static str> {
+    if de_lower.contains("gnome") {
+        Some("gnome-shell")
+    } else if de_lower.contains("kde") || de_lower.contains("plasma") {
+        Some("plasmashell")
+    } else if de_lower.contains("xfce") {
+        Some("xfce4-session")
+    } else if de_lower.contains("mate") {
+        Some("mate-session")
+    } else if de_lower.contains("cinnamon") {
+        Some("cinnamon")
+    } else if de_lower.contains("lxqt") {
+        Some("lxqt-session")
+    } else if de_lower.contains("cosmic") {
+        Some("cosmic-session")
+    } else {
+        None
+    }
+}
+
+#[cfg(not(windows))]
+fn get_de_binary_mtime(binary: &str) -> Option<u64> {
+    const PATHS: &[&str] = &["/usr/bin", "/bin", "/usr/local/bin"];
+    for dir in PATHS {
+        let p = std::path::Path::new(dir).join(binary);
+        if let Ok(meta) = fs::metadata(&p) {
+            if let Ok(mtime) = meta.modified() {
+                if let Ok(dur) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                    return Some(dur.as_secs());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Probes desktop environment version from metadata files or fast version queries with persistent caching.
 #[cfg(not(windows))]
 pub fn detect_de_version(de_name: &str) -> Option<String> {
@@ -102,11 +139,20 @@ pub fn detect_de_version(de_name: &str) -> Option<String> {
         .as_ref()
         .map(|d| d.join(format!("de_{}.cache", lower.replace(' ', "_"))));
 
+    let bin_name = get_de_binary(&lower);
+    let bin_mtime = bin_name.and_then(get_de_binary_mtime);
+
     if let Some(ref path) = cache_file {
         if let Ok(cached) = fs::read_to_string(path) {
-            let trimmed = cached.trim().to_string();
-            if !trimmed.is_empty() {
-                return Some(trimmed);
+            let trimmed = cached.trim();
+            if let Some((saved_mtime_str, saved_ver)) = trimmed.split_once(' ') {
+                if let Ok(saved_mtime) = saved_mtime_str.parse::<u64>() {
+                    if let Some(current_mtime) = bin_mtime {
+                        if saved_mtime == current_mtime && !saved_ver.is_empty() {
+                            return Some(saved_ver.to_string());
+                        }
+                    }
+                }
             }
         }
     }
@@ -225,7 +271,11 @@ pub fn detect_de_version(de_name: &str) -> Option<String> {
             let _ = fs::create_dir_all(dir);
         }
         if let Some(ref path) = cache_file {
-            let _ = fs::write(path, ver);
+            let cache_content = match bin_mtime {
+                Some(m) => format!("{} {}", m, ver),
+                None => ver.to_string(),
+            };
+            let _ = fs::write(path, cache_content);
         }
     }
 
