@@ -87,17 +87,11 @@ pub fn format_memory(info: &MemoryInfo, enable_color: bool) -> String {
     if info.total_kb as f64 >= one_gib_kb {
         let used_gib = info.used_kb as f64 / one_gib_kb;
         let total_gib = info.total_kb as f64 / one_gib_kb;
-        format!(
-            "{:.2} GiB / {:.2} GiB ({})",
-            used_gib, total_gib, pct
-        )
+        format!("{:.2} GiB / {:.2} GiB ({})", used_gib, total_gib, pct)
     } else {
         let used_mib = info.used_kb as f64 / 1024.0;
         let total_mib = info.total_kb as f64 / 1024.0;
-        format!(
-            "{:.0} MiB / {:.0} MiB ({})",
-            used_mib, total_mib, pct
-        )
+        format!("{:.0} MiB / {:.0} MiB ({})", used_mib, total_mib, pct)
     }
 }
 
@@ -289,17 +283,11 @@ pub fn format_swap(info: &SwapInfo, zram_algo: Option<&str>, enable_color: bool)
     let base = if info.total_kb as f64 >= one_gib_kb {
         let used_gib = info.used_kb as f64 / one_gib_kb;
         let total_gib = info.total_kb as f64 / one_gib_kb;
-        format!(
-            "{:.2} GiB / {:.2} GiB ({})",
-            used_gib, total_gib, pct
-        )
+        format!("{:.2} GiB / {:.2} GiB ({})", used_gib, total_gib, pct)
     } else {
         let used_mib = info.used_kb as f64 / 1024.0;
         let total_mib = info.total_kb as f64 / 1024.0;
-        format!(
-            "{:.0} MiB / {:.0} MiB ({})",
-            used_mib, total_mib, pct
-        )
+        format!("{:.0} MiB / {:.0} MiB ({})", used_mib, total_mib, pct)
     };
 
     if let Some(algo) = zram_algo {

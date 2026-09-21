@@ -18,7 +18,11 @@ pub fn format_duration_estimate(seconds: u64, is_charging: bool) -> Option<Strin
     }
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
-    let suffix = if is_charging { "until full" } else { "remaining" };
+    let suffix = if is_charging {
+        "until full"
+    } else {
+        "remaining"
+    };
 
     let time_str = match (hours, minutes) {
         (h, m) if h > 0 && m > 0 => format!("{}h {}m", h, m),
@@ -58,14 +62,12 @@ pub fn parse_windows_battery_status(
         "Discharging".to_string()
     };
 
-    let time_estimate = if status == "Discharging"
-        && battery_life_time != 0xFFFF_FFFF
-        && battery_life_time > 0
-    {
-        format_duration_estimate(battery_life_time as u64, false)
-    } else {
-        None
-    };
+    let time_estimate =
+        if status == "Discharging" && battery_life_time != 0xFFFF_FFFF && battery_life_time > 0 {
+            format_duration_estimate(battery_life_time as u64, false)
+        } else {
+            None
+        };
 
     Some(BatteryInfo {
         capacity: battery_life_percent,
@@ -423,19 +425,12 @@ impl Collector for BatteryCollector {
 
     fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
         let info = detect_battery()?;
-        let pct = crate::output::color::format_percentage(
-            info.capacity as u64,
-            true,
-            ctx.enable_color,
-        );
+        let pct =
+            crate::output::color::format_percentage(info.capacity as u64, true, ctx.enable_color);
         let value = if let Some(ref est) = info.time_estimate {
             let is_charging = info.status.eq_ignore_ascii_case("charging");
-            let est_colored = format_time_estimate(
-                est,
-                info.capacity,
-                is_charging,
-                ctx.enable_color,
-            );
+            let est_colored =
+                format_time_estimate(est, info.capacity, is_charging, ctx.enable_color);
             format!("{} [{}] [{}]", pct, info.status, est_colored)
         } else {
             format!("{} [{}]", pct, info.status)

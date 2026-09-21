@@ -302,7 +302,11 @@ pub fn format_disk_entry(
     fs_type: Option<&str>,
     enable_color: bool,
 ) -> String {
-    let base = format!("({}) {}", display_label, format_disk_usage(usage, enable_color));
+    let base = format!(
+        "({}) {}",
+        display_label,
+        format_disk_usage(usage, enable_color)
+    );
     if let Some(fs) = fs_type {
         if !fs.is_empty() {
             return format!("{} - {}", base, fs);
@@ -484,12 +488,7 @@ impl Collector for DiskCollector {
         Some(ModuleOutput {
             id: ModuleId::Disk,
             label: "Disk0".to_string(),
-            value: format_disk_entry(
-                &display_label,
-                &usage,
-                fs_type.as_deref(),
-                ctx.enable_color,
-            ),
+            value: format_disk_entry(&display_label, &usage, fs_type.as_deref(), ctx.enable_color),
             custom_rendered: None,
         })
     }

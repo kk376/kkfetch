@@ -319,9 +319,9 @@ impl ModuleRegistry {
                     .into_iter()
                     .map(|task| match task {
                         Task::Direct(outs, mod_id, dur) => (outs, mod_id, dur),
-                        Task::Spawned(mod_id, h) => h.join().unwrap_or_else(|_| {
-                            (Vec::new(), mod_id, std::time::Duration::ZERO)
-                        }),
+                        Task::Spawned(mod_id, h) => h
+                            .join()
+                            .unwrap_or_else(|_| (Vec::new(), mod_id, std::time::Duration::ZERO)),
                     })
                     .collect()
             });
