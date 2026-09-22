@@ -1,0 +1,67 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-formula:
+    name: Bump Homebrew Formula Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: kk376/homebrew-kkfetch
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Download source tarball and compute SHA256
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          TARBALL_URL="https://github.com/kk376/kkfetch/archive/refs/tags/${TAG_NAME}.tar.gz"
+          curl -sL "$TARBALL_URL" -o source.tar.gz
+          MACOS_SHA256=$(sha256sum source.tar.gz | awk '{print $1}')
+
+          LINUX_URL="https://github.com/kk376/kkfetch/releases/download/${TAG_NAME}/kkfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sL "$LINUX_URL" -o linux.tar.gz || true
+          LINUX_SHA256=$(sha256sum linux.tar.gz 2>/dev/null | awk '{print $1}' || echo "PENDING")
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "MACOS_SHA256=$MACOS_SHA256" >> $GITHUB_ENV
+          echo "LINUX_SHA256=$LINUX_SHA256" >> $GITHUB_ENV
+
+      - name: Update formula
+        run: |
+          cd homebrew-tap
+          sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/kkfetch.rb
+          sed -i "0,/sha256 \".*\"/s/sha256 \".*\"/sha256 \"$MACOS_SHA256\"/" Formula/kkfetch.rb
+          sed -i "s|archive/refs/tags/v.*\.tar\.gz|archive/refs/tags/${TAG_NAME}.tar.gz|" Formula/kkfetch.rb
+          sed -i "s|releases/download/v.*/kkfetch-.*-x86_64-unknown-linux-gnu\.tar\.gz|releases/download/${TAG_NAME}/kkfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz|" Formula/kkfetch.rb
+          # Update the second sha256 (Linux block)
+          if [ "$LINUX_SHA256" != "PENDING" ]; then
+            python3 -c "
+import re, sys
+with open('Formula/kkfetch.rb') as f:
+    content = f.read()
+parts = content.split('sha256')
+if len(parts) >= 3:
+    parts[2] = re.sub(r'\"[a-f0-9]{64}\"', '\"$LINUX_SHA256\"', parts[2], count=1)
+    content = 'sha256'.join(parts)
+with open('Formula/kkfetch.rb', 'w') as f:
+    f.write(content)
+"
+          fi
+          sed -i "s/assert_match \"kkfetch .*\"/assert_match \"kkfetch $VERSION\"/" Formula/kkfetch.rb
+
+      - name: Commit and push formula update
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/kkfetch.rb
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "kkfetch ${VERSION}"
+          git push
