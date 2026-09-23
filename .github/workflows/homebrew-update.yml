@@ -42,17 +42,7 @@ jobs:
           sed -i "s|releases/download/v.*/kkfetch-.*-x86_64-unknown-linux-gnu\.tar\.gz|releases/download/${TAG_NAME}/kkfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz|" Formula/kkfetch.rb
           # Update the second sha256 (Linux block)
           if [ "$LINUX_SHA256" != "PENDING" ]; then
-            python3 -c "
-import re, sys
-with open('Formula/kkfetch.rb') as f:
-    content = f.read()
-parts = content.split('sha256')
-if len(parts) >= 3:
-    parts[2] = re.sub(r'\"[a-f0-9]{64}\"', '\"$LINUX_SHA256\"', parts[2], count=1)
-    content = 'sha256'.join(parts)
-with open('Formula/kkfetch.rb', 'w') as f:
-    f.write(content)
-"
+            python3 -c "import re, os; f=open('Formula/kkfetch.rb'); c=f.read(); f.close(); p=c.split('sha256'); len(p)>=3 and open('Formula/kkfetch.rb','w').write('sha256'.join([p[0], p[1], re.sub(r'\"[a-f0-9A-Za-z]+\"', f'\"{os.environ[\"LINUX_SHA256\"]}\"', p[2], count=1)] + p[3:]))"
           fi
           sed -i "s/assert_match \"kkfetch .*\"/assert_match \"kkfetch $VERSION\"/" Formula/kkfetch.rb
 
