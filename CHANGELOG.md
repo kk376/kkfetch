@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-09-24
+
+### Added
+- **Dynamic Wayland Compositor Scale Detection**: Live IPC querying of active compositor monitor scale for Hyprland (`hyprctl -j monitors`) and Sway/wlroots (`swaymsg -t get_outputs -r`), providing instant and accurate scale reporting without depending on static configuration files.
+- **X11 DPI Display Scaling**: Probes live X11 display resolution scale factor via `xrdb -query` (`Xft.dpi`), accurately calculating scale factors (such as 1.25x for 120 DPI, 1.50x for 144 DPI).
+- **Compositor Authoritative Cursor Resolution**: Overlays live compositor environment variables (`HYPRCURSOR_THEME`, `HYPRCURSOR_SIZE`, `XCURSOR_THEME`, `XCURSOR_SIZE`) to ensure reported cursor sizes strictly match the active Wayland compositor surface rather than legacy dconf values.
+- **Session-Bound Theme Cache Invalidation**: Binds `~/.cache/kkfetch/theme_v2.cache` directly to the active desktop session and cursor size, automatically invalidating stale caches when switching between desktop environments or window managers.
+
+### Changed
+- **Cross-Session Residue Elimination**: Removed over-permissive fallbacks in `display.rs` and `theme.rs`. Gated `monitors.xml` strictly to GNOME/Mutter sessions, `kdeglobals` strictly to KDE/Plasma sessions, and `xsettings.xml` to XFCE sessions, eliminating false positive scale and theme leakage across window managers.
+- **Contextual GTK Interface Labeling**: Updated GSettings source tagging to dynamically render as `[GTK]` on tiling window managers (Hyprland, Sway, River, i3) while reserving `[GTK/GNOME]` for active GNOME desktop sessions.
+- **Documentation & Packaging**: Synchronized all package manifests and installation guides to `0.17.0`, with updated terminal preview in `README.md`.
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.17.0 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA (Noble changelog), Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.17.0.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.16.0] - 2026-09-21
 
 ### Added

@@ -196,6 +196,22 @@ pub fn parse_hyprctl_scale(content: &str, connector: Option<&str>) -> Option<f64
     None
 }
 
+/// Parses display scaling factor from `xrdb -query` output (e.g. `Xft.dpi: 144`).
+pub fn parse_xrdb_scale(content: &str) -> Option<f64> {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("Xft.dpi:") {
+            if let Ok(dpi) = rest.trim().parse::<f64>() {
+                if dpi > 0.0 {
+                    let scale = dpi / 96.0;
+                    return Some(scale);
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Detects display scaling factor from active compositor, GNOME monitors.xml, KDE config, or environment variables.
 pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
     let desktop = std::env::var("XDG_CURRENT_DESKTOP")
@@ -219,13 +235,35 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
         }
     }
 
+    // 2. Sway / wlroots: query swaymsg if active
+    let is_sway = desktop.contains("sway") || std::env::var_os("SWAYSOCK").is_some();
+    if is_sway {
+        if let Ok(output) = crate::modules::system_command("swaymsg")
+            .args(["-t", "get_outputs", "-r"])
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                if let Some(scale) = parse_hyprctl_scale(&text, connector) {
+                    return Some(scale);
+                }
+            }
+        }
+    }
+
     let config_dir = std::env::var_os("XDG_CONFIG_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
 
-    // 2. GNOME: read monitors.xml only when running GNOME (prevent stale configs when in Hyprland/KDE)
-    let is_kde = desktop.contains("kde");
-    if desktop.contains("gnome") || (!is_hyprland && !is_kde) {
+    // 3. GNOME / Mutter / Cinnamon: read monitors.xml strictly only when running GNOME
+    let is_gnome = desktop.contains("gnome")
+        || desktop.contains("mutter")
+        || desktop.contains("cinnamon")
+        || desktop.contains("unity")
+        || desktop.contains("pantheon")
+        || desktop.contains("budgie");
+
+    if is_gnome {
         if let Some(ref dir) = config_dir {
             let path = dir.join("monitors.xml");
             if let Ok(xml) = fs::read_to_string(&path) {
@@ -236,16 +274,19 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
         }
     }
 
-    // 3. KDE: read kdeglobals
-    if let Some(ref dir) = config_dir {
-        let kdeglobals = dir.join("kdeglobals");
-        if let Ok(content) = fs::read_to_string(&kdeglobals) {
-            for line in content.lines() {
-                let trimmed = line.trim();
-                if let Some(rest) = trimmed.strip_prefix("ScaleFactor=") {
-                    if let Ok(scale) = rest.trim().parse::<f64>() {
-                        if scale > 0.0 {
-                            return Some(scale);
+    // 4. KDE: read kdeglobals strictly only when running KDE/Plasma
+    let is_kde = desktop.contains("kde") || desktop.contains("plasma");
+    if is_kde {
+        if let Some(ref dir) = config_dir {
+            let kdeglobals = dir.join("kdeglobals");
+            if let Ok(content) = fs::read_to_string(&kdeglobals) {
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if let Some(rest) = trimmed.strip_prefix("ScaleFactor=") {
+                        if let Ok(scale) = rest.trim().parse::<f64>() {
+                            if scale > 0.0 {
+                                return Some(scale);
+                            }
                         }
                     }
                 }
@@ -253,7 +294,22 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
         }
     }
 
-    // 4. Toolkit environment variables fallback
+    // 5. X11: query xrdb for Xft.dpi when in X11 session
+    if std::env::var_os("DISPLAY").is_some() && std::env::var_os("WAYLAND_DISPLAY").is_none() {
+        if let Ok(output) = crate::modules::system_command("xrdb")
+            .arg("-query")
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                if let Some(scale) = parse_xrdb_scale(&text) {
+                    return Some(scale);
+                }
+            }
+        }
+    }
+
+    // 6. Toolkit environment variables fallback
     for var in &["GDK_SCALE", "QT_SCALE_FACTOR", "ELM_SCALE"] {
         if let Ok(val) = std::env::var(var) {
             if let Ok(scale) = val.trim().parse::<f64>() {
@@ -554,5 +610,42 @@ rdp-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0
 
         let scale_unmatched = parse_hyprctl_scale(sample, Some("HDMI-A-1"));
         assert!(scale_unmatched.is_none());
+    }
+
+    #[test]
+    fn test_parse_xrdb_scale() {
+        let sample = "Xcursor.size:\t24\nXft.dpi:\t144\nXft.antialias:\t1\n";
+        let scale = parse_xrdb_scale(sample);
+        assert!(scale.is_some());
+        assert!((scale.unwrap() - 1.5).abs() < 1e-6);
+
+        let default_dpi = "Xft.dpi: 96\n";
+        let s_default = parse_xrdb_scale(default_dpi);
+        assert!(s_default.is_some());
+        assert!((s_default.unwrap() - 1.0).abs() < 1e-6);
+
+        let missing = "Xcursor.size: 24\n";
+        assert!(parse_xrdb_scale(missing).is_none());
+    }
+
+    #[test]
+    fn test_parse_sway_outputs_scale() {
+        let sample = r#"[
+  {
+    "id": 48,
+    "name": "eDP-1",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 1080
+    },
+    "scale": 1.333333,
+    "active": true
+  }
+]"#;
+        let scale = parse_hyprctl_scale(sample, Some("eDP-1"));
+        assert!(scale.is_some());
+        assert!((scale.unwrap() - 1.333333).abs() < 1e-6);
     }
 }

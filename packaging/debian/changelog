@@ -1,3 +1,9 @@
+kkfetch (0.17.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.17.0: Dynamic Wayland/Sway/X11 scaling, compositor-authoritative cursor, session-bound theme cache, cross-session residue elimination.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Thu, 24 Sep 2026 02:30:00 +0530
+
 kkfetch (0.16.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.16.0: Add fractional display scaling, live DE version invalidation, categorized Local IP with CIDR notation.
