@@ -131,21 +131,112 @@ pub fn parse_monitors_xml_scale(content: &str, connector: Option<&str>) -> Optio
     None
 }
 
-/// Detects display scaling factor from GNOME monitors.xml, KDE config, or environment variables.
-pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
-    let config_dir = std::env::var_os("XDG_CONFIG_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
+/// Parses display scaling factor from `hyprctl monitors` or `hyprctl -j monitors` output.
+pub fn parse_hyprctl_scale(content: &str, connector: Option<&str>) -> Option<f64> {
+    let conn_name = connector.map(|c| {
+        if let Some(pos) = c.find('-') {
+            &c[pos + 1..]
+        } else {
+            c
+        }
+    });
 
-    if let Some(ref dir) = config_dir {
-        let path = dir.join("monitors.xml");
-        if let Ok(xml) = fs::read_to_string(&path) {
-            if let Some(scale) = parse_monitors_xml_scale(&xml, connector) {
-                return Some(scale);
+    let mut in_monitor = connector.is_none();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        // 1. Plain text format: "Monitor eDP-1 (ID 0):"
+        if let Some(rest) = trimmed.strip_prefix("Monitor ") {
+            if let Some(mon_name) = rest.split_whitespace().next() {
+                if let Some(conn) = connector {
+                    in_monitor = mon_name == conn || conn_name == Some(mon_name);
+                } else {
+                    in_monitor = true;
+                }
+            }
+        } else if trimmed.starts_with("\"name\":") {
+            // 2. JSON format: "\"name\": \"eDP-1\","
+            // Only consider top-level monitor names (exclude nested workspace objects)
+            if !line.starts_with("        ") {
+                let name_val = trimmed
+                    .trim_start_matches("\"name\":")
+                    .trim()
+                    .trim_matches(|c| c == '"' || c == ',' || c == ' ');
+                if let Some(conn) = connector {
+                    in_monitor = name_val == conn || conn_name == Some(name_val);
+                } else {
+                    in_monitor = true;
+                }
+            }
+        }
+
+        if in_monitor {
+            if let Some(rest) = trimmed.strip_prefix("scale:") {
+                if let Ok(scale) = rest.trim().parse::<f64>() {
+                    if scale > 0.0 {
+                        return Some(scale);
+                    }
+                }
+            } else if let Some(rest) = trimmed.strip_prefix("\"scale\":") {
+                let num_str: String = rest
+                    .chars()
+                    .skip_while(|c| c.is_whitespace())
+                    .take_while(|c| c.is_ascii_digit() || *c == '.')
+                    .collect();
+                if let Ok(scale) = num_str.parse::<f64>() {
+                    if scale > 0.0 {
+                        return Some(scale);
+                    }
+                }
             }
         }
     }
 
+    None
+}
+
+/// Detects display scaling factor from active compositor, GNOME monitors.xml, KDE config, or environment variables.
+pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+        .unwrap_or_default()
+        .to_lowercase();
+    let is_hyprland =
+        desktop.contains("hyprland") || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+
+    // 1. Hyprland: query hyprctl if active
+    if is_hyprland {
+        if let Ok(output) = crate::modules::system_command("hyprctl")
+            .args(["-j", "monitors"])
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                if let Some(scale) = parse_hyprctl_scale(&text, connector) {
+                    return Some(scale);
+                }
+            }
+        }
+    }
+
+    let config_dir = std::env::var_os("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
+
+    // 2. GNOME: read monitors.xml only when running GNOME (prevent stale configs when in Hyprland/KDE)
+    let is_kde = desktop.contains("kde");
+    if desktop.contains("gnome") || (!is_hyprland && !is_kde) {
+        if let Some(ref dir) = config_dir {
+            let path = dir.join("monitors.xml");
+            if let Ok(xml) = fs::read_to_string(&path) {
+                if let Some(scale) = parse_monitors_xml_scale(&xml, connector) {
+                    return Some(scale);
+                }
+            }
+        }
+    }
+
+    // 3. KDE: read kdeglobals
     if let Some(ref dir) = config_dir {
         let kdeglobals = dir.join("kdeglobals");
         if let Ok(content) = fs::read_to_string(&kdeglobals) {
@@ -162,6 +253,7 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
         }
     }
 
+    // 4. Toolkit environment variables fallback
     for var in &["GDK_SCALE", "QT_SCALE_FACTOR", "ELM_SCALE"] {
         if let Ok(val) = std::env::var(var) {
             if let Ok(scale) = val.trim().parse::<f64>() {
@@ -436,5 +528,31 @@ rdp-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0
         assert!(scale.is_some());
         let s = scale.unwrap();
         assert!((s - 1.3333333730697632).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_parse_hyprctl_scale() {
+        let sample = r#"[
+{
+    "id": 0,
+    "name": "eDP-1",
+    "description": "AU Optronics 0xD0A2",
+    "width": 1920,
+    "height": 1080,
+    "scale": 1.25,
+    "focused": true
+}
+]"#;
+        let scale = parse_hyprctl_scale(sample, Some("card1-eDP-1"));
+        assert!(scale.is_some());
+        let s = scale.unwrap();
+        assert!((s - 1.25).abs() < 1e-6);
+
+        let scale_direct = parse_hyprctl_scale(sample, Some("eDP-1"));
+        assert!(scale_direct.is_some());
+        assert!((scale_direct.unwrap() - 1.25).abs() < 1e-6);
+
+        let scale_unmatched = parse_hyprctl_scale(sample, Some("HDMI-A-1"));
+        assert!(scale_unmatched.is_none());
     }
 }
