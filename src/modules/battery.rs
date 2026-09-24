@@ -78,14 +78,7 @@ pub fn parse_windows_battery_status(
 
 #[cfg(not(windows))]
 fn get_cache_path() -> std::path::PathBuf {
-    // 1. Prefer $XDG_RUNTIME_DIR (user-private tmpfs, mode 0700)
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        let dir = std::path::PathBuf::from(runtime_dir);
-        if dir.is_dir() {
-            return dir.join("kkfetch_battery.cache");
-        }
-    }
-    // 2. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/
+    // 1. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/ for persistent caching across boots
     if let Ok(cache_home) = std::env::var("XDG_CACHE_HOME") {
         let dir = std::path::PathBuf::from(cache_home).join("kkfetch");
         let _ = fs::create_dir_all(&dir);
@@ -97,6 +90,13 @@ fn get_cache_path() -> std::path::PathBuf {
             .join("kkfetch");
         let _ = fs::create_dir_all(&dir);
         return dir.join("battery.cache");
+    }
+    // 2. Fallback to $XDG_RUNTIME_DIR
+    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+        let dir = std::path::PathBuf::from(runtime_dir);
+        if dir.is_dir() {
+            return dir.join("kkfetch_battery.cache");
+        }
     }
     // 3. Fallback to private user-isolated temporary directory (mode 0700)
     // SAFETY: libc::getuid is safe as it requires no arguments and returns the current user ID.
@@ -117,10 +117,6 @@ fn read_cached_battery() -> Option<(BatteryInfo, bool)> {
     let metadata = fs::metadata(&path).ok()?;
     let modified = metadata.modified().ok()?;
     let age = modified.elapsed().ok()?;
-    // If cache is > 24 hours old, consider it invalid
-    if age.as_secs() > 86400 {
-        return None;
-    }
     let content = fs::read_to_string(path).ok()?;
     let mut parts = content.splitn(3, '|');
     let capacity = parts.next()?.trim().parse::<u8>().ok()?;
@@ -347,10 +343,25 @@ pub fn detect_battery() -> Option<BatteryInfo> {
         };
 
         if ac_changed {
-            if let Some(fresh) = probe_sysfs_battery() {
-                write_cached_battery(&fresh);
-                return Some(fresh);
-            }
+            let is_ac = probe_ac_online().unwrap_or(false);
+            let mut fast_info = cached.clone();
+            fast_info.status = if is_ac {
+                if fast_info.capacity >= 99 {
+                    "Full [AC]".to_string()
+                } else {
+                    "AC Connected".to_string()
+                }
+            } else {
+                "Discharging".to_string()
+            };
+            fast_info.time_estimate = None;
+            write_cached_battery(&fast_info);
+            std::thread::spawn(|| {
+                if let Some(fresh) = probe_sysfs_battery() {
+                    write_cached_battery(&fresh);
+                }
+            });
+            return Some(fast_info);
         }
 
         if is_stale {

@@ -228,7 +228,6 @@ fn is_fast_module(id: ModuleId) -> bool {
             | ModuleId::Cpu
             | ModuleId::Memory
             | ModuleId::Swap
-            | ModuleId::Battery
             | ModuleId::Shell
             | ModuleId::LocalIp
             | ModuleId::Theme

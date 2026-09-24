@@ -318,14 +318,7 @@ pub fn append_version_if_missing(term_display_name: &str, version: Option<&str>)
 
 #[cfg(not(windows))]
 fn get_terminal_cache_path(binary: &str) -> std::path::PathBuf {
-    // 1. Prefer $XDG_RUNTIME_DIR (user-private tmpfs, mode 0700)
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        let dir = std::path::Path::new(&runtime_dir);
-        if dir.is_dir() {
-            return dir.join(format!("kkfetch_term_{}.cache", binary));
-        }
-    }
-    // 2. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/
+    // 1. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/ for persistent caching across boots
     if let Ok(cache_home) = std::env::var("XDG_CACHE_HOME") {
         let dir = std::path::PathBuf::from(cache_home).join("kkfetch");
         let _ = std::fs::create_dir_all(&dir);
@@ -337,6 +330,13 @@ fn get_terminal_cache_path(binary: &str) -> std::path::PathBuf {
             .join("kkfetch");
         let _ = std::fs::create_dir_all(&dir);
         return dir.join(format!("term_{}.cache", binary));
+    }
+    // 2. Fallback to $XDG_RUNTIME_DIR
+    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+        let dir = std::path::Path::new(&runtime_dir);
+        if dir.is_dir() {
+            return dir.join(format!("kkfetch_term_{}.cache", binary));
+        }
     }
     // 3. Fallback to private user-isolated temporary directory (mode 0700 on Unix)
     #[cfg(unix)]
