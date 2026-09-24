@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.17.0
+Version:        0.18.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Fri Sep 25 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.18.0-1
+- Release version 0.18.0: Persistent disk caching for battery and terminal to guarantee sub 1ms cold boot latency
+
 * Thu Sep 24 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.17.0-1
 - Release version 0.17.0: Dynamic Wayland/Sway/X11 scaling, compositor-authoritative cursor, session-bound theme cache, cross-session residue elimination
 

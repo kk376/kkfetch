@@ -226,8 +226,12 @@ fn query_hyprland_monitors_socket() -> Option<String> {
     let sock_path = format!("{}/hypr/{}/.socket.sock", runtime_dir, sig);
 
     let mut stream = UnixStream::connect(sock_path).ok()?;
-    stream.set_read_timeout(Some(Duration::from_millis(50))).ok()?;
-    stream.set_write_timeout(Some(Duration::from_millis(50))).ok()?;
+    stream
+        .set_read_timeout(Some(Duration::from_millis(50)))
+        .ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_millis(50)))
+        .ok()?;
     stream.write_all(b"j/monitors").ok()?;
 
     let mut response = Vec::with_capacity(4096);
@@ -253,8 +257,12 @@ fn query_sway_outputs_socket() -> Option<String> {
 
     let sock_path = std::env::var_os("SWAYSOCK")?;
     let mut stream = UnixStream::connect(sock_path).ok()?;
-    stream.set_read_timeout(Some(Duration::from_millis(50))).ok()?;
-    stream.set_write_timeout(Some(Duration::from_millis(50))).ok()?;
+    stream
+        .set_read_timeout(Some(Duration::from_millis(50)))
+        .ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_millis(50)))
+        .ok()?;
 
     // i3 and Sway IPC wire protocol: "i3-ipc" followed by payload length (u32 LE) and type (u32 LE 4 = IPC_GET_OUTPUTS)
     let mut msg = Vec::with_capacity(14);

@@ -1,3 +1,9 @@
+kkfetch (0.18.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.18.0: Persistent disk caching for battery and terminal to guarantee sub 1ms cold boot latency.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 25 Sep 2026 01:45:00 +0530
+
 kkfetch (0.17.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.17.0: Dynamic Wayland/Sway/X11 scaling, compositor-authoritative cursor, session-bound theme cache, cross-session residue elimination.

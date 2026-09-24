@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-09-25
+
+### Performance & Optimizations
+- **Persistent Disk Caching Across Reboots**: Migrated volatile `$XDG_RUNTIME_DIR` caches for terminal and battery collectors to persistent `$XDG_CACHE_HOME/kkfetch/` (`~/.cache/kkfetch/`). Eliminates cache misses on fresh boots where `/run` tmpfs is cleared, bringing first run latency down from 152 ms to sub 1 ms.
+- **Binary Mtime Cache Validation**: Validates persistent terminal version caches against the executable binary modification timestamp, preventing stale version reporting while avoiding expensive child process spawning (such as 50 ms GTK/libadwaita initialization for `ghostty --version`).
+- **Non-blocking AC Power State Transitions**: Reading power supply AC adapter state (`/sys/class/power_supply/ADP1/online`) in 150 µs without blocking on the battery Embedded Controller (EC) SMBus. Dispatches capacity and battery charge updates asynchronously in a background thread to maintain sub 1 ms interactive CLI execution.
+- **Parallel Dispatch for Battery Module**: Removed battery from synchronous fast path to ensure any cold cache read executes in parallel within a scoped background thread without blocking the main output thread.
+
+### Documentation & Packaging
+- **Updated Benchmarks & Terminal Preview**: Refreshed `README.md` with new statistical benchmarks against Fastfetch and updated terminal preview showing live Wayland scaling and persistent cache performance.
+- **Updated Package Manifests**: Synchronized 0.18.0 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA (Noble changelog), Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.18.0.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.17.0] - 2026-09-24
 
 ### Added

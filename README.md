@@ -8,29 +8,29 @@ A fast, lightweight, zero-subprocess system information fetch tool written in Ru
       .;cccccccccccccccccccccc;.         OS: Fedora Linux 44 (Workstation Edition) x86_64
     .:cccccccccccccccccccccccccc:.       Host: Thin A15 B7UCX REV:1.0
   .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.7-200.fc44.x86_64
- .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (32 days ago)
-.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 1 hour, 25 mins
+ .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (33 days ago)
+.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 14 mins
 ,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2838 (rpm), 4 (flatpak), 1 (cargo), 42 (pip)
 :cccccccccccccc;MMM.;cccccccccccccccc:   Shell: fish 4.6.0
-:ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 @ 1.33x in 15", 144 Hz [Built-in]
+:ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 @ 1.25x in 15", 144 Hz [Built-in]
 cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   Desktop: Hyprland (Wayland)
 ccccc;XM0';cccc;MMM.;cccccccccccccccc'   WM: Hyprland
 ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    Terminal: ghostty 1.3.1-4.fc44
-ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.345GHz [4.60GHz max]
+ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.361GHz [4.60GHz max]
 cccccc;dNMWXXXWM0:;cccccccccccccc:,      GPU0: AMD Radeon 680M (512 MiB) [Integrated]
 cccccccc;.:odl:.;cccccccccccccc:,.       GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
-:cccccccccccccccccccccccccccc:'.         Memory: 6.12 GiB / 14.82 GiB (41%)
-.:cccccccccccccccccccccc:;,..            Swap: 0.02 GiB / 14.82 GiB (0%) - ZSTD
-  '::cccccccccccccc::;,.                 Disk0: (/) 151.2 GiB / 474.7 GiB (32%) - btrfs
+:cccccccccccccccccccccccccccc:'.         Memory: 3.82 GiB / 14.82 GiB (26%)
+.:cccccccccccccccccccccc:;,..            Swap: 0.00 GiB / 14.82 GiB (0%) - ZSTD
+  '::cccccccccccccc::;,.                 Disk0: (/) 151.6 GiB / 474.7 GiB (32%) - btrfs
                                          Disk1: (/boot) 0.9 GiB / 1.9 GiB (48%) - ext4
                                          Disk2: (/boot/efi) 20 MiB / 196 MiB (10%) - vfat
-                                         Disk3: (/home) 151.2 GiB / 474.7 GiB (32%) - btrfs
+                                         Disk3: (/home) 151.6 GiB / 474.7 GiB (32%) - btrfs
                                          Disk4: (/media/Backup) 455.7 GiB / 931.5 GiB (49%) - fuseblk
                                          Battery: 96% [AC Connected]
                                          Local IP (Wi-Fi): 192.168.29.219/24
                                          Theme: Adwaita (dark) [GTK]
                                          Icons: Adwaita [GTK]
-                                         Cursor: default (24px) [GTK]
+                                         Cursor: default (28px) [GTK]
 ```
 
 ---
@@ -50,15 +50,15 @@ Most fetch tools either spawn multiple shell child processes (`neofetch`) or dyn
 
 ## Benchmarks
 
-Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 44 (Linux 7.2.4-200.fc44.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
+Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 44 (Linux 7.2.7-200.fc44.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
 
 ### Results
 
 | Command | Mean Runtime | Median Latency | Min Latency | Max Latency | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `fastfetch` | `21.20 ms` | `17.50 ms` | `14.80 ms` | `121.80 ms` | `1.00` (Baseline) |
-| `kkfetch` (All 27 Modules) | **`3.80 ms`** | **`3.75 ms`** | **`2.90 ms`** | **`4.60 ms`** | **5.56x faster** |
-| `kkfetch` (Pure sysfs/drm) | **`4.30 ms`** | **`3.60 ms`** | **`3.20 ms`** | **`18.50 ms`** | **4.94x faster** |
+| `fastfetch` | `13.60 ms` | `13.50 ms` | `10.10 ms` | `113.30 ms` | `1.00` (Baseline) |
+| `kkfetch` (All 27 Modules) | **`2.60 ms`** | **`2.50 ms`** | **`1.70 ms`** | **`7.90 ms`** | **5.25x faster** |
+| `kkfetch` (Pure sysfs/drm) | **`2.70 ms`** | **`2.50 ms`** | **`1.90 ms`** | **`10.10 ms`** | **5.04x faster** |
 
 *KKFetch achieves lower CPU time and syscall overhead by reading `/proc` and `sysfs` directly in Rust, executing active module collectors concurrently in parallel using `std::thread::scope`, and compiling with Fat Link-Time Optimization (LTO).*
 
@@ -113,8 +113,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch_0.17.0-1_amd64.deb
-sudo dpkg -i kkfetch_0.17.0-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch_0.18.0-1_amd64.deb
+sudo dpkg -i kkfetch_0.18.0-1_amd64.deb
 ```
 
 ---
@@ -133,8 +133,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch-0.17.0-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.17.0-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch-0.18.0-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.18.0-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -152,8 +152,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch_0.17.0-1_termux_aarch64.deb
-dpkg -i kkfetch_0.17.0-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch_0.18.0-1_termux_aarch64.deb
+dpkg -i kkfetch_0.18.0-1_termux_aarch64.deb
 ```
 
 ---
@@ -164,7 +164,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -180,7 +180,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -190,8 +190,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.17.0/kkfetch-0.17.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.17.0-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch-0.18.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.18.0-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -346,7 +346,7 @@ Package definitions and build specifications are organized in [`packaging/`](pac
 * **Debian / Ubuntu**: [`packaging/debian/`](packaging/debian/) (`control`, `rules`, `changelog`)
 * **Fedora / RHEL (Copr)**: [`packaging/rpm/`](packaging/rpm/) (`kkfetch.spec`)
 * **Alpine Linux**: [`packaging/alpine/`](packaging/alpine/) (`APKBUILD`)
-* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.17.0.ebuild`)
+* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.18.0.ebuild`)
 * **Void Linux**: [`packaging/void/`](packaging/void/) (`template`)
 * **Nix / NixOS**: [`packaging/nix/`](packaging/nix/) (`package.nix`)
 * **Homebrew Tap**: [`packaging/homebrew/`](packaging/homebrew/) (`kkfetch.rb`)
