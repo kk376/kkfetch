@@ -54,9 +54,17 @@ pub fn detect_wslg_version() -> Option<String> {
         .and_then(|c| parse_wslg_version(&c))
 }
 
+#[cfg(not(windows))]
+static WM_CACHE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
 /// Probes active Window Manager from running processes, environment, or WSLg.
 #[cfg(not(windows))]
 pub fn detect_wm() -> Option<String> {
+    WM_CACHE.get_or_init(detect_wm_uncached).clone()
+}
+
+#[cfg(not(windows))]
+fn detect_wm_uncached() -> Option<String> {
     // 1. WSLg environment check: Weston Wayland server provides X11/Wayland bridge on /mnt/wslg
     if (fs::metadata("/mnt/wslg").is_ok() || std::env::var_os("WSL_DISTRO_NAME").is_some())
         && (std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some())
@@ -68,7 +76,7 @@ pub fn detect_wm() -> Option<String> {
         }
     }
 
-    // 2. Fast path: Direct $XDG_CURRENT_DESKTOP / compositor socket mapping (<0.01ms)
+    // 2. Fast path: Direct $XDG_CURRENT_DESKTOP and compositor socket mapping (<0.01ms)
     if let Ok(cur_de) = std::env::var("XDG_CURRENT_DESKTOP") {
         let de_lower = cur_de.to_lowercase();
         if de_lower.contains("gnome") {
@@ -81,7 +89,41 @@ pub fn detect_wm() -> Option<String> {
             return Some("Muffin".to_string());
         } else if de_lower.contains("mate") {
             return Some("Marco".to_string());
+        } else if de_lower.contains("hyprland") {
+            return Some("Hyprland".to_string());
+        } else if de_lower.contains("sway") {
+            return Some("Sway".to_string());
+        } else if de_lower.contains("i3") {
+            return Some("i3".to_string());
+        } else if de_lower.contains("river") {
+            return Some("River".to_string());
+        } else if de_lower.contains("wayfire") {
+            return Some("Wayfire".to_string());
+        } else if de_lower.contains("bspwm") {
+            return Some("bspwm".to_string());
+        } else if de_lower.contains("dwm") {
+            return Some("dwm".to_string());
+        } else if de_lower.contains("awesome") {
+            return Some("awesome".to_string());
+        } else if de_lower.contains("qtile") {
+            return Some("qtile".to_string());
+        } else if de_lower.contains("xmonad") {
+            return Some("xmonad".to_string());
+        } else if de_lower.contains("openbox") {
+            return Some("Openbox".to_string());
+        } else if de_lower.contains("fluxbox") {
+            return Some("Fluxbox".to_string());
         }
+    }
+
+    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some() {
+        return Some("Hyprland".to_string());
+    }
+    if std::env::var_os("SWAYSOCK").is_some() {
+        return Some("Sway".to_string());
+    }
+    if std::env::var_os("I3SOCK").is_some() {
+        return Some("i3".to_string());
     }
 
     // 3. Scan `/proc` PID directories for active known WM process binaries

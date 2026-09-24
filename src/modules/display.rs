@@ -212,6 +212,75 @@ pub fn parse_xrdb_scale(content: &str) -> Option<f64> {
     None
 }
 
+#[cfg(not(windows))]
+static HYPRLAND_MONITORS_CACHE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
+#[cfg(not(windows))]
+fn query_hyprland_monitors_socket() -> Option<String> {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+    use std::time::Duration;
+
+    let runtime_dir = std::env::var("XDG_RUNTIME_DIR").ok()?;
+    let sig = std::env::var("HYPRLAND_INSTANCE_SIGNATURE").ok()?;
+    let sock_path = format!("{}/hypr/{}/.socket.sock", runtime_dir, sig);
+
+    let mut stream = UnixStream::connect(sock_path).ok()?;
+    stream.set_read_timeout(Some(Duration::from_millis(50))).ok()?;
+    stream.set_write_timeout(Some(Duration::from_millis(50))).ok()?;
+    stream.write_all(b"j/monitors").ok()?;
+
+    let mut response = Vec::with_capacity(4096);
+    stream.read_to_end(&mut response).ok()?;
+    String::from_utf8(response).ok()
+}
+
+#[cfg(not(windows))]
+fn get_hyprland_monitors_json() -> Option<&'static str> {
+    HYPRLAND_MONITORS_CACHE
+        .get_or_init(query_hyprland_monitors_socket)
+        .as_deref()
+}
+
+#[cfg(not(windows))]
+static SWAY_OUTPUTS_CACHE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
+#[cfg(not(windows))]
+fn query_sway_outputs_socket() -> Option<String> {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+    use std::time::Duration;
+
+    let sock_path = std::env::var_os("SWAYSOCK")?;
+    let mut stream = UnixStream::connect(sock_path).ok()?;
+    stream.set_read_timeout(Some(Duration::from_millis(50))).ok()?;
+    stream.set_write_timeout(Some(Duration::from_millis(50))).ok()?;
+
+    // i3 and Sway IPC wire protocol: "i3-ipc" followed by payload length (u32 LE) and type (u32 LE 4 = IPC_GET_OUTPUTS)
+    let mut msg = Vec::with_capacity(14);
+    msg.extend_from_slice(b"i3-ipc");
+    msg.extend_from_slice(&0u32.to_le_bytes());
+    msg.extend_from_slice(&4u32.to_le_bytes());
+    stream.write_all(&msg).ok()?;
+
+    let mut header = [0u8; 14];
+    stream.read_exact(&mut header).ok()?;
+    if &header[..6] != b"i3-ipc" {
+        return None;
+    }
+    let payload_len = u32::from_le_bytes([header[6], header[7], header[8], header[9]]) as usize;
+    let mut payload = vec![0u8; payload_len];
+    stream.read_exact(&mut payload).ok()?;
+    String::from_utf8(payload).ok()
+}
+
+#[cfg(not(windows))]
+fn get_sway_outputs_json() -> Option<&'static str> {
+    SWAY_OUTPUTS_CACHE
+        .get_or_init(query_sway_outputs_socket)
+        .as_deref()
+}
+
 /// Detects display scaling factor from active compositor, GNOME monitors.xml, KDE config, or environment variables.
 pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
     let desktop = std::env::var("XDG_CURRENT_DESKTOP")
@@ -220,8 +289,15 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
     let is_hyprland =
         desktop.contains("hyprland") || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
 
-    // 1. Hyprland: query hyprctl if active
+    // 1. Hyprland: query direct Unix socket if active, fallback to hyprctl
     if is_hyprland {
+        #[cfg(not(windows))]
+        if let Some(text) = get_hyprland_monitors_json() {
+            if let Some(scale) = parse_hyprctl_scale(text, connector) {
+                return Some(scale);
+            }
+        }
+
         if let Ok(output) = crate::modules::system_command("hyprctl")
             .args(["-j", "monitors"])
             .output()
@@ -235,9 +311,16 @@ pub fn detect_display_scale(connector: Option<&str>) -> Option<f64> {
         }
     }
 
-    // 2. Sway / wlroots: query swaymsg if active
+    // 2. Sway / wlroots: query direct Sway IPC socket if active, fallback to swaymsg
     let is_sway = desktop.contains("sway") || std::env::var_os("SWAYSOCK").is_some();
     if is_sway {
+        #[cfg(not(windows))]
+        if let Some(text) = get_sway_outputs_json() {
+            if let Some(scale) = parse_hyprctl_scale(text, connector) {
+                return Some(scale);
+            }
+        }
+
         if let Ok(output) = crate::modules::system_command("swaymsg")
             .args(["-t", "get_outputs", "-r"])
             .output()

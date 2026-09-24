@@ -216,17 +216,27 @@ fn is_fast_module(id: ModuleId) -> bool {
         id,
         ModuleId::Title
             | ModuleId::Os
+            | ModuleId::Host
             | ModuleId::Kernel
-            | ModuleId::Cpu
-            | ModuleId::Theme
-            | ModuleId::Icons
-            | ModuleId::Font
-            | ModuleId::Cursor
-            | ModuleId::Colors
+            | ModuleId::Installed
+            | ModuleId::Uptime
+            | ModuleId::Desktop
             | ModuleId::Wm
             | ModuleId::WmTheme
             | ModuleId::Terminal
             | ModuleId::TerminalFont
+            | ModuleId::Cpu
+            | ModuleId::Memory
+            | ModuleId::Swap
+            | ModuleId::Battery
+            | ModuleId::Shell
+            | ModuleId::LocalIp
+            | ModuleId::Theme
+            | ModuleId::Icons
+            | ModuleId::Font
+            | ModuleId::Cursor
+            | ModuleId::Plugin
+            | ModuleId::Colors
     )
 }
 

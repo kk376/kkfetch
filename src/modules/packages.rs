@@ -76,20 +76,16 @@ pub fn count_dpkg_from_path(path: &Path) -> Option<usize> {
 
 /// Counts installed packages for Debian/Ubuntu family.
 pub fn count_dpkg() -> Option<usize> {
-    if let Some(count) = count_dpkg_from_path(Path::new("/var/lib/dpkg/status")) {
-        return Some(count);
+    let default_path = Path::new("/var/lib/dpkg/status");
+    if default_path.exists() {
+        return count_dpkg_from_path(default_path);
     }
 
-    // Fallback: dpkg-query command if status file is inaccessible (e.g. non-standard chroot)
-    if let Ok(output) = crate::modules::system_command("dpkg-query")
-        .args(["-f", "${binary:Package}\n", "-W"])
-        .output()
-    {
-        if output.status.success() {
-            let count = parse_rpm_output(&output.stdout);
-            if count > 0 {
-                return Some(count);
-            }
+    // Fallback: check custom DPKG_ADMINDIR if configured
+    if let Ok(admin_dir) = std::env::var("DPKG_ADMINDIR") {
+        let custom_path = Path::new(&admin_dir).join("status");
+        if custom_path.exists() {
+            return count_dpkg_from_path(&custom_path);
         }
     }
 
