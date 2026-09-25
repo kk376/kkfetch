@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: kk376.kkfetch
-PackageVersion: 0.18.0
+PackageVersion: 0.18.1
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
@@ -12,7 +12,7 @@ Commands:
   - kkfetch
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/kk376/kkfetch/releases/download/v0.18.0/kkfetch-windows-x86_64.zip
+    InstallerUrl: https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch-windows-x86_64.zip
     InstallerSha256: a42d150135621509b698ed5508e1edfaf11d67a8168098db0e15ba745a8716bb
 ManifestType: installer
 ManifestVersion: 1.6.0

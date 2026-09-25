@@ -1,3 +1,9 @@
+kkfetch (0.18.1-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.18.1: Classify AMD Raphael desktop iGPU as Integrated GPU (PR #1 by @akashdeepghosh).
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 26 Sep 2026 02:20:00 +0530
+
 kkfetch (0.18.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.18.0: Persistent disk caching for battery and terminal to guarantee sub 1ms cold boot latency.

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] - 2026-09-26
+
+### Fixed
+- **AMD Raphael Desktop iGPU Classification**: Correctly classifies AMD Raphael (Ryzen 7000 desktop silicon iGPU, PCI 1002:164e) as `[Integrated]` rather than falling through to `[Discrete]`. Contributed by [@akashdeepghosh](https://github.com/akashdeepghosh) in PR [#1](https://github.com/kk376/kkfetch/pull/1).
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.18.1 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA, Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.18.1.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.18.0] - 2026-09-25
 
 ### Performance & Optimizations
