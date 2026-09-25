@@ -1,5 +1,5 @@
 class Kkfetch < Formula
-  desc "Fast, lightweight Linux, macOS, and Windows system information fetch tool written in Rust"
+  desc "Fast, lightweight Linux, Windows, macOS, and Android system information fetch tool written in Rust"
   homepage "https://github.com/kk376/kkfetch"
   license "MIT"
   version "0.18.1"

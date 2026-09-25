@@ -1,6 +1,6 @@
 # KKFetch
 
-A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, and macOS.
+A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
 
 ```text
              .',;::::;,'.                kk376@msi-thin-a15
