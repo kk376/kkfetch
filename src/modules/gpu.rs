@@ -651,6 +651,7 @@ pub fn is_integrated_gpu(gpu_name: &str) -> bool {
         "hawk point",
         "strix point",
         "strix halo",
+        "raphael",
         "barcelo",
         "lucienne",
         "cezanne",
@@ -1372,6 +1373,7 @@ mod tests {
         assert!(is_integrated_gpu("AMD Radeon(TM) Graphics"));
         assert!(is_integrated_gpu("AMD Rembrandt [Radeon 680M]"));
         assert!(is_integrated_gpu("AMD Phoenix Graphics"));
+        assert!(is_integrated_gpu("AMD Raphael (512 MiB)"));
         assert!(is_integrated_gpu("AMD Radeon HD 6410D"));
         assert!(is_integrated_gpu("AMD Radeon HD 7560D"));
         assert!(is_integrated_gpu("AMD Radeon HD 8400"));
