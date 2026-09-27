@@ -395,7 +395,11 @@ Special thanks to community contributors for architectural recommendations and s
 
 ## Credits & License
 
-* **KKFetch** is authored by **Kushagra Kumar (kk376)** and open-source software licensed under the **[MIT License](LICENSE)**.
+* **KKFetch** is authored by **Kushagra Kumar (kk376)** and open-source software dual-licensed under either:
+  * **MIT License** ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/licenses/MIT>)
+  * **Apache License, Version 2.0** ([LICENSE-APACHE](LICENSE-APACHE) or <https://www.apache.org/licenses/LICENSE-2.0>)
+
+  at your option.
 * **ASCII Art Outlines**: Distribution ASCII art boundary outlines are based on the classic art from **[Neofetch](https://github.com/dylanaraps/neofetch)** by Dylan Araps (also licensed under the **MIT License**, Copyright © 2016-2022 Dylan Araps), customized and enhanced in KKFetch with high-contrast white structural framing and distribution brand signature colors.
 * **Colored Percentage Thresholds**: The dynamic color-coded percentage thresholds (transitioning across green, yellow, and red based on resource and battery capacity levels) are inspired by the classic visual formatting in **[Neofetch](https://github.com/dylanaraps/neofetch)**.
 * **CIDR Subnet Notation**: The inclusion of CIDR subnet mask notation (e.g. `/24`) alongside local IP addresses is inspired by **[Fastfetch](https://github.com/fastfetch-cli/fastfetch)**.

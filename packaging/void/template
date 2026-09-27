@@ -5,7 +5,7 @@ revision=1
 build_style=cargo
 short_desc="Fast, lightweight Linux and Android system information fetch CLI written in Rust"
 maintainer="Kushagra Kumar (kk376) <kk376@users.noreply.github.com>"
-license="MIT"
+license="MIT, Apache-2.0"
 homepage="https://github.com/kk376/kkfetch"
 changelog="https://raw.githubusercontent.com/kk376/kkfetch/main/CHANGELOG.md"
 distfiles="https://github.com/kk376/kkfetch/archive/refs/tags/v${version}.tar.gz"
@@ -13,6 +13,8 @@ checksum=SKIP
 
 post_install() {
 	vlicense LICENSE
+	vlicense LICENSE-MIT
+	vlicense LICENSE-APACHE
 	vdoc README.md
 	vman docs/kkfetch.1
 	vcompletion completions/kkfetch.bash bash kkfetch

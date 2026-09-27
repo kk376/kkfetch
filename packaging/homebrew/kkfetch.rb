@@ -1,7 +1,7 @@
 class Kkfetch < Formula
   desc "Fast, lightweight Linux, Windows, macOS, and Android system information fetch tool written in Rust"
   homepage "https://github.com/kk376/kkfetch"
-  license "MIT"
+  license any_of: ["MIT", "Apache-2.0"]
   version "0.18.1"
 
   on_macos do

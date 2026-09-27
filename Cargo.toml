@@ -6,7 +6,7 @@ rust-version = "1.75.0"
 authors = ["Kushagra Kumar <kk376>"]
 description = "A fast, lightweight Linux, Windows, macOS, and Android system information fetch tool written in Rust"
 readme = "README.md"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/kk376/kkfetch"
 homepage = "https://github.com/kk376/kkfetch"
 documentation = "https://docs.rs/kkfetch"
@@ -19,6 +19,8 @@ include = [
     "Cargo.toml",
     "Cargo.lock",
     "LICENSE",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
     "README.md",
     "CHANGELOG.md",
 ]
@@ -41,13 +43,15 @@ assets = [
     { source = "completions/kkfetch.fish", dest = "/usr/share/fish/vendor_completions.d/kkfetch.fish", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/kkfetch/README.md", mode = "644", doc = true },
     { source = "LICENSE", dest = "/usr/share/licenses/kkfetch/LICENSE", mode = "644" },
+    { source = "LICENSE-MIT", dest = "/usr/share/licenses/kkfetch/LICENSE-MIT", mode = "644" },
+    { source = "LICENSE-APACHE", dest = "/usr/share/licenses/kkfetch/LICENSE-APACHE", mode = "644" },
 ]
 post_install_script = "packaging/rpm/postinst.sh"
 
 [package.metadata.deb]
 maintainer = "Kushagra Kumar <kk376>"
 copyright = "2026 Kushagra Kumar (kk376)"
-license-file = ["LICENSE", "4"]
+license-file = ["LICENSE-MIT", "4"]
 extended-description = "A fast, lightweight Linux system information fetch tool written in Rust."
 maintainer-scripts = "packaging/debian"
 section = "utils"
@@ -59,6 +63,8 @@ assets = [
     ["completions/kkfetch.fish", "usr/share/fish/vendor_completions.d/kkfetch.fish", "644"],
     ["README.md", "usr/share/doc/kkfetch/README.md", "644"],
     ["LICENSE", "usr/share/licenses/kkfetch/LICENSE", "644"],
+    ["LICENSE-MIT", "usr/share/licenses/kkfetch/LICENSE-MIT", "644"],
+    ["LICENSE-APACHE", "usr/share/licenses/kkfetch/LICENSE-APACHE", "644"],
 ]
 
 [package.metadata.binstall]

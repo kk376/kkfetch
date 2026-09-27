@@ -5,7 +5,7 @@ Version:        0.18.1
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
-License:        MIT
+License:        MIT OR Apache-2.0
 URL:            https://github.com/kk376/kkfetch
 Source0:        https://github.com/kk376/kkfetch/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
@@ -47,7 +47,7 @@ fi
 install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 
 %files
-%license LICENSE
+%license LICENSE LICENSE-MIT LICENSE-APACHE
 %doc README.md
 %{_bindir}/%{name}
 %{_mandir}/man1/%{name}.1*

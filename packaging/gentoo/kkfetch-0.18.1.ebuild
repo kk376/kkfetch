@@ -1,5 +1,5 @@
 # Copyright 2026 Gentoo Authors
-# Distributed under the terms of the MIT License
+# Distributed under the terms of the MIT License or Apache License 2.0
 
 EAPI=8
 
@@ -12,7 +12,7 @@ HOMEPAGE="https://github.com/kk376/kkfetch"
 SRC_URI="https://github.com/kk376/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz
 	$(cargo_crate_uris)"
 
-LICENSE="MIT"
+LICENSE="|| ( MIT Apache-2.0 )"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64 ~x86"
 
