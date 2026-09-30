@@ -56,9 +56,9 @@ Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare
 
 | Command | Mean Runtime | Median Latency | Min Latency | Max Latency | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `fastfetch` | `13.60 ms` | `13.50 ms` | `10.10 ms` | `113.30 ms` | `1.00` (Baseline) |
-| `kkfetch` (All 27 Modules) | **`2.60 ms`** | **`2.50 ms`** | **`1.70 ms`** | **`7.90 ms`** | **5.25x faster** |
-| `kkfetch` (Pure sysfs/drm) | **`2.70 ms`** | **`2.50 ms`** | **`1.90 ms`** | **`10.10 ms`** | **5.04x faster** |
+| `fastfetch` | `13.90 ms` | `13.50 ms` | `10.40 ms` | `114.20 ms` | `1.00` (Baseline) |
+| `kkfetch` (All 27 Modules) | **`2.50 ms`** | **`2.40 ms`** | **`1.80 ms`** | **`5.30 ms`** | **5.60x faster** |
+| `kkfetch` (Pure sysfs/drm) | **`2.50 ms`** | **`2.40 ms`** | **`1.80 ms`** | **`5.10 ms`** | **5.60x faster** |
 
 *KKFetch achieves lower CPU time and syscall overhead by reading `/proc` and `sysfs` directly in Rust, executing active module collectors concurrently in parallel using `std::thread::scope`, and compiling with Fat Link-Time Optimization (LTO).*
 
@@ -113,8 +113,8 @@ sudo apt update && sudo apt install -y kkfetch
 
 **Via Pre-built `.deb`:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch_0.18.1-1_amd64.deb
-sudo dpkg -i kkfetch_0.18.1-1_amd64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch_0.18.2-1_amd64.deb
+sudo dpkg -i kkfetch_0.18.2-1_amd64.deb
 ```
 
 ---
@@ -133,8 +133,8 @@ sudo dnf install -y kkfetch
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch-0.18.1-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.18.1-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch-0.18.2-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.18.2-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -152,8 +152,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch_0.18.1-1_termux_aarch64.deb
-dpkg -i kkfetch_0.18.1-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch_0.18.2-1_termux_aarch64.deb
+dpkg -i kkfetch_0.18.2-1_termux_aarch64.deb
 ```
 
 ---
@@ -164,7 +164,7 @@ No dependencies, pure standalone executable:
 
 ```powershell
 # 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch-windows-x86_64.zip
+curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch-windows-x86_64.zip
 
 # 2. Extract
 tar.exe -xf kkfetch-windows-x86_64.zip
@@ -180,7 +180,7 @@ tar.exe -xf kkfetch-windows-x86_64.zip
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -190,8 +190,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.1/kkfetch-0.18.1-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.18.1-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.2/kkfetch-0.18.2-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.18.2-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -346,7 +346,7 @@ Package definitions and build specifications are organized in [`packaging/`](pac
 * **Debian / Ubuntu**: [`packaging/debian/`](packaging/debian/) (`control`, `rules`, `changelog`)
 * **Fedora / RHEL (Copr)**: [`packaging/rpm/`](packaging/rpm/) (`kkfetch.spec`)
 * **Alpine Linux**: [`packaging/alpine/`](packaging/alpine/) (`APKBUILD`)
-* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.18.1.ebuild`)
+* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.18.2.ebuild`)
 * **Void Linux**: [`packaging/void/`](packaging/void/) (`template`)
 * **Nix / NixOS**: [`packaging/nix/`](packaging/nix/) (`package.nix`)
 * **Homebrew Tap**: [`packaging/homebrew/`](packaging/homebrew/) (`kkfetch.rb`)

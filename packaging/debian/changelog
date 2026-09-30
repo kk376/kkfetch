@@ -1,3 +1,9 @@
+kkfetch (0.18.2-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.18.2: Synchronous real-time battery status, cold-boot startup optimizations, and remote mount safety.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Thu, 01 Oct 2026 04:15:00 +0530
+
 kkfetch (0.18.1-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.18.1: Classify AMD Raphael desktop iGPU as Integrated GPU (PR #1 by @akashdeepghosh).

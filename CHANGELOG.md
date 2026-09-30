@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.2] - 2026-10-01
+
+### Fixed
+- **Real-Time Battery Parity**: Eliminated stale disk cache and detached background thread race condition in battery collector. Direct, synchronous sysfs probing now guarantees real-time synchronization with the desktop status bar in ~150 µs.
+- **Cold Boot Latency Elimination**:
+  - Moved Battery module into fast in-memory execution to eliminate thread scheduling jitter.
+  - Optimized SQLite RPM package traversal to query the compact `Name` table (rootpage 4, ~20 pages) before falling back to `Packages` (rootpage 2, 2,000+ pages), slashing cold-boot database traversal from 41 ms down to 0.3 ms.
+  - Streamed `pci.ids` database with early vendor termination, preventing 1.6 MB memory allocations per GPU.
+  - Added remote and network filesystems (`nfs`, `cifs`, `smbfs`, `sshfs`, `davfs`, `fuse.rclone`, `afs`) to ignored filesystem list, preventing `statvfs` stalls during boot when network shares are unreachable.
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.18.2 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA, Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.18.2.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.18.1] - 2026-09-26
 
 ### Fixed
