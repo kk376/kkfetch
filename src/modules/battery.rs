@@ -76,7 +76,6 @@ pub fn parse_windows_battery_status(
     })
 }
 
-
 #[cfg(not(windows))]
 fn read_sysfs_u64(path: &std::path::Path) -> Option<u64> {
     fs::read_to_string(path).ok()?.trim().parse::<u64>().ok()
@@ -241,7 +240,6 @@ pub fn probe_ac_online_from_dir(power_supply_dir: &std::path::Path) -> Option<bo
     }
     None
 }
-
 
 #[cfg(not(windows))]
 fn probe_sysfs_battery() -> Option<BatteryInfo> {
