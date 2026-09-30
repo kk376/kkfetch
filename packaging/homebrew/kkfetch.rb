@@ -2,7 +2,7 @@ class Kkfetch < Formula
   desc "Fast, lightweight Linux, Windows, macOS, and Android system information fetch tool written in Rust"
   homepage "https://github.com/kk376/kkfetch"
   license any_of: ["MIT", "Apache-2.0"]
-  version "0.18.2"
+  version "0.18.3"
 
   on_macos do
     url "https://github.com/kk376/kkfetch/archive/refs/tags/v0.18.0.tar.gz"
@@ -32,6 +32,6 @@ class Kkfetch < Formula
   end
 
   test do
-    assert_match "kkfetch 0.18.2", shell_output("#{bin}/kkfetch --version")
+    assert_match "kkfetch 0.18.3", shell_output("#{bin}/kkfetch --version")
   end
 end

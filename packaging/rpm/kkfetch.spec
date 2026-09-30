@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.18.2
+Version:        0.18.3
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Thu Oct 01 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.18.3-1
+- Release version 0.18.3: 3-tier battery probing with tmpfs RAM cache, UPower D-Bus fast path, and concurrent thread execution
+
 * Thu Oct 01 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.18.2-1
 - Release version 0.18.2: Real-time battery sysfs synchronization, cold boot SQLite Name table fast path, streaming pci.ids, and network mount protections
 

@@ -1,3 +1,9 @@
+kkfetch (0.18.3-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.18.3: 3-tier battery probing with tmpfs RAM cache, UPower D-Bus fast path, and concurrent thread execution.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Thu, 01 Oct 2026 04:55:00 +0530
+
 kkfetch (0.18.2-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.18.2: Synchronous real-time battery status, cold-boot startup optimizations, and remote mount safety.

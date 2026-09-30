@@ -7,7 +7,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "kkfetch";
-  version = "0.18.2";
+  version = "0.18.3";
 
   src = if src != null then src else fetchFromGitHub {
     owner = "kk376";

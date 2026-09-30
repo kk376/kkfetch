@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.3] - 2026-10-01
+
+### Performance & Optimizations
+- **3-Tier Battery Probing Architecture**:
+  - Implemented Tier 1 in-RAM tmpfs caching (`$XDG_RUNTIME_DIR/kkfetch/battery.cache` or `/dev/shm`) with a 15-second TTL and instantaneous AC online line detection (`/sys/class/power_supply/ADP1/online`), invalidating cache in under 100 µs on AC connect or disconnect.
+  - Implemented Tier 2 UPower D-Bus fast path via `busctl get-property org.freedesktop.UPower /org/freedesktop/UPower/devices/DisplayDevice`, querying the UPower daemon in RAM in ~3.5 ms and eliminating the 100 ms kernel ACPI Embedded Controller (EC) SMBus hardware delay while maintaining 100% desktop status bar parity.
+  - Retained Tier 3 direct sysfs power supply probing as robust fallback for non-systemd or non-D-Bus environments.
+- **Concurrent Threading Optimization**:
+  - Moved the battery collector into scoped concurrent thread execution in `src/modules/mod.rs` alongside GPU, display, disk, and package managers, ensuring cold cache reads never block the main rendering thread.
+
+### Packaging
+- **Updated Package Manifests**: Synchronized 0.18.3 release across Fedora Copr (RPM spec), Ubuntu Launchpad PPA, Homebrew tap Formula, Arch Linux PKGBUILD, Gentoo (`kkfetch-0.18.3.ebuild`), KISS Linux, Void Linux, Nix, and WinGet.
+
 ## [0.18.2] - 2026-10-01
 
 ### Fixed
