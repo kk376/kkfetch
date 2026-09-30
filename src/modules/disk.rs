@@ -168,6 +168,24 @@ const IGNORED_FS_TYPES: &[&str] = &[
     "erofs",
     "rootfs",
     "sdcardfs",
+    // Remote and network filesystems to eliminate cold boot latency or hanging on unreachable networks
+    "nfs",
+    "nfs4",
+    "cifs",
+    "smbfs",
+    "smb3",
+    "sshfs",
+    "fuse.sshfs",
+    "davfs",
+    "davfs2",
+    "fuse.rclone",
+    "fuse.smb",
+    "fuse.kio-fuse",
+    "afpfs",
+    "afs",
+    "ncpfs",
+    "curlftpfs",
+    "ftpfs",
 ];
 
 #[cfg(any(not(windows), test))]

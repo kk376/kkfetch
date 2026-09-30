@@ -234,6 +234,7 @@ fn is_fast_module(id: ModuleId) -> bool {
             | ModuleId::Icons
             | ModuleId::Font
             | ModuleId::Cursor
+            | ModuleId::Battery
             | ModuleId::Plugin
             | ModuleId::Colors
     )

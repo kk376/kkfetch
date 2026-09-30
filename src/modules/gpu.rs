@@ -151,6 +151,58 @@ pub fn parse_pci_ids_file(
     None
 }
 
+/// Streams standard pci.ids file with early termination upon exiting the target vendor block.
+pub fn lookup_pci_ids_from_file(
+    path: &Path,
+    target_vendor: &str,
+    target_device: &str,
+) -> Option<String> {
+    use std::io::{BufRead, BufReader};
+    let file = fs::File::open(path).ok()?;
+    let reader = BufReader::new(file);
+
+    let mut in_target_vendor = false;
+    let mut vendor_name = None;
+
+    for line_result in reader.lines() {
+        let line = line_result.ok()?;
+        if line.starts_with('#') || line.trim().is_empty() {
+            continue;
+        }
+
+        if !line.starts_with('\t') {
+            if in_target_vendor {
+                // In standard pci.ids format, all devices for a vendor are grouped under that vendor header.
+                // Reaching the next non-tab entry terminates the vendor block.
+                break;
+            }
+            let mut parts = line.split_whitespace();
+            if let Some(v_id) = parts.next() {
+                if v_id.eq_ignore_ascii_case(target_vendor) {
+                    in_target_vendor = true;
+                    vendor_name = Some(parts.collect::<Vec<&str>>().join(" "));
+                }
+            }
+        } else if in_target_vendor && !line.starts_with("\t\t") {
+            let trimmed = &line[1..];
+            let mut parts = trimmed.split_whitespace();
+            if let Some(d_id) = parts.next() {
+                if d_id.eq_ignore_ascii_case(target_device) {
+                    let dev_name = parts.collect::<Vec<&str>>().join(" ");
+                    let raw = if let Some(ref v_name) = vendor_name {
+                        format!("{} {}", v_name, dev_name)
+                    } else {
+                        dev_name
+                    };
+                    return Some(clean_gpu_name(&raw));
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// Resolves PCI vendor and device hex IDs against local system pci.ids databases.
 pub fn lookup_pci_ids(vendor_hex: &str, device_hex: &str) -> Option<String> {
     let vendor = vendor_hex
@@ -176,10 +228,12 @@ pub fn lookup_pci_ids(vendor_hex: &str, device_hex: &str) -> Option<String> {
     ];
 
     for path in &pci_id_paths {
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Some(name) = parse_pci_ids_file(&content, &vendor, &device) {
+        let p = Path::new(path);
+        if p.is_file() {
+            if let Some(name) = lookup_pci_ids_from_file(p, &vendor, &device) {
                 return Some(name);
             }
+            break;
         }
     }
 
@@ -1522,5 +1576,37 @@ mod tests {
 
         let fp = get_gpu_hardware_fingerprint_from_pci_dir(pci_dir);
         assert_eq!(fp, Some("PCI:1002:15c8,10de:25ad".to_string()));
+    }
+
+    #[test]
+    fn test_lookup_pci_ids_from_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pci_ids_path = temp_dir.path().join("pci.ids");
+        let sample = r#"
+# PCI IDs Sample
+8086  Intel Corporation
+	5917  UHD Graphics 620
+	3e92  CoffeeLake-S GT2 [UHD Graphics 630]
+10de  NVIDIA Corporation
+	1f95  TU117M [GeForce GTX 1650 Ti Mobile]
+"#;
+        fs::write(&pci_ids_path, sample).unwrap();
+
+        assert_eq!(
+            lookup_pci_ids_from_file(&pci_ids_path, "8086", "5917"),
+            Some("Intel UHD Graphics 620".to_string())
+        );
+        assert_eq!(
+            lookup_pci_ids_from_file(&pci_ids_path, "10de", "1f95"),
+            Some("NVIDIA GeForce GTX 1650 Ti Mobile".to_string())
+        );
+        assert_eq!(
+            lookup_pci_ids_from_file(&pci_ids_path, "8086", "9999"),
+            None
+        );
+        assert_eq!(
+            lookup_pci_ids_from_file(&pci_ids_path, "9999", "1234"),
+            None
+        );
     }
 }

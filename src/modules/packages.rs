@@ -246,9 +246,13 @@ pub fn count_rpm_from_paths(db_paths: &[&str]) -> Option<usize> {
             }
         }
 
-        // Fast path 1: Zero-subprocess SQLite B-Tree header parsing (<0.2ms)
+        // Fast path 1: Zero-subprocess SQLite B-Tree header parsing (<0.4ms)
+        // In RPM's SQLite schema, table 4 ('Name') contains small rows (name string only, ~20 pages)
+        // compared to table 2 ('Packages', which contains full metadata blobs spanning 2,000+ pages).
         if path.ends_with(".sqlite") {
-            if let Some(count) = count_sqlite_table_cells(Path::new(path), 2) {
+            let cell_count = count_sqlite_table_cells(Path::new(path), 4)
+                .or_else(|| count_sqlite_table_cells(Path::new(path), 2));
+            if let Some(count) = cell_count {
                 if let Some(ref dir) = cache_dir {
                     let _ = fs::create_dir_all(dir);
                 }

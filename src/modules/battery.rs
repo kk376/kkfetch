@@ -76,81 +76,6 @@ pub fn parse_windows_battery_status(
     })
 }
 
-#[cfg(not(windows))]
-fn get_cache_path() -> std::path::PathBuf {
-    // 1. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/ for persistent caching across boots
-    if let Ok(cache_home) = std::env::var("XDG_CACHE_HOME") {
-        let dir = std::path::PathBuf::from(cache_home).join("kkfetch");
-        let _ = fs::create_dir_all(&dir);
-        return dir.join("battery.cache");
-    }
-    if let Ok(home) = std::env::var("HOME") {
-        let dir = std::path::PathBuf::from(home)
-            .join(".cache")
-            .join("kkfetch");
-        let _ = fs::create_dir_all(&dir);
-        return dir.join("battery.cache");
-    }
-    // 2. Fallback to $XDG_RUNTIME_DIR
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        let dir = std::path::PathBuf::from(runtime_dir);
-        if dir.is_dir() {
-            return dir.join("kkfetch_battery.cache");
-        }
-    }
-    // 3. Fallback to private user-isolated temporary directory (mode 0700)
-    // SAFETY: libc::getuid is safe as it requires no arguments and returns the current user ID.
-    let uid = unsafe { libc::getuid() };
-    let temp_dir = std::env::temp_dir().join(format!("kkfetch-{}", uid));
-    let _ = fs::create_dir_all(&temp_dir);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o700));
-    }
-    temp_dir.join("battery.cache")
-}
-
-#[cfg(not(windows))]
-fn read_cached_battery() -> Option<(BatteryInfo, bool)> {
-    let path = get_cache_path();
-    let metadata = fs::metadata(&path).ok()?;
-    let modified = metadata.modified().ok()?;
-    let age = modified.elapsed().ok()?;
-    let content = fs::read_to_string(path).ok()?;
-    let mut parts = content.splitn(3, '|');
-    let capacity = parts.next()?.trim().parse::<u8>().ok()?;
-    let status = parts.next()?.trim().to_string();
-    if status.is_empty() {
-        return None;
-    }
-    let time_estimate = parts
-        .next()
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty());
-    // Stale if older than 5 seconds
-    let is_stale = age.as_secs() > 5;
-    Some((
-        BatteryInfo {
-            capacity,
-            status,
-            time_estimate,
-        },
-        is_stale,
-    ))
-}
-
-#[cfg(not(windows))]
-fn write_cached_battery(info: &BatteryInfo) {
-    let path = get_cache_path();
-    let payload = format!(
-        "{}|{}|{}",
-        info.capacity,
-        info.status,
-        info.time_estimate.as_deref().unwrap_or("")
-    );
-    let _ = fs::write(path, payload);
-}
 
 #[cfg(not(windows))]
 fn read_sysfs_u64(path: &std::path::Path) -> Option<u64> {
@@ -317,70 +242,16 @@ pub fn probe_ac_online_from_dir(power_supply_dir: &std::path::Path) -> Option<bo
     None
 }
 
-#[cfg(not(windows))]
-fn probe_ac_online() -> Option<bool> {
-    probe_ac_online_from_dir(std::path::Path::new("/sys/class/power_supply"))
-}
 
 #[cfg(not(windows))]
 fn probe_sysfs_battery() -> Option<BatteryInfo> {
     probe_sysfs_battery_from_dir(std::path::Path::new("/sys/class/power_supply"))
 }
 
-/// Detects battery status with zero-wait stale-while-revalidate microsecond tmpfs caching,
-/// combined with instantaneous AC line transition detection (< 60 µs).
+/// Probes real-time battery status directly and synchronously from sysfs (< 150 µs).
 #[cfg(not(windows))]
 pub fn detect_battery() -> Option<BatteryInfo> {
-    if let Some((cached, is_stale)) = read_cached_battery() {
-        // Instantaneous AC transition check: if AC online state changed, immediately refresh
-        let ac_changed = if let Some(ac_online) = probe_ac_online() {
-            let was_on_ac = cached.status.eq_ignore_ascii_case("ac connected")
-                || cached.status.eq_ignore_ascii_case("charging")
-                || cached.status.eq_ignore_ascii_case("full [ac]");
-            ac_online != was_on_ac
-        } else {
-            false
-        };
-
-        if ac_changed {
-            let is_ac = probe_ac_online().unwrap_or(false);
-            let mut fast_info = cached.clone();
-            fast_info.status = if is_ac {
-                if fast_info.capacity >= 99 {
-                    "Full [AC]".to_string()
-                } else {
-                    "AC Connected".to_string()
-                }
-            } else {
-                "Discharging".to_string()
-            };
-            fast_info.time_estimate = None;
-            write_cached_battery(&fast_info);
-            std::thread::spawn(|| {
-                if let Some(fresh) = probe_sysfs_battery() {
-                    write_cached_battery(&fresh);
-                }
-            });
-            return Some(fast_info);
-        }
-
-        if is_stale {
-            // Touch cache to rate-limit revalidations, then trigger background refresh
-            write_cached_battery(&cached);
-            std::thread::spawn(|| {
-                if let Some(fresh) = probe_sysfs_battery() {
-                    write_cached_battery(&fresh);
-                }
-            });
-            return Some(cached);
-        }
-
-        return Some(cached);
-    }
-
-    let info = probe_sysfs_battery()?;
-    write_cached_battery(&info);
-    Some(info)
+    probe_sysfs_battery()
 }
 
 /// Probes battery status on Windows via Win32 GetSystemPowerStatus API.
