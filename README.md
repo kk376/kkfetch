@@ -95,10 +95,10 @@ KKFetch includes high-contrast ASCII art logos with distro brand signature color
 | **openSUSE** | openSUSE Tumbleweed, openSUSE Leap 15.6 (1) |
 | **NixOS / Nix** | NixOS, Nix Flakes (1) |
 | **Windows** | Windows 11, Windows 10, Windows 7 (native Win32 x86_64) (3) |
+| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
 | **macOS** | macOS (Apple Silicon aarch64 & Intel x86_64) (1) |
 | **Android / Mobile** | Android (via Termux aarch64 & x86_64) (1) |
 | **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Slackware (4) |
-| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
 | **BSD Family & Mascots** | FreeBSD, OpenBSD, NetBSD, Ferris the Rust Crab (`ferris`), Linux Penguin (`tux`) (5) |
 
 ---
@@ -175,6 +175,18 @@ environment.systemPackages = [
 ```powershell
 scoop bucket add kkfetch https://github.com/kk376/scoop-kkfetch
 scoop install kkfetch
+```
+
+---
+
+### Arch Linux / Manjaro / EndeavourOS
+
+AUR user registration is currently suspended by Arch Linux, so manual package installation via pacman is the direct method and it cannot be managed by an AUR helper (such as yay or paru) at this time.
+
+**Via Pre-built Pacman Package:**
+```bash
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-0.18.3-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.18.3-1-x86_64.pkg.tar.zst
 ```
 
 ---
