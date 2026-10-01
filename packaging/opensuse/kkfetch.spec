@@ -6,9 +6,12 @@ License:        MIT OR Apache-2.0
 Group:          System/Monitoring
 URL:            https://github.com/kk376/kkfetch
 Source0:        https://github.com/kk376/kkfetch/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source1:        vendor.tar.zst
+ExclusiveArch:  x86_64 aarch64
 
 BuildRequires:  cargo >= 1.75.0
 BuildRequires:  rust >= 1.75.0
+BuildRequires:  zstd
 BuildRequires:  gcc
 
 %description
@@ -20,12 +23,21 @@ them cleanly alongside colorful ANSI distribution ASCII logos.
 
 %prep
 %autosetup -n %{name}-%{version}
+tar -I zstd -xf %{SOURCE1}
+mkdir -p .cargo
+cat > .cargo/config.toml << 'EOF'
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
+EOF
 
 %build
-cargo build --release
+cargo build --release --offline
 
 %check
-cargo test --release
+cargo test --release --offline
 
 %install
 # Install executable binary
@@ -59,4 +71,4 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 
 %changelog
 * Thu Oct 01 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.18.3-0
-- Release version 0.18.3 for openSUSE
+- Release version 0.18.3 for openSUSE with offline vendored sources

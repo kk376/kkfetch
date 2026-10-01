@@ -3,6 +3,7 @@
 vendor/
 .cargo/
 *.tar.gz
+*.tar.zst
 *.deb
 *.dsc
 *.buildinfo

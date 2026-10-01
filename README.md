@@ -129,6 +129,26 @@ sudo dnf install -y kkfetch
 
 ---
 
+### openSUSE (Tumbleweed / Leap)
+
+**Via Open Build Service (OBS):**
+
+For openSUSE Tumbleweed:
+```bash
+sudo zypper addrepo https://download.opensuse.org/repositories/home:/kk376/openSUSE_Tumbleweed/home:kk376.repo
+sudo zypper refresh
+sudo zypper install -y kkfetch
+```
+
+For openSUSE Leap 15.6:
+```bash
+sudo zypper addrepo https://download.opensuse.org/repositories/home:/kk376/15.6/home:kk376.repo
+sudo zypper refresh
+sudo zypper install -y kkfetch
+```
+
+---
+
 ### Arch Linux / Manjaro / EndeavourOS
 
 **Via Pre-built Pacman Package:**
