@@ -86,18 +86,20 @@ hyperfine --warmup 20 --runs 100 -N 'kkfetch -d battery' 'fastfetch'
 
 ## Supported Operating Systems & Logos
 
-KKFetch includes high-contrast ASCII art logos with distro brand signature colors for **26 operating systems and distributions**:
+KKFetch includes high-contrast ASCII art logos with distro brand signature colors for **30 operating systems, platforms, and mascots**:
 
 | Family / Ecosystem | Supported Distributions & Targets |
 | :--- | :--- |
-| **Debian / Ubuntu Family** | Ubuntu, Debian, Linux Mint, Pop!_OS (4) |
-| **Red Hat Family** | Fedora, RHEL, Rocky Linux, AlmaLinux, CentOS Stream (5) |
-| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
-| **Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, openSUSE, NixOS (5) |
-| **BSD Family** | FreeBSD, OpenBSD, NetBSD (3) |
-| **Windows** | Windows 11, Windows 10 (native Win32 x86_64) (2) |
+| **Debian / Ubuntu Family** | Ubuntu, Debian, Linux Mint, Pop!_OS, Kali Linux, Zorin OS (6) |
+| **Fedora / Red Hat Family** | Fedora 43, 44, 45, Rawhide, RHEL, Rocky Linux, AlmaLinux (4) |
+| **openSUSE** | openSUSE Tumbleweed, openSUSE Leap 15.6 (1) |
+| **NixOS / Nix** | NixOS, Nix Flakes (1) |
+| **Windows** | Windows 11, Windows 10, Windows 7 (native Win32 x86_64) (3) |
+| **macOS** | macOS (Apple Silicon aarch64 & Intel x86_64) (1) |
 | **Android / Mobile** | Android (via Termux aarch64 & x86_64) (1) |
-| **Mascots & Generic** | Ferris the Rust Crab (`ferris`), Linux Penguin (`tux`) (2) |
+| **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Slackware (4) |
+| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
+| **BSD Family & Mascots** | FreeBSD, OpenBSD, NetBSD, Ferris the Rust Crab (`ferris`), Linux Penguin (`tux`) (5) |
 
 ---
 
@@ -111,17 +113,11 @@ sudo add-apt-repository -y ppa:kushagra376/kkfetch
 sudo apt update && sudo apt install -y kkfetch
 ```
 
-**Via Pre-built `.deb`:**
-```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch_0.18.3-1_amd64.deb
-sudo dpkg -i kkfetch_0.18.3-1_amd64.deb
-```
-
 ---
 
-### Fedora / RHEL / Rocky Linux / AlmaLinux
+### Fedora / Fedora Rawhide
 
-**Via Fedora Copr:**
+**Via Fedora Copr (Fedora 43, 44, 45, and Rawhide on x86_64 and aarch64):**
 ```bash
 sudo dnf copr enable -y kk376/kkfetch
 sudo dnf install -y kkfetch
@@ -145,26 +141,6 @@ For openSUSE Leap 15.6:
 sudo zypper addrepo https://download.opensuse.org/repositories/home:/kk376/15.6/home:kk376.repo
 sudo zypper refresh
 sudo zypper install -y kkfetch
-```
-
----
-
-### Arch Linux / Manjaro / EndeavourOS
-
-**Via Pre-built Pacman Package:**
-```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-0.18.3-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.18.3-1-x86_64.pkg.tar.zst
-```
-
----
-
-### macOS
-
-**Via Homebrew:**
-```bash
-brew tap kk376/kkfetch
-brew install kkfetch
 ```
 
 ---
@@ -193,15 +169,6 @@ environment.systemPackages = [
 
 ---
 
-### Android (Termux)
-
-```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch_0.18.3-1_termux_aarch64.deb
-dpkg -i kkfetch_0.18.3-1_termux_aarch64.deb
-```
-
----
-
 ### Windows (Native Win32 CLI)
 
 **Via Scoop:**
@@ -210,16 +177,23 @@ scoop bucket add kkfetch https://github.com/kk376/scoop-kkfetch
 scoop install kkfetch
 ```
 
-**Via Standalone Archive:**
-```powershell
-# 1. Download
-curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-windows-x86_64.zip
+---
 
-# 2. Extract
-tar.exe -xf kkfetch-windows-x86_64.zip
+### macOS
 
-# 3. Run
-.\kkfetch.exe
+**Via Homebrew:**
+```bash
+brew tap kk376/kkfetch
+brew install kkfetch
+```
+
+---
+
+### Android (Termux)
+
+```bash
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch_0.18.3-1_termux_aarch64.deb
+dpkg -i kkfetch_0.18.3-1_termux_aarch64.deb
 ```
 
 ---
