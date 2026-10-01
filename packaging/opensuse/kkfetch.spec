@@ -24,6 +24,8 @@ them cleanly alongside colorful ANSI distribution ASCII logos.
 %prep
 %autosetup -n %{name}-%{version}
 tar -I zstd -xf %{SOURCE1}
+sed -i 's/version = "1.1.0"/version = "1.0.0"/' Cargo.lock
+sed -i 's/c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9/3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831/' Cargo.lock
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [source.crates-io]
