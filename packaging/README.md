@@ -15,7 +15,9 @@ This directory contains package definitions, build scripts, and metadata for Lin
 | **Alpine Linux** | [`alpine/APKBUILD`](alpine/APKBUILD) | `abuild` | `.apk` |
 | **Gentoo Linux** | [`gentoo/kkfetch-0.10.0.ebuild`](gentoo/) | `ebuild` / `emerge` | Portage ebuild |
 | **Homebrew** | [`homebrew/kkfetch.rb`](homebrew/kkfetch.rb) | `brew` | Formula / Bottled bottle |
+| **openSUSE / OBS** | [`opensuse/kkfetch.spec`](opensuse/kkfetch.spec) | `osc` / `rpmbuild` | `.rpm` |
 | **KISS Linux** | [`kiss/`](kiss/) | `kiss` | KISS package |
+| **Windows (Scoop)** | [`scoop/kkfetch.json`](scoop/kkfetch.json) | `scoop` | Scoop manifest |
 | **Windows Package Manager (Winget)** | [`winget/kkfetch.yaml`](winget/kkfetch.yaml) | `winget` | Winget manifest |
 
 ---

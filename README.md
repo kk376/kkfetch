@@ -149,6 +149,30 @@ brew install kkfetch
 
 ---
 
+### NixOS / Nix
+
+**Run instantly without installing:**
+```bash
+nix run github:kk376/kkfetch
+```
+
+**Install to user profile via Flakes:**
+```bash
+nix profile install github:kk376/kkfetch
+```
+
+**Or add to your NixOS configuration (`flake.nix`):**
+```nix
+inputs.kkfetch.url = "github:kk376/kkfetch";
+
+# In environment.systemPackages:
+environment.systemPackages = [
+  inputs.kkfetch.packages.${pkgs.system}.default
+];
+```
+
+---
+
 ### Android (Termux)
 
 ```bash
@@ -160,8 +184,13 @@ dpkg -i kkfetch_0.18.3-1_termux_aarch64.deb
 
 ### Windows (Native Win32 CLI)
 
-No dependencies, pure standalone executable:
+**Via Scoop:**
+```powershell
+scoop bucket add kkfetch https://github.com/kk376/scoop-kkfetch
+scoop install kkfetch
+```
 
+**Via Standalone Archive:**
 ```powershell
 # 1. Download
 curl.exe -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-windows-x86_64.zip
