@@ -386,7 +386,6 @@ Package definitions and build specifications are organized in [`packaging/`](pac
 * **Nix / NixOS**: [`packaging/nix/`](packaging/nix/) (`package.nix`)
 * **Homebrew Tap**: [`packaging/homebrew/`](packaging/homebrew/) (`kkfetch.rb`)
 * **Android (Termux)**: [`packaging/termux/`](packaging/termux/) (`build.sh`)
-* **Windows (WinGet)**: [`packaging/winget/`](packaging/winget/) (YAML manifests)
 
 ---
 
