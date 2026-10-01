@@ -185,8 +185,8 @@ AUR user registration is currently suspended by Arch Linux, so manual package in
 
 **Via Pre-built Pacman Package:**
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-0.18.3-1-x86_64.pkg.tar.zst
-sudo pacman -U kkfetch-0.18.3-1-x86_64.pkg.tar.zst
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.19.0/kkfetch-0.19.0-1-x86_64.pkg.tar.zst
+sudo pacman -U kkfetch-0.19.0-1-x86_64.pkg.tar.zst
 ```
 
 ---
@@ -204,8 +204,8 @@ brew install kkfetch
 ### Android (Termux)
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch_0.18.3-1_termux_aarch64.deb
-dpkg -i kkfetch_0.18.3-1_termux_aarch64.deb
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.19.0/kkfetch_0.19.0-1_termux_aarch64.deb
+dpkg -i kkfetch_0.19.0-1_termux_aarch64.deb
 ```
 
 ---
@@ -215,7 +215,7 @@ dpkg -i kkfetch_0.18.3-1_termux_aarch64.deb
 Statically linked with musl (zero external dependencies):
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-linux-musl-x86_64
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.19.0/kkfetch-linux-musl-x86_64
 chmod +x kkfetch-linux-musl-x86_64
 sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ```
@@ -225,8 +225,8 @@ sudo mv kkfetch-linux-musl-x86_64 /usr/local/bin/kkfetch
 ### Pre-built Tarball Archive
 
 ```bash
-curl -LO https://github.com/kk376/kkfetch/releases/download/v0.18.3/kkfetch-0.18.3-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kkfetch-0.18.3-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/kk376/kkfetch/releases/download/v0.19.0/kkfetch-0.19.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf kkfetch-0.19.0-x86_64-unknown-linux-gnu.tar.gz
 sudo ./install.sh
 ```
 
@@ -381,7 +381,7 @@ Package definitions and build specifications are organized in [`packaging/`](pac
 * **Debian / Ubuntu**: [`packaging/debian/`](packaging/debian/) (`control`, `rules`, `changelog`)
 * **Fedora / RHEL (Copr)**: [`packaging/rpm/`](packaging/rpm/) (`kkfetch.spec`)
 * **Alpine Linux**: [`packaging/alpine/`](packaging/alpine/) (`APKBUILD`)
-* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.18.3.ebuild`)
+* **Gentoo Linux**: [`packaging/gentoo/`](packaging/gentoo/) (`kkfetch-0.19.0.ebuild`)
 * **Void Linux**: [`packaging/void/`](packaging/void/) (`template`)
 * **Nix / NixOS**: [`packaging/nix/`](packaging/nix/) (`package.nix`)
 * **Homebrew Tap**: [`packaging/homebrew/`](packaging/homebrew/) (`kkfetch.rb`)

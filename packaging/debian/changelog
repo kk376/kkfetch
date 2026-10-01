@@ -1,3 +1,9 @@
+kkfetch (0.19.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.19.0: Multi-distribution ecosystem expansion with openSUSE OBS, EPEL 9/10 Copr, and automated release pipeline.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 02 Oct 2026 04:00:00 +0530
+
 kkfetch (0.18.3-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.18.3: 3-tier battery probing with tmpfs RAM cache, UPower D-Bus fast path, and concurrent thread execution.

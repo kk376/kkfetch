@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.18.3
+Version:        0.19.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Fri Oct 02 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.19.0-1
+- Release version 0.19.0: Multi-distribution ecosystem expansion (openSUSE OBS, EPEL 9/10 Copr for RHEL, Rocky, AlmaLinux, CentOS Stream, and automated release pipeline)
+
 * Thu Oct 01 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.18.3-1
 - Release version 0.18.3: 3-tier battery probing with tmpfs RAM cache, UPower D-Bus fast path, and concurrent thread execution
 

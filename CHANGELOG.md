@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-10-02
+
+### Packaging & Distribution Ecosystem
+- **openSUSE Open Build Service (OBS) Integration**:
+  - Established native openSUSE OBS repository packaging (`home:kk376/kkfetch`) for openSUSE Tumbleweed and openSUSE Leap 15.6 on x86_64 and aarch64 architectures.
+  - Implemented automated OBS staging and commit pipeline via `upload_obs.sh`.
+- **Enterprise Linux (EPEL) Copr Expansion**:
+  - Enabled native `epel-9` and `epel-10` chroots in Fedora Copr for both x86_64 and aarch64 architectures, extending direct `sudo dnf copr enable kk376/kkfetch` installation to Red Hat Enterprise Linux (RHEL 9/10), Rocky Linux (9/10), AlmaLinux (9/10), and CentOS Stream (9/10).
+- **Automated Distribution Tooling**:
+  - Added standalone release automation scripts for Fedora/EPEL Copr (`upload_copr.sh`), macOS Homebrew tap (`upload_homebrew.sh`), and Windows Scoop bucket (`upload_scoop.sh`).
+  - Restructured installation hierarchy across README and Supported Operating Systems & Logos table to cover 30 platforms and mascots with distro family alignment.
+
 ## [0.18.3] - 2026-10-01
 
 ### Performance & Optimizations
