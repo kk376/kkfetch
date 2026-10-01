@@ -225,6 +225,7 @@ pub fn get_local_timezone_offset_secs(epoch: u64) -> i64 {
         let mut tm = MaybeUninit::<libc::tm>::zeroed();
         if !libc::localtime_r(&time, tm.as_mut_ptr()).is_null() {
             let tm = tm.assume_init();
+            #[allow(clippy::unnecessary_cast)]
             return tm.tm_gmtoff as i64;
         }
     }
