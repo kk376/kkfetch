@@ -115,9 +115,9 @@ sudo apt update && sudo apt install -y kkfetch
 
 ---
 
-### Fedora / Fedora Rawhide
+### Fedora / RHEL / Rocky Linux / AlmaLinux
 
-**Via Fedora Copr (Fedora 43, 44, 45, and Rawhide on x86_64 and aarch64):**
+**Via Fedora Copr (Fedora, RHEL 9/10, Rocky Linux, and AlmaLinux on x86_64 and aarch64):**
 ```bash
 sudo dnf copr enable -y kk376/kkfetch
 sudo dnf install -y kkfetch
