@@ -1,3 +1,9 @@
+kkfetch (0.19.0-1~ppa3~noble) noble; urgency=medium
+
+  * Scoped clap_lex Cargo.lock resolution to avoid modifying anstream.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 02 Oct 2026 09:00:00 +0530
+
 kkfetch (0.19.0-1~ppa2~noble) noble; urgency=medium
 
   * Fix offline cargo build by aligning clap_lex dependency resolution.

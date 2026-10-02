@@ -10,8 +10,7 @@ override_dh_auto_build:
 	cp debian/vendor-config.toml .cargo/config.toml
 	find vendor -name Cargo.toml -exec sed -i -e 's/edition = "2024"/edition = "2021"/' -e 's/rust-version = "1.85"/rust-version = "1.74"/' {} +
 	if grep -q 'version = "1.1.0"' vendor/clap_lex/Cargo.toml 2>/dev/null; then \
-		sed -i 's/version = "1.0.0"/version = "1.1.0"/' Cargo.lock; \
-		sed -i 's/3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831/c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9/' Cargo.lock; \
+		sed -i '/name = "clap_lex"/,/checksum =/ { s/version = "1.0.0"/version = "1.1.0"/; s/3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831/c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9/; }' Cargo.lock; \
 	fi
 	cargo build --release --offline
 
