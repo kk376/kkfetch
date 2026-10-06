@@ -603,13 +603,51 @@ impl Collector for TerminalCollector {
     }
 }
 
-/// Probes the active terminal font configuration from local user dotfiles or system settings.
-#[cfg(not(windows))]
-pub fn detect_terminal_font() -> Option<String> {
-    let home = std::env::var("HOME").ok()?;
-    let home_path = std::path::Path::new(&home);
+fn parse_ghostty_font(content: &str) -> Option<String> {
+    let mut families = Vec::new();
+    let mut size = None;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        if let Some((k, v)) = trimmed.split_once('=') {
+            let k = k.trim();
+            let v = v.trim().trim_matches('"').trim_matches('\'');
+            if k == "font-family" && !v.is_empty() {
+                families.push(v.to_string());
+            } else if k == "font-size" && size.is_none() && !v.is_empty() {
+                size = Some(v.to_string());
+            }
+        }
+    }
+    if !families.is_empty() {
+        let f = families.join(", ");
+        if let Some(s) = size {
+            return Some(format!("{} ({}pt)", f, s));
+        }
+        return Some(f);
+    } else if let Some(s) = size {
+        return Some(format!("{}pt", s));
+    }
+    None
+}
 
-    // 1. Kitty
+fn probe_ghostty_font(home_path: &std::path::Path) -> Option<String> {
+    for path in &[
+        home_path.join(".config/ghostty/config"),
+        home_path.join(".config/ghostty/config.ghostty"),
+    ] {
+        if let Ok(content) = fs::read_to_string(path) {
+            if let Some(res) = parse_ghostty_font(&content) {
+                return Some(res);
+            }
+        }
+    }
+    None
+}
+
+fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
     let kitty_conf = home_path.join(".config/kitty/kitty.conf");
     if let Ok(content) = fs::read_to_string(kitty_conf) {
         let mut family = None;
@@ -638,8 +676,10 @@ pub fn detect_terminal_font() -> Option<String> {
             return Some(f);
         }
     }
+    None
+}
 
-    // 2. Alacritty
+fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
     for path in &[
         home_path.join(".config/alacritty/alacritty.toml"),
         home_path.join(".alacritty.toml"),
@@ -670,12 +710,18 @@ pub fn detect_terminal_font() -> Option<String> {
             }
         }
     }
+    None
+}
 
-    // 3. Foot
+fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
     let foot_ini = home_path.join(".config/foot/foot.ini");
     if let Ok(content) = fs::read_to_string(foot_ini) {
         for line in content.lines() {
-            if let Some(rest) = line.trim().strip_prefix("font=") {
+            let trimmed = line.trim();
+            if trimmed.starts_with('#') || trimmed.starts_with(';') {
+                continue;
+            }
+            if let Some(rest) = trimmed.strip_prefix("font=") {
                 let f = rest.trim();
                 if !f.is_empty() {
                     return Some(f.to_string());
@@ -683,8 +729,41 @@ pub fn detect_terminal_font() -> Option<String> {
             }
         }
     }
-
     None
+}
+
+/// Probes the active terminal font configuration from local user dotfiles or system settings.
+#[cfg(not(windows))]
+pub fn detect_terminal_font() -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let home_path = std::path::Path::new(&home);
+
+    let active = detect_terminal().unwrap_or_default().to_lowercase();
+
+    // Prioritize active terminal detection first
+    if active.contains("ghostty") {
+        if let Some(f) = probe_ghostty_font(home_path) {
+            return Some(f);
+        }
+    } else if active.contains("kitty") {
+        if let Some(f) = probe_kitty_font(home_path) {
+            return Some(f);
+        }
+    } else if active.contains("alacritty") {
+        if let Some(f) = probe_alacritty_font(home_path) {
+            return Some(f);
+        }
+    } else if active.contains("foot") {
+        if let Some(f) = probe_foot_font(home_path) {
+            return Some(f);
+        }
+    }
+
+    // Fallback waterfall if active terminal probe did not resolve
+    probe_ghostty_font(home_path)
+        .or_else(|| probe_kitty_font(home_path))
+        .or_else(|| probe_alacritty_font(home_path))
+        .or_else(|| probe_foot_font(home_path))
 }
 
 #[cfg(windows)]
@@ -865,5 +944,28 @@ mod tests {
             "Ptyxis 47.0"
         );
         assert_eq!(append_version_if_missing("Alacritty", None), "Alacritty");
+    }
+
+    #[test]
+    fn test_parse_ghostty_font() {
+        let conf = r#"
+# Comments should be ignored
+font-family = "Fira Code"
+font-family = Symbols Nerd Font Mono
+font-size = 13
+"#;
+        assert_eq!(
+            parse_ghostty_font(conf),
+            Some("Fira Code, Symbols Nerd Font Mono (13pt)".to_string())
+        );
+
+        let conf_no_size = "font-family = JetBrainsMono Nerd Font";
+        assert_eq!(
+            parse_ghostty_font(conf_no_size),
+            Some("JetBrainsMono Nerd Font".to_string())
+        );
+
+        let conf_only_size = "font-size = 14";
+        assert_eq!(parse_ghostty_font(conf_only_size), Some("14pt".to_string()));
     }
 }
