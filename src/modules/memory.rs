@@ -80,19 +80,23 @@ pub fn parse_meminfo(content: &str) -> Option<MemoryInfo> {
     })
 }
 
-/// Formats memory in GiB or MiB.
-pub fn format_memory(info: &MemoryInfo, enable_color: bool) -> String {
+fn format_kb_usage(used_kb: u64, total_kb: u64, percent: u64, enable_color: bool) -> String {
     let one_gib_kb = 1024.0 * 1024.0;
-    let pct = crate::output::color::format_percentage(info.percent, false, enable_color);
-    if info.total_kb as f64 >= one_gib_kb {
-        let used_gib = info.used_kb as f64 / one_gib_kb;
-        let total_gib = info.total_kb as f64 / one_gib_kb;
+    let pct = crate::output::color::format_percentage(percent, false, enable_color);
+    if total_kb as f64 >= one_gib_kb {
+        let used_gib = used_kb as f64 / one_gib_kb;
+        let total_gib = total_kb as f64 / one_gib_kb;
         format!("{:.2} GiB / {:.2} GiB ({})", used_gib, total_gib, pct)
     } else {
-        let used_mib = info.used_kb as f64 / 1024.0;
-        let total_mib = info.total_kb as f64 / 1024.0;
+        let used_mib = used_kb as f64 / 1024.0;
+        let total_mib = total_kb as f64 / 1024.0;
         format!("{:.0} MiB / {:.0} MiB ({})", used_mib, total_mib, pct)
     }
+}
+
+/// Formats memory in GiB or MiB.
+pub fn format_memory(info: &MemoryInfo, enable_color: bool) -> String {
+    format_kb_usage(info.used_kb, info.total_kb, info.percent, enable_color)
 }
 
 #[cfg(not(windows))]
@@ -278,18 +282,7 @@ pub fn get_swap_info() -> Option<SwapInfo> {
 
 /// Formats swap memory with optional ZRAM compression algorithm tag.
 pub fn format_swap(info: &SwapInfo, zram_algo: Option<&str>, enable_color: bool) -> String {
-    let one_gib_kb = 1024.0 * 1024.0;
-    let pct = crate::output::color::format_percentage(info.percent, false, enable_color);
-    let base = if info.total_kb as f64 >= one_gib_kb {
-        let used_gib = info.used_kb as f64 / one_gib_kb;
-        let total_gib = info.total_kb as f64 / one_gib_kb;
-        format!("{:.2} GiB / {:.2} GiB ({})", used_gib, total_gib, pct)
-    } else {
-        let used_mib = info.used_kb as f64 / 1024.0;
-        let total_mib = info.total_kb as f64 / 1024.0;
-        format!("{:.0} MiB / {:.0} MiB ({})", used_mib, total_mib, pct)
-    };
-
+    let base = format_kb_usage(info.used_kb, info.total_kb, info.percent, enable_color);
     if let Some(algo) = zram_algo {
         if !algo.is_empty() {
             return format!("{} - {}", base, algo);

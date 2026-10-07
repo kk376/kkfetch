@@ -255,10 +255,11 @@ fn query_gsettings_theme() -> ThemeInfo {
     }
 
     // Fallback: Individual GSettings queries
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "gtk-theme"])
-        .output()
-    {
+    let get_gsettings_prop = |key: &str| -> Option<String> {
+        let output = crate::modules::system_command("gsettings")
+            .args(["get", "org.gnome.desktop.interface", key])
+            .output()
+            .ok()?;
         if output.status.success() {
             let val = String::from_utf8_lossy(&output.stdout)
                 .trim()
@@ -266,82 +267,30 @@ fn query_gsettings_theme() -> ThemeInfo {
                 .trim_matches('"')
                 .to_string();
             if !val.is_empty() {
-                info.theme = Some(val);
+                return Some(val);
             }
         }
-    }
+        None
+    };
 
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "icon-theme"])
-        .output()
-    {
-        if output.status.success() {
-            let val = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .trim_matches('\'')
-                .trim_matches('"')
-                .to_string();
-            if !val.is_empty() {
-                info.icon_theme = Some(val);
-            }
-        }
+    if let Some(t) = get_gsettings_prop("gtk-theme") {
+        info.theme = Some(t);
     }
-
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "font-name"])
-        .output()
-    {
-        if output.status.success() {
-            let val = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .trim_matches('\'')
-                .trim_matches('"')
-                .to_string();
-            if !val.is_empty() {
-                info.font = Some(val);
-            }
-        }
+    if let Some(i) = get_gsettings_prop("icon-theme") {
+        info.icon_theme = Some(i);
     }
-
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "cursor-theme"])
-        .output()
-    {
-        if output.status.success() {
-            let val = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .trim_matches('\'')
-                .trim_matches('"')
-                .to_string();
-            if !val.is_empty() {
-                info.cursor = Some(val);
-            }
-        }
+    if let Some(f) = get_gsettings_prop("font-name") {
+        info.font = Some(f);
     }
-
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "cursor-size"])
-        .output()
-    {
-        if output.status.success() {
-            let val = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if let Ok(s) = val.parse::<u32>() {
-                info.cursor_size = Some(s);
-            }
-        }
+    if let Some(c) = get_gsettings_prop("cursor-theme") {
+        info.cursor = Some(c);
     }
-
-    if let Ok(output) = crate::modules::system_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "color-scheme"])
-        .output()
-    {
-        if output.status.success() {
-            let val = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .to_ascii_lowercase();
-            if val.contains("dark") {
-                info.dark_mode = true;
-            }
+    if let Some(s) = get_gsettings_prop("cursor-size").and_then(|s| s.parse::<u32>().ok()) {
+        info.cursor_size = Some(s);
+    }
+    if let Some(cs) = get_gsettings_prop("color-scheme") {
+        if cs.to_ascii_lowercase().contains("dark") {
+            info.dark_mode = true;
         }
     }
 
@@ -490,12 +439,10 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
     // 1. If KDE: check kdeglobals first
     if is_kde {
         let kde_globals = config_dir.join("kdeglobals");
-        if kde_globals.is_file() {
-            if let Ok(content) = std::fs::read_to_string(&kde_globals) {
-                let info = parse_kde_globals(&content);
-                if info.theme.is_some() || info.icon_theme.is_some() {
-                    resolved = Some(info);
-                }
+        if let Ok(content) = std::fs::read_to_string(&kde_globals) {
+            let info = parse_kde_globals(&content);
+            if info.theme.is_some() || info.icon_theme.is_some() {
+                resolved = Some(info);
             }
         }
     }
@@ -503,12 +450,10 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
     // 2. If XFCE: check xsettings.xml first
     if is_xfce && resolved.is_none() {
         let xfce_settings = config_dir.join("xfce4/xfconf/xfce-perchannel-xml/xsettings.xml");
-        if xfce_settings.is_file() {
-            if let Ok(content) = std::fs::read_to_string(&xfce_settings) {
-                let info = parse_xfce_xsettings(&content);
-                if info.theme.is_some() || info.icon_theme.is_some() {
-                    resolved = Some(info);
-                }
+        if let Ok(content) = std::fs::read_to_string(&xfce_settings) {
+            let info = parse_xfce_xsettings(&content);
+            if info.theme.is_some() || info.icon_theme.is_some() {
+                resolved = Some(info);
             }
         }
     }
@@ -517,13 +462,11 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
     if resolved.is_none() {
         for gtk_ver in ["gtk-4.0", "gtk-3.0"] {
             let gtk_settings = config_dir.join(gtk_ver).join("settings.ini");
-            if gtk_settings.is_file() {
-                if let Ok(content) = std::fs::read_to_string(&gtk_settings) {
-                    let info = parse_gtk_settings_ini(&content);
-                    if info.theme.is_some() || info.icon_theme.is_some() {
-                        resolved = Some(info);
-                        break;
-                    }
+            if let Ok(content) = std::fs::read_to_string(&gtk_settings) {
+                let info = parse_gtk_settings_ini(&content);
+                if info.theme.is_some() || info.icon_theme.is_some() {
+                    resolved = Some(info);
+                    break;
                 }
             }
         }
@@ -541,12 +484,10 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
     if resolved.is_none() {
         if let Ok(home) = std::env::var("HOME") {
             let gtk2_rc = Path::new(&home).join(".gtkrc-2.0");
-            if gtk2_rc.is_file() {
-                if let Ok(content) = std::fs::read_to_string(&gtk2_rc) {
-                    let info = parse_gtk_settings_ini(&content);
-                    if info.theme.is_some() || info.icon_theme.is_some() {
-                        resolved = Some(info);
-                    }
+            if let Ok(content) = std::fs::read_to_string(&gtk2_rc) {
+                let info = parse_gtk_settings_ini(&content);
+                if info.theme.is_some() || info.icon_theme.is_some() {
+                    resolved = Some(info);
                 }
             }
         }

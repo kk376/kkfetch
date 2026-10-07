@@ -250,25 +250,25 @@ pub fn probe_ac_online() -> Option<bool> {
 fn get_ram_cache_path() -> std::path::PathBuf {
     // 1. Prefer $XDG_RUNTIME_DIR (tmpfs in /run/user/$UID/)
     if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        let dir = std::path::PathBuf::from(runtime_dir).join("kkfetch");
-        let _ = fs::create_dir_all(&dir);
-        return dir.join("battery.cache");
+        return std::path::PathBuf::from(runtime_dir)
+            .join("kkfetch")
+            .join("battery.cache");
     }
     // 2. Fallback to /dev/shm (POSIX shared memory tmpfs)
     let shm_dir = std::path::PathBuf::from("/dev/shm");
     if shm_dir.is_dir() {
         // SAFETY: libc::getuid requires no arguments and returns the current user ID.
         let uid = unsafe { libc::getuid() };
-        let dir = shm_dir.join(format!("kkfetch-{}", uid));
-        let _ = fs::create_dir_all(&dir);
-        return dir.join("battery.cache");
+        return shm_dir
+            .join(format!("kkfetch-{}", uid))
+            .join("battery.cache");
     }
     // 3. Fallback to private user-isolated temp directory
     // SAFETY: libc::getuid requires no arguments and returns the current user ID.
     let uid = unsafe { libc::getuid() };
-    let temp_dir = std::env::temp_dir().join(format!("kkfetch-{}", uid));
-    let _ = fs::create_dir_all(&temp_dir);
-    temp_dir.join("battery.cache")
+    std::env::temp_dir()
+        .join(format!("kkfetch-{}", uid))
+        .join("battery.cache")
 }
 
 #[cfg(not(windows))]
@@ -306,6 +306,9 @@ fn read_cached_battery() -> Option<(BatteryInfo, u64)> {
 #[cfg(not(windows))]
 fn write_cached_battery(info: &BatteryInfo) {
     let path = get_ram_cache_path();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -405,6 +408,11 @@ pub fn parse_busctl_upower_output(text: &str, ac_online: Option<bool>) -> Option
 
 #[cfg(not(windows))]
 pub fn probe_upower_battery() -> Option<BatteryInfo> {
+    probe_upower_battery_with_ac(probe_ac_online())
+}
+
+#[cfg(not(windows))]
+fn probe_upower_battery_with_ac(ac_online: Option<bool>) -> Option<BatteryInfo> {
     use crate::modules::system_command;
 
     let output = system_command("busctl")
@@ -427,7 +435,6 @@ pub fn probe_upower_battery() -> Option<BatteryInfo> {
     }
 
     let text = std::str::from_utf8(&output.stdout).ok()?;
-    let ac_online = probe_ac_online();
     parse_busctl_upower_output(text, ac_online)
 }
 
@@ -461,7 +468,7 @@ pub fn detect_battery() -> Option<BatteryInfo> {
     }
 
     // Tier 2: UPower D-Bus Query Fast-Path
-    if let Some(info) = probe_upower_battery() {
+    if let Some(info) = probe_upower_battery_with_ac(ac_online) {
         write_cached_battery(&info);
         return Some(info);
     }

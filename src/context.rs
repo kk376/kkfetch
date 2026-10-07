@@ -304,17 +304,14 @@ pub fn resolve_active_modules(cli: &Cli, config: &Config) -> Vec<ModuleId> {
         disabled_set.extend(disabled.iter().filter_map(|d| ModuleId::from_str(d)));
     }
 
-    let filtered: Vec<ModuleId> = base_modules
-        .into_iter()
-        .filter(|m| !disabled_set.contains(m))
-        .filter(|m| !(cli.no_plugins && *m == ModuleId::Plugin))
-        .collect();
-
     // Deduplicate while strictly preserving first-seen appearance order
     let mut seen = std::collections::HashSet::new();
-    let mut deduped = Vec::new();
-    for m in filtered {
-        if seen.insert(m) {
+    let mut deduped = Vec::with_capacity(base_modules.len());
+    for m in base_modules {
+        if !disabled_set.contains(&m)
+            && !(cli.no_plugins && m == ModuleId::Plugin)
+            && seen.insert(m)
+        {
             deduped.push(m);
         }
     }

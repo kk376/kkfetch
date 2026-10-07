@@ -784,40 +784,20 @@ pub fn match_logo(
                 return Some(logo);
             }
         }
-        // Aliases
-        if name_lower == "kkfetch" || name_lower == "rust" {
-            return ALL_LOGOS.iter().find(|l| l.name == "ferris");
-        }
-        if name_lower == "mint" {
-            return ALL_LOGOS.iter().find(|l| l.name == "linuxmint");
-        }
-        if name_lower == "suse" {
-            return ALL_LOGOS.iter().find(|l| l.name == "opensuse");
-        }
-        if name_lower == "tux" || name_lower == "linux" {
-            return ALL_LOGOS.iter().find(|l| l.name == "generic");
-        }
-        if name_lower == "win" || name_lower == "windows" {
-            return ALL_LOGOS.iter().find(|l| l.name == "windows11");
-        }
-        if name_lower == "win11" {
-            return ALL_LOGOS.iter().find(|l| l.name == "windows11");
-        }
-        if name_lower == "win10" {
-            return ALL_LOGOS.iter().find(|l| l.name == "windows10");
-        }
-        if name_lower == "win7" {
-            return ALL_LOGOS.iter().find(|l| l.name == "windows7");
-        }
-        if name_lower == "mac"
-            || name_lower == "darwin"
-            || name_lower == "apple"
-            || name_lower == "osx"
-        {
-            return ALL_LOGOS.iter().find(|l| l.name == "macos");
-        }
-        if name_lower == "bsd" {
-            return ALL_LOGOS.iter().find(|l| l.name == "freebsd");
+        let alias_target = match name_lower.as_str() {
+            "kkfetch" | "rust" => Some("ferris"),
+            "mint" => Some("linuxmint"),
+            "suse" => Some("opensuse"),
+            "tux" | "linux" => Some("generic"),
+            "win" | "windows" | "win11" => Some("windows11"),
+            "win10" => Some("windows10"),
+            "win7" => Some("windows7"),
+            "mac" | "darwin" | "apple" | "osx" => Some("macos"),
+            "bsd" => Some("freebsd"),
+            _ => None,
+        };
+        if let Some(target) = alias_target {
+            return ALL_LOGOS.iter().find(|l| l.name == target);
         }
     }
 
@@ -831,121 +811,61 @@ pub fn match_logo(
     }
 
     // 2. Specific OS & Distribution keyword matching
-    if id_clean.contains("android") || id_clean.contains("termux") {
-        return ALL_LOGOS.iter().find(|l| l.name == "android");
+    const KEYWORD_LOGOS: &[(&[&str], &str)] = &[
+        (&["android", "termux"], "android"),
+        (&["macos", "darwin", "osx", "apple"], "macos"),
+        (&["freebsd"], "freebsd"),
+        (&["openbsd"], "openbsd"),
+        (&["netbsd"], "netbsd"),
+        (&["windows11", "win11"], "windows11"),
+        (&["windows10", "win10"], "windows10"),
+        (&["windows7", "win7"], "windows7"),
+        (&["windows", "win"], "windows11"),
+        (&["ubuntu"], "ubuntu"),
+        (&["mint", "linuxmint"], "linuxmint"),
+        (&["fedora"], "fedora"),
+        (&["endeavour"], "endeavouros"),
+        (&["manjaro"], "manjaro"),
+        (&["artix"], "artix"),
+        (&["arch"], "arch"),
+        (&["debian"], "debian"),
+        (&["redhat", "rhel", "centos"], "rhel"),
+        (&["rocky"], "rocky"),
+        (&["alma"], "almalinux"),
+        (&["suse", "opensuse"], "opensuse"),
+        (&["gentoo"], "gentoo"),
+        (&["alpine"], "alpine"),
+        (&["void"], "void"),
+        (&["pop"], "pop"),
+        (&["nix"], "nixos"),
+        (&["kali"], "kali"),
+        (&["slackware"], "slackware"),
+        (&["zorin"], "zorin"),
+    ];
+
+    for (keywords, logo_name) in KEYWORD_LOGOS {
+        if keywords.iter().any(|&k| id_clean.contains(k)) {
+            return ALL_LOGOS.iter().find(|l| l.name == *logo_name);
+        }
     }
-    if id_clean.contains("macos")
-        || id_clean.contains("darwin")
-        || id_clean.contains("osx")
-        || id_clean.contains("apple")
-    {
-        return ALL_LOGOS.iter().find(|l| l.name == "macos");
-    }
-    if id_clean.contains("freebsd") {
-        return ALL_LOGOS.iter().find(|l| l.name == "freebsd");
-    }
-    if id_clean.contains("openbsd") {
-        return ALL_LOGOS.iter().find(|l| l.name == "openbsd");
-    }
-    if id_clean.contains("netbsd") {
-        return ALL_LOGOS.iter().find(|l| l.name == "netbsd");
-    }
-    if id_clean.contains("windows11") || id_clean.contains("win11") {
-        return ALL_LOGOS.iter().find(|l| l.name == "windows11");
-    }
-    if id_clean.contains("windows10") || id_clean.contains("win10") {
-        return ALL_LOGOS.iter().find(|l| l.name == "windows10");
-    }
-    if id_clean.contains("windows7") || id_clean.contains("win7") {
-        return ALL_LOGOS.iter().find(|l| l.name == "windows7");
-    }
-    if id_clean.contains("windows") || id_clean.contains("win") {
-        return ALL_LOGOS.iter().find(|l| l.name == "windows11");
-    }
-    if id_clean.contains("ubuntu") {
-        return ALL_LOGOS.iter().find(|l| l.name == "ubuntu");
-    }
-    if id_clean.contains("mint") || id_clean == "linuxmint" {
-        return ALL_LOGOS.iter().find(|l| l.name == "linuxmint");
-    }
-    if id_clean.contains("fedora") {
-        return ALL_LOGOS.iter().find(|l| l.name == "fedora");
-    }
-    if id_clean.contains("endeavour") {
-        return ALL_LOGOS.iter().find(|l| l.name == "endeavouros");
-    }
-    if id_clean.contains("manjaro") {
-        return ALL_LOGOS.iter().find(|l| l.name == "manjaro");
-    }
-    if id_clean.contains("artix") {
-        return ALL_LOGOS.iter().find(|l| l.name == "artix");
-    }
-    if id_clean.contains("arch") {
-        return ALL_LOGOS.iter().find(|l| l.name == "arch");
-    }
-    if id_clean.contains("debian") {
-        return ALL_LOGOS.iter().find(|l| l.name == "debian");
-    }
-    if id_clean.contains("redhat") || id_clean.contains("rhel") || id_clean.contains("centos") {
-        return ALL_LOGOS.iter().find(|l| l.name == "rhel");
-    }
-    if id_clean.contains("rocky") {
-        return ALL_LOGOS.iter().find(|l| l.name == "rocky");
-    }
-    if id_clean.contains("alma") {
-        return ALL_LOGOS.iter().find(|l| l.name == "almalinux");
-    }
-    if id_clean.contains("suse") || id_clean.contains("opensuse") {
-        return ALL_LOGOS.iter().find(|l| l.name == "opensuse");
-    }
-    if id_clean.contains("gentoo") {
-        return ALL_LOGOS.iter().find(|l| l.name == "gentoo");
-    }
-    if id_clean.contains("alpine") {
-        return ALL_LOGOS.iter().find(|l| l.name == "alpine");
-    }
-    if id_clean.contains("void") {
-        return ALL_LOGOS.iter().find(|l| l.name == "void");
-    }
-    if id_clean.contains("pop") {
-        return ALL_LOGOS.iter().find(|l| l.name == "pop");
-    }
-    if id_clean.contains("nix") {
-        return ALL_LOGOS.iter().find(|l| l.name == "nixos");
-    }
-    if id_clean.contains("kali") {
-        return ALL_LOGOS.iter().find(|l| l.name == "kali");
-    }
-    if id_clean.contains("slackware") {
-        return ALL_LOGOS.iter().find(|l| l.name == "slackware");
-    }
-    if id_clean.contains("zorin") {
-        return ALL_LOGOS.iter().find(|l| l.name == "zorin");
-    }
+
+    const LIKE_LOGOS: &[(&str, &str)] = &[
+        ("android", "android"),
+        ("ubuntu", "ubuntu"),
+        ("debian", "debian"),
+        ("arch", "arch"),
+        ("fedora", "fedora"),
+        ("rhel", "rhel"),
+        ("suse", "opensuse"),
+    ];
 
     // 3. Parent ID_LIKE fallbacks
     for like in distro_like {
         let like_lower = like.to_lowercase();
-        if like_lower.contains("android") {
-            return ALL_LOGOS.iter().find(|l| l.name == "android");
-        }
-        if like_lower.contains("ubuntu") {
-            return ALL_LOGOS.iter().find(|l| l.name == "ubuntu");
-        }
-        if like_lower.contains("debian") {
-            return ALL_LOGOS.iter().find(|l| l.name == "debian");
-        }
-        if like_lower.contains("arch") {
-            return ALL_LOGOS.iter().find(|l| l.name == "arch");
-        }
-        if like_lower.contains("fedora") {
-            return ALL_LOGOS.iter().find(|l| l.name == "fedora");
-        }
-        if like_lower.contains("rhel") {
-            return ALL_LOGOS.iter().find(|l| l.name == "rhel");
-        }
-        if like_lower.contains("suse") {
-            return ALL_LOGOS.iter().find(|l| l.name == "opensuse");
+        for (pattern, logo_name) in LIKE_LOGOS {
+            if like_lower.contains(pattern) {
+                return ALL_LOGOS.iter().find(|l| l.name == *logo_name);
+            }
         }
     }
 

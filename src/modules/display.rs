@@ -92,6 +92,12 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
     })
 }
 
+fn extract_xml_scale(text: &str) -> Option<f64> {
+    let (s_start, s_end) = (text.find("<scale>")?, text.find("</scale>")?);
+    let s_val = text[s_start + 7..s_end].trim();
+    s_val.parse::<f64>().ok().filter(|&scale| scale > 0.0)
+}
+
 /// Parses display scaling factor from GNOME / Mutter monitors.xml.
 pub fn parse_monitors_xml_scale(content: &str, connector: Option<&str>) -> Option<f64> {
     let conn_suffix = connector.and_then(|c| c.split('-').next_back());
@@ -108,27 +114,13 @@ pub fn parse_monitors_xml_scale(content: &str, connector: Option<&str>) -> Optio
         };
 
         if matched {
-            if let (Some(s_start), Some(s_end)) = (lm.find("<scale>"), lm.find("</scale>")) {
-                let s_val = lm[s_start + 7..s_end].trim();
-                if let Ok(scale) = s_val.parse::<f64>() {
-                    if scale > 0.0 {
-                        return Some(scale);
-                    }
-                }
-            }
-        }
-    }
-
-    if let (Some(s_start), Some(s_end)) = (content.find("<scale>"), content.find("</scale>")) {
-        let s_val = content[s_start + 7..s_end].trim();
-        if let Ok(scale) = s_val.parse::<f64>() {
-            if scale > 0.0 {
+            if let Some(scale) = extract_xml_scale(lm) {
                 return Some(scale);
             }
         }
     }
 
-    None
+    extract_xml_scale(content)
 }
 
 /// Parses display scaling factor from `hyprctl monitors` or `hyprctl -j monitors` output.
@@ -179,12 +171,11 @@ pub fn parse_hyprctl_scale(content: &str, connector: Option<&str>) -> Option<f64
                     }
                 }
             } else if let Some(rest) = trimmed.strip_prefix("\"scale\":") {
-                let num_str: String = rest
-                    .chars()
-                    .skip_while(|c| c.is_whitespace())
-                    .take_while(|c| c.is_ascii_digit() || *c == '.')
-                    .collect();
-                if let Ok(scale) = num_str.parse::<f64>() {
+                let trimmed_num = rest.trim_start();
+                let end = trimmed_num
+                    .find(|c: char| !c.is_ascii_digit() && c != '.')
+                    .unwrap_or(trimmed_num.len());
+                if let Ok(scale) = trimmed_num[..end].parse::<f64>() {
                     if scale > 0.0 {
                         return Some(scale);
                     }
@@ -493,35 +484,38 @@ pub fn detect_display() -> Option<DisplayInfo> {
                         .to_string();
                     let scale = detect_display_scale(Some(&conn_name));
 
+                    let resolution_from_modes = fs::read_to_string(path.join("modes"))
+                        .ok()
+                        .and_then(|modes| {
+                            modes.lines().next().and_then(|first_mode| {
+                                let clean = first_mode.trim();
+                                if clean.contains('x') {
+                                    Some(clean.to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                        });
+
                     if let Ok(edid_bytes) = fs::read(path.join("edid")) {
                         if let Some(mut info) = parse_edid_binary(&edid_bytes, &conn_name) {
-                            if let Ok(modes) = fs::read_to_string(path.join("modes")) {
-                                if let Some(first_mode) = modes.lines().next() {
-                                    let clean = first_mode.trim();
-                                    if clean.contains('x') {
-                                        info.resolution = clean.to_string();
-                                    }
-                                }
+                            if let Some(ref res) = resolution_from_modes {
+                                info.resolution = res.clone();
                             }
                             info.scale = scale;
                             return Some(info);
                         }
                     }
 
-                    if let Ok(modes) = fs::read_to_string(path.join("modes")) {
-                        if let Some(first_mode) = modes.lines().next() {
-                            let clean = first_mode.trim();
-                            if clean.contains('x') {
-                                return Some(DisplayInfo {
-                                    name: None,
-                                    resolution: clean.to_string(),
-                                    refresh_rate: None,
-                                    size_inches: None,
-                                    display_type: None,
-                                    scale,
-                                });
-                            }
-                        }
+                    if let Some(res) = resolution_from_modes {
+                        return Some(DisplayInfo {
+                            name: None,
+                            resolution: res,
+                            refresh_rate: None,
+                            size_inches: None,
+                            display_type: None,
+                            scale,
+                        });
                     }
                 }
             }

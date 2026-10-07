@@ -9,46 +9,73 @@ pub fn vendor_id_to_name(vendor: &str) -> Option<&'static str> {
         .trim()
         .strip_prefix("0x")
         .or_else(|| vendor.trim().strip_prefix("0X"))
-        .unwrap_or(vendor.trim())
-        .to_lowercase();
+        .unwrap_or(vendor.trim());
 
-    match clean.as_str() {
-        "10de" => Some("NVIDIA"),
-        "1002" => Some("AMD"),
-        "8086" => Some("Intel"),
-        "1af4" => Some("VirtIO GPU"),
-        "1414" => Some("Microsoft Direct3D"),
-        "15ad" => Some("VMware SVGA"),
-        "80ee" => Some("VirtualBox Graphics"),
-        "1013" => Some("Cirrus Logic"),
-        "1234" => Some("QEMU VGA"),
-        "13d7" => Some("Broadcom VideoCore"),
-        "1a03" => Some("ASPEED Graphics"),
-        "102b" => Some("Matrox Graphics"),
-        "1b36" => Some("Red Hat QXL"),
-        "5143" => Some("Qualcomm Adreno"),
-        _ => None,
+    const VENDORS: &[(&str, &str)] = &[
+        ("10de", "NVIDIA"),
+        ("1002", "AMD"),
+        ("8086", "Intel"),
+        ("1af4", "VirtIO GPU"),
+        ("1414", "Microsoft Direct3D"),
+        ("15ad", "VMware SVGA"),
+        ("80ee", "VirtualBox Graphics"),
+        ("1013", "Cirrus Logic"),
+        ("1234", "QEMU VGA"),
+        ("13d7", "Broadcom VideoCore"),
+        ("1a03", "ASPEED Graphics"),
+        ("102b", "Matrox Graphics"),
+        ("1b36", "Red Hat QXL"),
+        ("5143", "Qualcomm Adreno"),
+    ];
+
+    VENDORS
+        .iter()
+        .find(|(id, _)| clean.eq_ignore_ascii_case(id))
+        .map(|(_, name)| *name)
+}
+
+fn normalize_spaces(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for word in s.split_whitespace() {
+        if !result.is_empty() {
+            result.push(' ');
+        }
+        result.push_str(word);
     }
+    result
 }
 
 /// Cleans redundant vendor suffixes and bracketed tags from GPU names.
 /// When pci.ids includes bracketed marketing names (e.g. `GA107 [GeForce RTX 2050]` or `Rembrandt [Radeon 680M]`),
 /// extracts the consumer product name and formats it cleanly with the vendor prefix.
 pub fn clean_gpu_name(name: &str) -> String {
-    let mut cleaned = name
-        .replace("(R)", "")
-        .replace("(r)", "")
-        .replace("(TM)", "")
-        .replace("(tm)", "")
-        .replace("Corporation", "")
-        .replace("Technologies Inc", "")
-        .replace("Advanced Micro Devices, Inc.", "AMD")
-        .replace("Advanced Micro Devices", "AMD")
-        .replace("[AMD/ATI]", "")
-        .replace("[AMD]", "")
-        .replace("[ATI]", "")
-        .replace("Inc.", "")
-        .replace("Inc", "");
+    let mut cleaned = name.to_string();
+
+    if cleaned.contains("Advanced Micro Devices, Inc.") {
+        cleaned = cleaned.replace("Advanced Micro Devices, Inc.", "AMD");
+    } else if cleaned.contains("Advanced Micro Devices") {
+        cleaned = cleaned.replace("Advanced Micro Devices", "AMD");
+    }
+
+    const TOKENS_TO_STRIP: &[&str] = &[
+        "(R)",
+        "(r)",
+        "(TM)",
+        "(tm)",
+        "Corporation",
+        "Technologies Inc",
+        "[AMD/ATI]",
+        "[AMD]",
+        "[ATI]",
+        "Inc.",
+        "Inc",
+    ];
+
+    for &tok in TOKENS_TO_STRIP {
+        if cleaned.contains(tok) {
+            cleaned = cleaned.replace(tok, "");
+        }
+    }
 
     // Remove any revision tags like (rev a1), (rev 02), (rev 0b), etc.
     while let Some(rev_idx) = cleaned.find("(rev ") {
@@ -95,16 +122,14 @@ pub fn clean_gpu_name(name: &str) -> String {
                 } else {
                     chosen.to_string()
                 };
-                let tokens: Vec<&str> = formatted.split_whitespace().collect();
-                return tokens.join(" ");
+                return normalize_spaces(&formatted);
             }
         }
     }
 
     // Fallback: strip residual brackets and normalize whitespace
     let stripped = cleaned.replace(['[', ']'], "");
-    let tokens: Vec<&str> = stripped.split_whitespace().collect();
-    tokens.join(" ")
+    normalize_spaces(&stripped)
 }
 
 /// Parses standard pci.ids file format to resolve vendor and device hex IDs to human-readable names.
@@ -229,11 +254,8 @@ pub fn lookup_pci_ids(vendor_hex: &str, device_hex: &str) -> Option<String> {
 
     for path in &pci_id_paths {
         let p = Path::new(path);
-        if p.is_file() {
-            if let Some(name) = lookup_pci_ids_from_file(p, &vendor, &device) {
-                return Some(name);
-            }
-            break;
+        if let Some(name) = lookup_pci_ids_from_file(p, &vendor, &device) {
+            return Some(name);
         }
     }
 
@@ -783,16 +805,6 @@ pub fn is_integrated_gpu(gpu_name: &str) -> bool {
         }
 
         // Desktop APUs with D suffix (e.g. HD 6410D, HD 7480D, HD 7560D, HD 8470D, HD 8570D, HD 8670D)
-        for word in lower.split_whitespace() {
-            let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
-            if clean.ends_with('d') && clean.len() >= 4 {
-                let num_part = &clean[..clean.len() - 1];
-                if num_part.chars().all(|c| c.is_ascii_digit()) {
-                    return true;
-                }
-            }
-        }
-
         // Low-power E-series APU models (HD 62xx, HD 63xx, HD 73xx, HD 82xx, HD 83xx, HD 84xx)
         for prefix in &["hd 62", "hd 63", "hd 73", "hd 82", "hd 83", "hd 84"] {
             if lower.contains(prefix) {
@@ -800,11 +812,16 @@ pub fn is_integrated_gpu(gpu_name: &str) -> bool {
             }
         }
 
-        // 3-digit Mobile APU iGPUs (e.g. "610M", "620M", "640M", "660M", "680M", "740M", "760M", "780M", "840M", "860M", "880M", "890M")
+        // Desktop APUs with D suffix (e.g. HD 6410D, HD 7480D) and 3-digit Mobile APUs (e.g. 680M, 780M, 890M)
         for word in lower.split_whitespace() {
-            let clean_word = word.trim_matches(|c: char| !c.is_alphanumeric());
-            if clean_word.len() == 4 && clean_word.ends_with('m') {
-                let prefix = &clean_word[..3];
+            let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
+            if clean.ends_with('d') && clean.len() >= 4 {
+                let num_part = &clean[..clean.len() - 1];
+                if num_part.chars().all(|c| c.is_ascii_digit()) {
+                    return true;
+                }
+            } else if clean.ends_with('m') && clean.len() == 4 {
+                let prefix = &clean[..3];
                 if prefix.chars().all(|c| c.is_ascii_digit()) {
                     return true;
                 }

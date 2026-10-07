@@ -38,8 +38,12 @@ pub fn parse_os_release(content: &str) -> OsInfo {
             {
                 val_str = &val_str[1..val_str.len() - 1];
             }
-            let unescaped = val_str.replace("\\\"", "\"").replace("\\\\", "\\");
-            let clean_val = unescaped.trim();
+            let clean_val = if val_str.contains('\\') {
+                std::borrow::Cow::Owned(val_str.replace("\\\"", "\"").replace("\\\\", "\\"))
+            } else {
+                std::borrow::Cow::Borrowed(val_str)
+            };
+            let clean_val = clean_val.trim();
             if clean_val.is_empty() {
                 continue;
             }
@@ -324,8 +328,9 @@ impl Collector for OsCollector {
     }
 
     fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
-        let arch = crate::modules::kernel::get_uname_info()
-            .map(|k| k.architecture)
+        let cached_arch = ctx.uname_info.as_ref().map(|k| k.architecture.clone());
+        let arch = cached_arch
+            .or_else(|| crate::modules::kernel::get_uname_info().map(|k| k.architecture))
             .unwrap_or_else(|| "x86_64".to_string());
         let value = format!("{} {}", ctx.os_info.display_name, arch);
 

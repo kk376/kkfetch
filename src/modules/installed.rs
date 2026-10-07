@@ -98,10 +98,7 @@ fn get_statx_birth_time(path: &str) -> Option<u64> {
 
 #[cfg(not(any(windows, target_os = "linux")))]
 fn get_statx_birth_time(path: &str) -> Option<u64> {
-    let meta = fs::metadata(path).ok()?;
-    let created = meta.created().or_else(|_| meta.modified()).ok()?;
-    let duration = created.duration_since(UNIX_EPOCH).ok()?;
-    Some(duration.as_secs())
+    get_metadata_ctime(path)
 }
 
 #[cfg(not(windows))]
@@ -116,14 +113,9 @@ fn get_metadata_ctime(path: &str) -> Option<u64> {
 /// Reads `/etc/adjtime` where line 3 is `LOCAL`.
 #[cfg(not(windows))]
 fn is_rtc_local() -> bool {
-    if let Ok(content) = fs::read_to_string("/etc/adjtime") {
-        for line in content.lines() {
-            if line.trim() == "LOCAL" {
-                return true;
-            }
-        }
-    }
-    false
+    fs::read_to_string("/etc/adjtime")
+        .map(|content| content.lines().any(|line| line.trim() == "LOCAL"))
+        .unwrap_or(false)
 }
 
 /// Normalizes birth timestamps created during Live USB installation on dual-boot machines.

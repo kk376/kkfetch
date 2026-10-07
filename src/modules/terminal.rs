@@ -206,7 +206,10 @@ pub fn match_terminal_proc(comm: &str) -> Option<&'static str> {
         let is_match = if proc_name == "st" {
             comm == "st" || comm == "stterm" || comm.starts_with("st-")
         } else {
-            comm == proc_name || comm.starts_with(&format!("{}-", proc_name))
+            comm == proc_name
+                || comm
+                    .strip_prefix(proc_name)
+                    .is_some_and(|rest| rest.starts_with('-'))
         };
         if is_match {
             return Some(display_name);

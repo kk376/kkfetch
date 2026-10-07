@@ -163,19 +163,22 @@ fn get_shell_cli_version(shell_name: &str) -> Option<String> {
 
 #[cfg(not(windows))]
 fn format_shell_with_version(shell_name: &str) -> String {
-    // Fast-path: query shell version environment variables before spawning subprocesses
-    let mut bash_ver = std::env::var("BASH_VERSION").ok();
-    let mut zsh_ver = std::env::var("ZSH_VERSION").ok();
-    let mut fish_ver = std::env::var("FISH_VERSION").ok();
+    let mut bash_ver = None;
+    let mut zsh_ver = None;
+    let mut fish_ver = None;
 
-    if bash_ver.is_none() && shell_name.contains("bash") {
-        bash_ver = get_shell_cli_version("bash");
-    }
-    if zsh_ver.is_none() && shell_name.contains("zsh") {
-        zsh_ver = get_shell_cli_version("zsh");
-    }
-    if fish_ver.is_none() && shell_name.contains("fish") {
-        fish_ver = get_shell_cli_version("fish");
+    if shell_name.contains("bash") {
+        bash_ver = std::env::var("BASH_VERSION")
+            .ok()
+            .or_else(|| get_shell_cli_version("bash"));
+    } else if shell_name.contains("zsh") {
+        zsh_ver = std::env::var("ZSH_VERSION")
+            .ok()
+            .or_else(|| get_shell_cli_version("zsh"));
+    } else if shell_name.contains("fish") {
+        fish_ver = std::env::var("FISH_VERSION")
+            .ok()
+            .or_else(|| get_shell_cli_version("fish"));
     }
 
     let res = format_shell_name_version(
@@ -200,13 +203,6 @@ fn format_shell_with_version(shell_name: &str) -> String {
             if let Some(cli_ver) = get_shell_cli_version("nu") {
                 return format!("nu {}", cli_ver);
             }
-        } else if shell_name == "cmd" {
-            return "cmd.exe".to_string();
-        } else if shell_name == "powershell" {
-            if let Ok(ver) = std::env::var("PSVERSION") {
-                return format!("PowerShell {}", ver.trim());
-            }
-            return "PowerShell 5.1".to_string();
         }
 
         if let Some(cli_ver) = get_shell_cli_version(shell_name) {

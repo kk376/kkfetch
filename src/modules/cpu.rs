@@ -14,37 +14,54 @@ pub struct CpuInfo {
     pub max_freq_ghz: Option<f64>,
 }
 
+const CPU_PATTERNS_TO_REMOVE: &[&str] = &[
+    "(R)",
+    "(TM)",
+    "(tm)",
+    "CPU",
+    "Processor",
+    "with Radeon Graphics",
+    "with Radeon Vega Graphics",
+    "with Intel UHD Graphics",
+    "with Intel HD Graphics",
+    "with Intel Iris Xe Graphics",
+    "Dual-Core",
+    "Quad-Core",
+    "Six-Core",
+    "Eight-Core",
+    "12-Core",
+    "16-Core",
+    "24-Core",
+    "32-Core",
+    "64-Core",
+    "128-Core",
+];
+
 /// Cleans redundant marketing and frequency tokens from raw CPU model strings.
 pub fn clean_cpu_model(raw: &str) -> String {
-    let mut cleaned = raw
-        .replace("(R)", "")
-        .replace("(TM)", "")
-        .replace("(tm)", "")
-        .replace("CPU", "")
-        .replace("Processor", "")
-        .replace("with Radeon Graphics", "")
-        .replace("with Radeon Vega Graphics", "")
-        .replace("with Intel UHD Graphics", "")
-        .replace("with Intel HD Graphics", "")
-        .replace("with Intel Iris Xe Graphics", "")
-        .replace("Dual-Core", "")
-        .replace("Quad-Core", "")
-        .replace("Six-Core", "")
-        .replace("Eight-Core", "")
-        .replace("12-Core", "")
-        .replace("16-Core", "")
-        .replace("24-Core", "")
-        .replace("32-Core", "")
-        .replace("64-Core", "")
-        .replace("128-Core", "");
+    let mut cleaned = raw.to_string();
+    for &pattern in CPU_PATTERNS_TO_REMOVE {
+        if cleaned.contains(pattern) {
+            cleaned = cleaned.replace(pattern, "");
+        }
+    }
 
     // Strip clock speed patterns like "@ 2.60GHz" (handled dynamically via cpufreq)
     if let Some(idx) = cleaned.find('@') {
-        cleaned = cleaned[..idx].to_string();
+        cleaned.truncate(idx);
     }
 
-    let tokens: Vec<&str> = cleaned.split_whitespace().collect();
-    tokens.join(" ").trim_end_matches(',').trim().to_string()
+    let mut result = String::with_capacity(cleaned.len());
+    for word in cleaned.split_whitespace() {
+        if !result.is_empty() {
+            result.push(' ');
+        }
+        result.push_str(word);
+    }
+    if result.ends_with(',') {
+        result.pop();
+    }
+    result.trim().to_string()
 }
 
 /// Parses `/proc/cpuinfo` into model, logical core count, physical core count, socket count, and frequencies.
@@ -254,9 +271,8 @@ pub fn get_cpu_freq_pair_ghz() -> (Option<f64>, Option<f64>) {
 
 #[cfg(not(windows))]
 pub fn get_cpu_freq_ghz() -> Option<f64> {
-    get_cpu_freq_pair_ghz()
-        .0
-        .or_else(|| get_cpu_freq_pair_ghz().1)
+    let (cur, max) = get_cpu_freq_pair_ghz();
+    cur.or(max)
 }
 
 #[cfg(not(windows))]

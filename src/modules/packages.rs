@@ -77,16 +77,14 @@ pub fn count_dpkg_from_path(path: &Path) -> Option<usize> {
 /// Counts installed packages for Debian/Ubuntu family.
 pub fn count_dpkg() -> Option<usize> {
     let default_path = Path::new("/var/lib/dpkg/status");
-    if default_path.exists() {
-        return count_dpkg_from_path(default_path);
+    if let Some(c) = count_dpkg_from_path(default_path) {
+        return Some(c);
     }
 
     // Fallback: check custom DPKG_ADMINDIR if configured
     if let Ok(admin_dir) = std::env::var("DPKG_ADMINDIR") {
         let custom_path = Path::new(&admin_dir).join("status");
-        if custom_path.exists() {
-            return count_dpkg_from_path(&custom_path);
-        }
+        return count_dpkg_from_path(&custom_path);
     }
 
     None
@@ -425,30 +423,23 @@ pub fn count_macports() -> Option<usize> {
     None
 }
 
+fn count_subdirs_not_hidden(path: &Path) -> usize {
+    if let Ok(entries) = fs::read_dir(path) {
+        entries
+            .flatten()
+            .filter(|e| {
+                e.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
+                    && e.file_name().to_str().is_some_and(|s| !s.starts_with('.'))
+            })
+            .count()
+    } else {
+        0
+    }
+}
+
 /// Counts installed Flatpak applications from specified system and user paths.
 pub fn count_flatpak_from_dirs(sys_path: &Path, user_path: &Path) -> Option<usize> {
-    let mut total = 0;
-
-    if let Ok(entries) = fs::read_dir(sys_path) {
-        total += entries
-            .flatten()
-            .filter(|e| {
-                e.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-                    && !e.file_name().to_string_lossy().starts_with('.')
-            })
-            .count();
-    }
-
-    if let Ok(entries) = fs::read_dir(user_path) {
-        total += entries
-            .flatten()
-            .filter(|e| {
-                e.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-                    && !e.file_name().to_string_lossy().starts_with('.')
-            })
-            .count();
-    }
-
+    let total = count_subdirs_not_hidden(sys_path) + count_subdirs_not_hidden(user_path);
     if total > 0 {
         Some(total)
     } else {
@@ -515,33 +506,17 @@ pub fn count_brew() -> Option<usize> {
     ];
 
     for path in &cellar_paths {
-        if let Ok(entries) = fs::read_dir(path) {
-            let count = entries
-                .flatten()
-                .filter(|e| {
-                    e.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-                        && !e.file_name().to_string_lossy().starts_with('.')
-                })
-                .count();
-            if count > 0 {
-                return Some(count);
-            }
+        let count = count_subdirs_not_hidden(path);
+        if count > 0 {
+            return Some(count);
         }
     }
 
     if let Ok(home) = std::env::var("HOME") {
         let user_cellar = Path::new(&home).join(".linuxbrew/Cellar");
-        if let Ok(entries) = fs::read_dir(&user_cellar) {
-            let count = entries
-                .flatten()
-                .filter(|e| {
-                    e.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-                        && !e.file_name().to_string_lossy().starts_with('.')
-                })
-                .count();
-            if count > 0 {
-                return Some(count);
-            }
+        let count = count_subdirs_not_hidden(&user_cellar);
+        if count > 0 {
+            return Some(count);
         }
     }
 
@@ -651,25 +626,12 @@ pub fn count_scoop() -> Option<usize> {
 
 /// Counts installed Chocolatey packages from lib directory.
 pub fn count_choco_from_dir(lib_path: &Path) -> Option<usize> {
-    if let Ok(entries) = fs::read_dir(lib_path) {
-        let count = entries
-            .flatten()
-            .filter(|e| {
-                if let Ok(ft) = e.file_type() {
-                    if ft.is_dir() {
-                        let name = e.file_name();
-                        let s = name.to_string_lossy();
-                        return !s.starts_with('.');
-                    }
-                }
-                false
-            })
-            .count();
-        if count > 0 {
-            return Some(count);
-        }
+    let count = count_subdirs_not_hidden(lib_path);
+    if count > 0 {
+        Some(count)
+    } else {
+        None
     }
-    None
 }
 
 /// Counts installed Chocolatey packages.
