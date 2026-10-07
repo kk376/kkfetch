@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-10-07
+
+### Added
+- **Ghostty Terminal Font Probing**: Added dotfile configuration parser for Ghostty terminal, resolving custom font family lists and font sizes accurately.
+- **Timings Multi-Column Grid**: Formatted diagnostic timing benchmark (`--timings`) into a dynamic 2 or 3 column compact table grid to prevent vertical viewport scrolling.
+
+### Changed
+- **Information Hierarchy Realignment**: Restructured module output ordering into five sequential logical tiers: Host Identity, OS and Core System, Session and UI Appearance, Hardware and Storage, and Session Runtime and Extras.
+- **Redundancy Elimination**: Unified WM and Desktop compositor reporting into a single line (`Hyprland (Wayland)`).
+- **Disk Mount Filtering and Btrfs Deduplication**: Filtered auxiliary mountpoints (`/boot`, `/boot/efi`) by default, deduplicated identical Btrfs storage pools, and added `--all-disks` flag for exhaustive mount inspection.
+
+### Performance & Code Quality
+- **Codebase Optimization**: Streamlined telemetry parsing passes, eliminated redundant allocations and syscalls across modules, and gated Unix dotfile probes behind `#[cfg(not(windows))]`.
+
+### Packaging
+- Synchronized release version 0.20.0 across RPM spec, openSUSE OBS spec, Debian changelog, Arch Linux PKGBUILD, Nix, and Gentoo ebuild.
+
 ## [0.19.0] - 2026-10-02
 
 ### Packaging & Distribution Ecosystem
