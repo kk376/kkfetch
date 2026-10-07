@@ -606,6 +606,7 @@ impl Collector for TerminalCollector {
     }
 }
 
+#[cfg(any(not(windows), test))]
 fn parse_ghostty_font(content: &str) -> Option<String> {
     let mut families = Vec::new();
     let mut size = None;
@@ -636,6 +637,7 @@ fn parse_ghostty_font(content: &str) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
 fn probe_ghostty_font(home_path: &std::path::Path) -> Option<String> {
     for path in &[
         home_path.join(".config/ghostty/config"),
@@ -650,6 +652,7 @@ fn probe_ghostty_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
 fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
     let kitty_conf = home_path.join(".config/kitty/kitty.conf");
     if let Ok(content) = fs::read_to_string(kitty_conf) {
@@ -682,6 +685,7 @@ fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
 fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
     for path in &[
         home_path.join(".config/alacritty/alacritty.toml"),
@@ -716,6 +720,7 @@ fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
 fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
     let foot_ini = home_path.join(".config/foot/foot.ini");
     if let Ok(content) = fs::read_to_string(foot_ini) {
