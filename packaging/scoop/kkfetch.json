@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/kk376/kkfetch/releases/download/v0.20.0/kkfetch-windows-x86_64.zip",
-            "hash": "1cac92bbbb7d41c7164ecd93943d037e150144e7754a00eb52d8f6f2afab4c7e"
+            "hash": "4b946ab039f9d6077d22b881a303e028268ee427db724d0571edd9362f74bd9f"
         }
     },
     "bin": "kkfetch.exe",
