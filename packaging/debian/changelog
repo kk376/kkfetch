@@ -1,3 +1,9 @@
+kkfetch (0.20.0-1~ppa2~noble) noble; urgency=medium
+
+  * Include upstream original source archive for Launchpad PPA build.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Wed, 07 Oct 2026 15:30:00 +0530
+
 kkfetch (0.20.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.20.0: Information hierarchy optimization, disk and WM deduplication, compact timings grid, and Ghostty terminal font detection.

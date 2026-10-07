@@ -362,6 +362,33 @@ pub fn get_all_disks_filtered(all_disks: bool) -> Vec<PartitionEntry> {
 /// and hiding auxiliary /boot and /boot/efi partitions unless `all_disks` is enabled.
 #[cfg(not(windows))]
 pub fn get_all_disks_from_mounts_content(content: &str, all_disks: bool) -> Vec<PartitionEntry> {
+    #[cfg(test)]
+    {
+        get_all_disks_with_usage(content, all_disks, |p| {
+            get_disk_usage(p).or(Some(DiskUsage {
+                total_bytes: 100 * 1024 * 1024 * 1024,
+                used_bytes: 20 * 1024 * 1024 * 1024,
+                free_bytes: 80 * 1024 * 1024 * 1024,
+                percentage: 20,
+            }))
+        })
+    }
+    #[cfg(not(test))]
+    {
+        get_all_disks_with_usage(content, all_disks, get_disk_usage)
+    }
+}
+
+/// Hermetic version of disk enumeration that accepts a custom disk usage resolver.
+#[cfg(not(windows))]
+pub fn get_all_disks_with_usage<F>(
+    content: &str,
+    all_disks: bool,
+    mut get_usage: F,
+) -> Vec<PartitionEntry>
+where
+    F: FnMut(&str) -> Option<DiskUsage>,
+{
     let mut entries = Vec::new();
 
     struct RawMount<'a> {
@@ -437,7 +464,7 @@ pub fn get_all_disks_from_mounts_content(content: &str, all_disks: bool) -> Vec<
             }
         }
 
-        if let Some(usage) = get_disk_usage(mount_point) {
+        if let Some(usage) = get_usage(mount_point) {
             let effective_fs = normalize_fs_type(fs_type, mount_point);
 
             if !all_disks && effective_fs == "btrfs" {
@@ -474,7 +501,7 @@ pub fn get_all_disks_from_mounts_content(content: &str, all_disks: bool) -> Vec<
     }
 
     if entries.is_empty() {
-        if let Some(usage) = get_disk_usage("/") {
+        if let Some(usage) = get_usage("/") {
             entries.push(PartitionEntry {
                 mount_point: "/".to_string(),
                 display_name: "/".to_string(),
@@ -774,14 +801,22 @@ mod tests {
 /dev/nvme0n1p2 /boot ext4 rw 0 0
 /dev/nvme0n1p1 /boot/efi vfat rw 0 0
 ";
-        let default_disks = get_all_disks_from_mounts_content(sample, false);
+        let mock_usage = |_path: &str| {
+            Some(DiskUsage {
+                total_bytes: 100 * 1024 * 1024 * 1024,
+                used_bytes: 20 * 1024 * 1024 * 1024,
+                free_bytes: 80 * 1024 * 1024 * 1024,
+                percentage: 20,
+            })
+        };
+        let default_disks = get_all_disks_with_usage(sample, false, mock_usage);
         let mount_points: Vec<&str> = default_disks
             .iter()
             .map(|d| d.mount_point.as_str())
             .collect();
         assert_eq!(mount_points, vec!["/"]);
 
-        let all_disks = get_all_disks_from_mounts_content(sample, true);
+        let all_disks = get_all_disks_with_usage(sample, true, mock_usage);
         let all_mount_points: Vec<&str> =
             all_disks.iter().map(|d| d.mount_point.as_str()).collect();
         assert!(all_mount_points.contains(&"/"));
