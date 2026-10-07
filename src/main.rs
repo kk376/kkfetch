@@ -3,7 +3,7 @@ use clap::Parser;
 use kkfetch::cli::Cli;
 use kkfetch::context::FetchContext;
 use kkfetch::modules::{ModuleId, ModuleRegistry};
-use kkfetch::output::formatter::{render_json, render_layout};
+use kkfetch::output::formatter::{render_json, render_layout, render_timings_grid};
 use kkfetch::output::logo::match_logo;
 
 fn main() {
@@ -41,24 +41,9 @@ fn main() {
     if cli.json {
         println!("{}", render_json(&outputs));
         if cli.timings {
-            eprintln!("\n=== Module Execution Timings ===");
-            for (mod_id, dur) in &timings {
-                let micros = dur.as_micros();
-                if micros < 1000 {
-                    eprintln!("  {:<14} : {:>6} µs", mod_id.as_str(), micros);
-                } else {
-                    eprintln!(
-                        "  {:<14} : {:>6.2} ms",
-                        mod_id.as_str(),
-                        dur.as_secs_f64() * 1000.0
-                    );
-                }
-            }
-            eprintln!("--------------------------------");
             eprintln!(
-                "  {:<14} : {:>6.2} ms (parallel wall clock)",
-                "Total Time",
-                total_elapsed.as_secs_f64() * 1000.0
+                "{}",
+                render_timings_grid(&timings, total_elapsed, ctx.term_width, false)
             );
         }
         return;
@@ -82,26 +67,9 @@ fn main() {
     }
 
     if cli.timings {
-        let cyan = if ctx.enable_color { "\x1b[1;36m" } else { "" };
-        let reset = if ctx.enable_color { "\x1b[0m" } else { "" };
-        println!("\n{}=== Module Execution Timings ==={}", cyan, reset);
-        for (mod_id, dur) in &timings {
-            let micros = dur.as_micros();
-            if micros < 1000 {
-                println!("  {:<14} : {:>6} µs", mod_id.as_str(), micros);
-            } else {
-                println!(
-                    "  {:<14} : {:>6.2} ms",
-                    mod_id.as_str(),
-                    dur.as_secs_f64() * 1000.0
-                );
-            }
-        }
-        println!("{}--------------------------------{}", cyan, reset);
         println!(
-            "  {:<14} : {:>6.2} ms (parallel wall clock)",
-            "Total Time",
-            total_elapsed.as_secs_f64() * 1000.0
+            "{}",
+            render_timings_grid(&timings, total_elapsed, ctx.term_width, ctx.enable_color)
         );
     }
 }

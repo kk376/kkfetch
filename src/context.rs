@@ -25,6 +25,7 @@ pub struct FetchContext {
     pub caps: TerminalCaps,
     pub os_info: OsInfo,
     pub disk_target_path: String,
+    pub all_disks: bool,
     pub active_modules: Vec<ModuleId>,
     pub logo_override: Option<String>,
     pub no_logo: bool,
@@ -54,6 +55,7 @@ impl FetchContext {
         } else {
             config.disk_path.clone().unwrap_or_else(|| "/".to_string())
         };
+        let all_disks = cli.all_disks || config.all_disks.unwrap_or(false);
 
         let logo_override = cli.logo.clone().or_else(|| config.logo.clone());
         let no_logo = cli.no_logo || config.no_logo.unwrap_or(false);
@@ -85,6 +87,7 @@ impl FetchContext {
             caps,
             os_info,
             disk_target_path,
+            all_disks,
             active_modules,
             logo_override,
             no_logo,

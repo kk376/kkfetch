@@ -99,6 +99,16 @@ fn test_disk_path_flag() {
 }
 
 #[test]
+fn test_all_disks_flag() {
+    let mut cmd = Command::cargo_bin("kkfetch").unwrap();
+    cmd.args(["--no-color", "--no-logo", "-m", "disk", "--all-disks"]);
+    let assert = cmd.assert().success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    assert!(stdout.contains("Disk0:"));
+    assert!(stdout.contains('%'));
+}
+
+#[test]
 fn test_disk_path_invalid_does_not_panic() {
     let mut cmd = Command::cargo_bin("kkfetch").unwrap();
     cmd.args([

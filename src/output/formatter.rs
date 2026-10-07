@@ -202,6 +202,100 @@ pub fn render_json(outputs: &[ModuleOutput]) -> String {
     format!("{{\n{}\n}}", fields.join(",\n"))
 }
 
+/// Renders execution timings in a compact multi-column grid to maintain compactness
+/// and prevent vertical scrolling on typical terminal window sizes.
+pub fn render_timings_grid(
+    timings: &[(crate::modules::ModuleId, std::time::Duration)],
+    total_elapsed: std::time::Duration,
+    term_width: u16,
+    enable_color: bool,
+) -> String {
+    if timings.is_empty() {
+        return String::new();
+    }
+
+    let cyan = if enable_color { "\x1b[1;36m" } else { "" };
+    let reset = if enable_color { "\x1b[0m" } else { "" };
+
+    // Format each module timing into a fixed-width cell: "  <module>       :   <time>"
+    let formatted_cells: Vec<String> = timings
+        .iter()
+        .map(|(mod_id, dur)| {
+            let micros = dur.as_micros();
+            let dur_str = if micros < 1000 {
+                format!("{} µs", micros)
+            } else {
+                format!("{:.2} ms", dur.as_secs_f64() * 1000.0)
+            };
+            format!("  {:<13} : {:>7}", mod_id.as_str(), dur_str)
+        })
+        .collect();
+
+    // Determine number of columns based on terminal width.
+    // Each cell is 25 chars wide. With 2 spaces between columns:
+    // 3 columns: 25 * 3 + 4 = 79 chars (fits in standard 80-col terminals)
+    // 2 columns: 25 * 2 + 2 = 52 chars (fits in >= 54 col terminals)
+    // 1 column: 27 chars
+    let num_cols = if term_width >= 80 {
+        3
+    } else if term_width >= 54 {
+        2
+    } else {
+        1
+    };
+
+    let cell_width: usize = 25;
+    let col_gap = "  ";
+    let n = formatted_cells.len();
+    let num_rows = n.div_ceil(num_cols);
+
+    let total_width = if num_cols == 3 {
+        cell_width * 3 + 4
+    } else if num_cols == 2 {
+        cell_width * 2 + 2
+    } else {
+        cell_width + 2
+    };
+
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "\n{}=== Module Execution Timings ==={}",
+        cyan, reset
+    ));
+
+    for row in 0..num_rows {
+        let mut row_str = String::new();
+        for col in 0..num_cols {
+            let idx = col * num_rows + row;
+            if idx < n {
+                let cell = &formatted_cells[idx];
+                let is_last_col = col + 1 == num_cols || (col + 1) * num_rows + row >= n;
+                if is_last_col {
+                    row_str.push_str(cell);
+                } else {
+                    let pad = cell_width.saturating_sub(cell.len());
+                    row_str.push_str(cell);
+                    row_str.push_str(&" ".repeat(pad));
+                    row_str.push_str(col_gap);
+                }
+            }
+        }
+        lines.push(row_str);
+    }
+
+    let divider = "-".repeat(total_width);
+    lines.push(format!("{}{}{}", cyan, divider, reset));
+
+    let total_str = format!(
+        "  {:<13} : {:>7.2} ms (parallel wall clock)",
+        "Total Time",
+        total_elapsed.as_secs_f64() * 1000.0
+    );
+    lines.push(total_str);
+
+    lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,5 +425,33 @@ mod tests {
         assert!(json.contains(
             "\"custom_\\\"key\\\"\\nwith_newline\": \"value with \\\"quotes\\\" and \\t tabs\""
         ));
+    }
+
+    #[test]
+    fn test_render_timings_grid_columns() {
+        let timings = vec![
+            (ModuleId::Os, std::time::Duration::from_micros(120)),
+            (ModuleId::Kernel, std::time::Duration::from_micros(80)),
+            (ModuleId::Cpu, std::time::Duration::from_millis(2)),
+            (ModuleId::Memory, std::time::Duration::from_micros(95)),
+        ];
+        let total = std::time::Duration::from_millis(3);
+
+        // 3-column layout on wide terminal (width >= 80)
+        let wide = render_timings_grid(&timings, total, 100, false);
+        assert!(wide.contains("Module Execution Timings"));
+        assert!(wide.contains("os"));
+        assert!(wide.contains("kernel"));
+        assert!(wide.contains("cpu"));
+        assert!(wide.contains("memory"));
+        assert!(wide.contains("Total Time"));
+
+        // 2-column layout on medium terminal (width 60)
+        let medium = render_timings_grid(&timings, total, 60, false);
+        assert!(medium.contains("os"));
+
+        // 1-column layout on narrow terminal (width 40)
+        let narrow = render_timings_grid(&timings, total, 40, false);
+        assert!(narrow.contains("os"));
     }
 }

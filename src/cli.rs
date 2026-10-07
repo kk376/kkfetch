@@ -41,6 +41,10 @@ pub struct Cli {
     #[arg(long = "disk-path", default_value = "/")]
     pub disk_path: String,
 
+    /// Show all mounted filesystems and auxiliary partitions (e.g. /boot, duplicate btrfs pools)
+    #[arg(long = "all-disks", alias = "disk-all")]
+    pub all_disks: bool,
+
     /// Output system information in structured JSON format
     #[arg(long = "json")]
     pub json: bool,

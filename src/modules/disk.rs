@@ -333,23 +333,44 @@ pub fn format_disk_entry(
     base
 }
 
-/// Enumerates all real physical/virtual mount partitions from `/proc/mounts`.
+/// Enumerates real physical/virtual mount partitions from `/proc/mounts`.
 /// Filters virtual kernel filesystems, snap/container overlays, and Android mount points.
 #[cfg(not(windows))]
 pub fn get_all_disks() -> Vec<PartitionEntry> {
-    let mut entries = Vec::new();
+    get_all_disks_filtered(false)
+}
+
+/// Enumerates mount partitions with optional auxiliary and btrfs subvolume pool filtering.
+#[cfg(not(windows))]
+pub fn get_all_disks_filtered(all_disks: bool) -> Vec<PartitionEntry> {
     let Ok(content) = std::fs::read_to_string("/proc/mounts") else {
         if let Some(usage) = get_disk_usage("/") {
-            entries.push(PartitionEntry {
+            return vec![PartitionEntry {
                 mount_point: "/".to_string(),
                 display_name: "/".to_string(),
                 fs_type: "ext4".to_string(),
                 usage,
-            });
+            }];
         }
-        return entries;
+        return Vec::new();
     };
 
+    get_all_disks_from_mounts_content(&content, all_disks)
+}
+
+/// Parses `/proc/mounts` content and extracts valid partitions, deduplicating btrfs pools
+/// and hiding auxiliary /boot and /boot/efi partitions unless `all_disks` is enabled.
+#[cfg(not(windows))]
+pub fn get_all_disks_from_mounts_content(content: &str, all_disks: bool) -> Vec<PartitionEntry> {
+    let mut entries = Vec::new();
+
+    struct RawMount<'a> {
+        device: &'a str,
+        mount_point: &'a str,
+        fs_type: &'a str,
+    }
+
+    let mut raw_mounts = Vec::new();
     let mut seen_mounts = std::collections::HashSet::new();
 
     for line in content.lines() {
@@ -358,6 +379,7 @@ pub fn get_all_disks() -> Vec<PartitionEntry> {
             continue;
         }
 
+        let device = parts[0];
         let mount_point = parts[1];
         let fs_type = parts[2];
 
@@ -378,7 +400,59 @@ pub fn get_all_disks() -> Vec<PartitionEntry> {
             continue;
         }
 
+        raw_mounts.push(RawMount {
+            device,
+            mount_point,
+            fs_type,
+        });
+    }
+
+    // Ensure root "/" is evaluated first so its device and filesystem pool are established
+    raw_mounts.sort_by(|a, b| {
+        if a.mount_point == "/" {
+            std::cmp::Ordering::Less
+        } else if b.mount_point == "/" {
+            std::cmp::Ordering::Greater
+        } else {
+            a.mount_point.cmp(b.mount_point)
+        }
+    });
+
+    let mut seen_btrfs_devices = std::collections::HashSet::new();
+    let mut seen_btrfs_pools = std::collections::HashSet::new();
+
+    for m in raw_mounts {
+        let mount_point = m.mount_point;
+        let fs_type = m.fs_type;
+        let device = m.device;
+
+        if !all_disks {
+            // 1. Auxiliary mounts filter: hide /boot, /boot/efi, /efi
+            if mount_point == "/boot"
+                || mount_point.starts_with("/boot/")
+                || mount_point == "/efi"
+                || mount_point.starts_with("/efi/")
+            {
+                continue;
+            }
+        }
+
         if let Some(usage) = get_disk_usage(mount_point) {
+            let effective_fs = normalize_fs_type(fs_type, mount_point);
+
+            if !all_disks && effective_fs == "btrfs" {
+                // 2. Btrfs subvolume pool deduplication:
+                // If this block device or exact (total, free) capacity pool was already added,
+                // suppress duplicate subvolumes (e.g. /home sharing the same pool with /)
+                if seen_btrfs_devices.contains(device)
+                    || seen_btrfs_pools.contains(&(usage.total_bytes, usage.free_bytes))
+                {
+                    continue;
+                }
+                seen_btrfs_devices.insert(device.to_string());
+                seen_btrfs_pools.insert((usage.total_bytes, usage.free_bytes));
+            }
+
             // In WSL2, map 9P/drvfs drive mounts (/mnt/c -> C, /mnt/d -> D)
             let display_name = if let Some(wsl_drive) = mount_point.strip_prefix("/mnt/") {
                 if wsl_drive.len() == 1 && wsl_drive.chars().next().unwrap().is_ascii_alphabetic() {
@@ -389,8 +463,6 @@ pub fn get_all_disks() -> Vec<PartitionEntry> {
             } else {
                 mount_point.to_string()
             };
-
-            let effective_fs = normalize_fs_type(fs_type, mount_point);
 
             entries.push(PartitionEntry {
                 mount_point: mount_point.to_string(),
@@ -429,6 +501,11 @@ pub fn get_all_disks() -> Vec<PartitionEntry> {
 /// Enumerates all accessible logical drives on Windows.
 #[cfg(windows)]
 pub fn get_all_disks() -> Vec<PartitionEntry> {
+    get_all_disks_filtered(false)
+}
+
+#[cfg(windows)]
+pub fn get_all_disks_filtered(_all_disks: bool) -> Vec<PartitionEntry> {
     use crate::modules::win_util::ffi;
     let mut entries = Vec::new();
     // SAFETY: GetLogicalDrives is a simple Win32 query that retrieves a bitmask of valid drive letters.
@@ -533,7 +610,7 @@ impl Collector for DiskCollector {
             }
         }
 
-        let disks = get_all_disks();
+        let disks = get_all_disks_filtered(ctx.all_disks);
         let mut outputs = Vec::new();
 
         for (idx, entry) in disks.iter().enumerate() {
@@ -686,5 +763,30 @@ mod tests {
         assert_eq!(normalize_fs_type("ext4", "/"), "ext4");
         assert_eq!(normalize_fs_type("btrfs", "/home"), "btrfs");
         assert_eq!(normalize_fs_type("zfs", "/pool"), "zfs");
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn test_get_all_disks_from_mounts_content_btrfs_and_auxiliary_filtering() {
+        let sample = "\
+/dev/nvme0n1p3 / btrfs rw,subvolid=256,subvol=/root 0 0
+/dev/nvme0n1p3 /home btrfs rw,subvolid=257,subvol=/home 0 0
+/dev/nvme0n1p2 /boot ext4 rw 0 0
+/dev/nvme0n1p1 /boot/efi vfat rw 0 0
+";
+        let default_disks = get_all_disks_from_mounts_content(sample, false);
+        let mount_points: Vec<&str> = default_disks
+            .iter()
+            .map(|d| d.mount_point.as_str())
+            .collect();
+        assert_eq!(mount_points, vec!["/"]);
+
+        let all_disks = get_all_disks_from_mounts_content(sample, true);
+        let all_mount_points: Vec<&str> =
+            all_disks.iter().map(|d| d.mount_point.as_str()).collect();
+        assert!(all_mount_points.contains(&"/"));
+        assert!(all_mount_points.contains(&"/boot"));
+        assert!(all_mount_points.contains(&"/boot/efi"));
+        assert!(all_mount_points.contains(&"/home"));
     }
 }

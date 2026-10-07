@@ -393,6 +393,72 @@ pub fn capitalize_first(s: &str) -> String {
     }
 }
 
+/// Checks if a desktop identifier is actually a standalone window manager or Wayland compositor.
+pub fn is_standalone_wm(name: &str) -> bool {
+    let lower = name.trim().to_lowercase();
+    matches!(
+        lower.as_str(),
+        "hyprland"
+            | "sway"
+            | "i3"
+            | "bspwm"
+            | "awesome"
+            | "dwm"
+            | "openbox"
+            | "xmonad"
+            | "qtile"
+            | "wayfire"
+            | "river"
+            | "labwc"
+            | "fluxbox"
+            | "weston"
+            | "herbstluftwm"
+            | "spectrwm"
+    )
+}
+
+/// Probes desktop environment, suppressing redundant standalone window managers when WM collector is active.
+#[cfg(not(windows))]
+pub fn detect_desktop_filtered(wm_active: bool) -> Option<String> {
+    if !wm_active {
+        return detect_desktop();
+    }
+
+    let cur_de = std::env::var("XDG_CURRENT_DESKTOP")
+        .or_else(|_| std::env::var("DESKTOP_SESSION"))
+        .ok()?;
+    let clean = cur_de.trim();
+    if clean.is_empty() || clean == "default" {
+        return None;
+    }
+
+    let primary = clean.split(':').next_back().unwrap_or(clean);
+    if is_standalone_wm(primary) {
+        return None;
+    }
+
+    if let Some(wm) = crate::modules::wm::detect_wm() {
+        let p_lower = primary.to_lowercase();
+        let w_lower = wm.to_lowercase();
+        if (p_lower == w_lower || p_lower.contains(&w_lower) || w_lower.contains(&p_lower))
+            && is_standalone_wm(&wm)
+        {
+            return None;
+        }
+    }
+
+    if let Some(ver) = detect_de_version(primary) {
+        Some(format!("{} {}", primary, ver))
+    } else {
+        Some(primary.to_string())
+    }
+}
+
+#[cfg(windows)]
+pub fn detect_desktop_filtered(_wm_active: bool) -> Option<String> {
+    detect_desktop()
+}
+
 pub struct DesktopCollector;
 
 impl Collector for DesktopCollector {
@@ -400,8 +466,9 @@ impl Collector for DesktopCollector {
         ModuleId::Desktop
     }
 
-    fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
-        let de = detect_desktop()?;
+    fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
+        let wm_active = ctx.active_modules.contains(&ModuleId::Wm);
+        let de = detect_desktop_filtered(wm_active)?;
         Some(ModuleOutput {
             id: ModuleId::Desktop,
             label: "Desktop".to_string(),
@@ -471,5 +538,15 @@ mod tests {
             format_desktop_info(Some("XFCE"), Some("i3"), Some("x11")),
             Some("XFCE (WM: i3, X11)".to_string())
         );
+    }
+
+    #[test]
+    fn test_is_standalone_wm() {
+        assert!(is_standalone_wm("Hyprland"));
+        assert!(is_standalone_wm("sway"));
+        assert!(is_standalone_wm("i3"));
+        assert!(!is_standalone_wm("GNOME"));
+        assert!(!is_standalone_wm("KDE"));
+        assert!(!is_standalone_wm("XFCE"));
     }
 }

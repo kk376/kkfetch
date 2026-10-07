@@ -203,6 +203,44 @@ pub fn detect_wm() -> Option<String> {
     Some("Desktop Window Manager (DWM)".to_string())
 }
 
+/// Formats window manager name with active session type (e.g. "Hyprland (Wayland)").
+pub fn format_wm_with_session(wm: &str) -> String {
+    if wm.contains('(') && wm.contains(')') {
+        return wm.to_string();
+    }
+
+    if let Ok(sess) = std::env::var("XDG_SESSION_TYPE") {
+        let clean = sess.trim();
+        if !clean.is_empty() && !clean.eq_ignore_ascii_case("tty") {
+            let capitalized = if clean.eq_ignore_ascii_case("wayland") {
+                "Wayland".to_string()
+            } else if clean.eq_ignore_ascii_case("x11") {
+                "X11".to_string()
+            } else {
+                let mut c = clean.chars();
+                match c.next() {
+                    Some(first) => first.to_uppercase().collect::<String>() + c.as_str(),
+                    None => String::new(),
+                }
+            };
+            if !capitalized.is_empty() {
+                return format!("{} ({})", wm, capitalized);
+            }
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+            return format!("{} (Wayland)", wm);
+        } else if std::env::var_os("DISPLAY").is_some() {
+            return format!("{} (X11)", wm);
+        }
+    }
+
+    wm.to_string()
+}
+
 pub struct WmCollector;
 
 impl Collector for WmCollector {
@@ -212,10 +250,11 @@ impl Collector for WmCollector {
 
     fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
         let wm = detect_wm()?;
+        let value = format_wm_with_session(&wm);
         Some(ModuleOutput {
             id: ModuleId::Wm,
             label: "WM".to_string(),
-            value: wm,
+            value,
             custom_rendered: None,
         })
     }
@@ -300,5 +339,17 @@ mod tests {
 
         let empty = "Azure Linux: VERSION=\"3.0\"\n";
         assert_eq!(parse_wslg_version(empty), None);
+    }
+
+    #[test]
+    fn test_format_wm_with_session() {
+        assert_eq!(
+            format_wm_with_session("WSLg 1.0 (Wayland)"),
+            "WSLg 1.0 (Wayland)"
+        );
+        assert_eq!(
+            format_wm_with_session("Desktop Window Manager (DWM)"),
+            "Desktop Window Manager (DWM)"
+        );
     }
 }

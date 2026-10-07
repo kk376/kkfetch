@@ -9,6 +9,7 @@ pub struct Config {
     pub no_logo: Option<bool>,
     pub no_color: Option<bool>,
     pub disk_path: Option<String>,
+    pub all_disks: Option<bool>,
     pub plugins: Option<Vec<PluginConfig>>,
 }
 
@@ -120,6 +121,9 @@ pub fn parse_config_toml(content: &str) -> Config {
                     if !clean.is_empty() {
                         config.disk_path = Some(clean);
                     }
+                }
+                "all_disks" | "all-disks" | "disk_all" | "disk-all" => {
+                    config.all_disks = Some(val.eq_ignore_ascii_case("true") || val == "1");
                 }
                 _ => {}
             }
