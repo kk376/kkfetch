@@ -3,34 +3,35 @@
 A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
 
 ```text
+╭─   ~ at 08:37 
+╰─❯  kkfetch
              .',;::::;,'.                kk376@msi-thin-a15
          .';:cccccccccccc:;,.            ------------------
       .;cccccccccccccccccccccc;.         OS: Fedora Linux 44 (Workstation Edition) x86_64
     .:cccccccccccccccccccccccccc:.       Host: Thin A15 B7UCX REV:1.0
-  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.7-200.fc44.x86_64
- .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (33 days ago)
-.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 14 mins
-,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2838 (rpm), 4 (flatpak), 1 (cargo), 42 (pip)
+  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.8-200.fc44.x86_64
+ .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 23 Aug 2026, 10:53 PM (46 days ago)
+.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 21 mins
+,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 2892 (rpm), 5 (flatpak), 1 (cargo), 65 (pip)
 :cccccccccccccc;MMM.;cccccccccccccccc:   Shell: fish 4.6.0
 :ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 @ 1.25x in 15", 144 Hz [Built-in]
-cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   Desktop: Hyprland (Wayland)
-ccccc;XM0';cccc;MMM.;cccccccccccccccc'   WM: Hyprland
-ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    Terminal: ghostty 1.3.1-4.fc44
-ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.361GHz [4.60GHz max]
-cccccc;dNMWXXXWM0:;cccccccccccccc:,      GPU0: AMD Radeon 680M (512 MiB) [Integrated]
-cccccccc;.:odl:.;cccccccccccccc:,.       GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
-:cccccccccccccccccccccccccccc:'.         Memory: 3.82 GiB / 14.82 GiB (26%)
-.:cccccccccccccccccccccc:;,..            Swap: 0.00 GiB / 14.82 GiB (0%) - ZSTD
-  '::cccccccccccccc::;,.                 Disk0: (/) 151.6 GiB / 474.7 GiB (32%) - btrfs
-                                         Disk1: (/boot) 0.9 GiB / 1.9 GiB (48%) - ext4
-                                         Disk2: (/boot/efi) 20 MiB / 196 MiB (10%) - vfat
-                                         Disk3: (/home) 151.6 GiB / 474.7 GiB (32%) - btrfs
-                                         Disk4: (/media/Backup) 455.7 GiB / 931.5 GiB (49%) - fuseblk
-                                         Battery: 96% [AC Connected]
+cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   WM: Hyprland (Wayland)
+ccccc;XM0';cccc;MMM.;cccccccccccccccc'   Terminal: ghostty 1.3.1-4.fc44
+ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    Terminal Font: Fira Code, Symbols Nerd Font Mono (13pt)
+ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Theme: Adwaita (dark) [GTK]
+cccccc;dNMWXXXWM0:;cccccccccccccc:,      Icons: Adwaita [GTK]
+cccccccc;.:odl:.;cccccccccccccc:,.       Cursor: default (28px) [GTK]
+:cccccccccccccccccccccccccccc:'.         CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.466GHz [4.60GHz max]
+.:cccccccccccccccccccccc:;,..            GPU0: AMD Radeon 680M (512 MiB) [Integrated]
+  '::cccccccccccccc::;,.                 GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
+                                         Memory: 1.50 GiB / 14.82 GiB (10%)
+                                         Swap: 0.06 GiB / 14.82 GiB (0%) - ZSTD
+                                         Disk0: (/) 94.2 GiB / 474.7 GiB (20%) - btrfs
+                                         Disk1: (/media/Backup) 455.7 GiB / 931.5 GiB (49%) - fuseblk
+                                         Battery: 100% [Full [AC]]
                                          Local IP (Wi-Fi): 192.168.29.219/24
-                                         Theme: Adwaita (dark) [GTK]
-                                         Icons: Adwaita [GTK]
-                                         Cursor: default (28px) [GTK]
+                                         ███ ███ ███ ███ ███ ███ ███ ███
+                                         ███ ███ ███ ███ ███ ███ ███ ███
 ```
 
 ---
