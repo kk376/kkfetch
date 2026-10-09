@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.20.0
+Version:        0.21.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Fri Oct 09 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.21.0-1
+- Release version 0.21.0: Sub-millisecond battery caching, CachyOS and multi-distro ASCII logos, high-refresh-rate EDID parsing, and expanded terminal font support
+
 * Wed Oct 07 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.20.0-1
 - Release version 0.20.0: Information hierarchy optimization, disk and WM deduplication, compact timings grid, and Ghostty terminal font detection
 

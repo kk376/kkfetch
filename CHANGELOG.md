@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-10-09
+
+### Added
+- **ASCII Art Distribution Logos**: Added high contrast dual tone ASCII logos for CachyOS, Omarchy, Garuda, BlackArch, Parrot OS, Kubuntu, CentOS, Nobara, Bazzite, and Linux From Scratch (LFS).
+- **Distro Family ASCII Fallback Architecture**: Automatically routes unlisted derivatives to their upstream parent art (Arch, Debian, or Red Hat family) or to Tux penguin art.
+- **Terminal Font Parsers**: Added dedicated font family and font size configuration parsers for Foot, Ghostty, Alacritty, Kitty, WezTerm, Konsole, and Ptyxis terminals.
+- **Deep Hyprland & Sway Display Parsing**: Added recursive bracket and brace depth aware JSON parser for Hyprland and Sway IPC outputs, correctly extracting high refresh rates (144 Hz, 180 Hz) across multi monitor configurations.
+
+### Performance & Optimizations
+- **Zero Wait Stale While Revalidate Battery Cache**: Serves battery metrics in 15 to 80 microseconds from tmpfs with background refresh.
+- **UPower D-Bus Fast Path**: Queries UPower DisplayDevice directly over system D-Bus, bypassing the 100 ms ACPI Embedded Controller hardware bus stall.
+- **Instant AC Line State Detection**: Monitors AC adapter online state directly, invalidating cached battery telemetry within microseconds on power cable plug or unplug events.
+
+### Packaging
+- Synchronized version 0.21.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.20.0] - 2026-10-07
 
 ### Added

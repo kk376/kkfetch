@@ -2,7 +2,7 @@
   <service name="download_url">
     <param name="host">github.com</param>
     <param name="protocol">https</param>
-    <param name="path">/kk376/kkfetch/archive/refs/tags/v0.20.0.tar.gz</param>
-    <param name="filename">kkfetch-0.20.0.tar.gz</param>
+    <param name="path">/kk376/kkfetch/archive/refs/tags/v0.21.0.tar.gz</param>
+    <param name="filename">kkfetch-0.21.0.tar.gz</param>
   </service>
 </services>

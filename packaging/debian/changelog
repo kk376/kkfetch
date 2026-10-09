@@ -1,3 +1,9 @@
+kkfetch (0.21.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.21.0: Microsecond battery caching, CachyOS and multi-distro ASCII logos, high-refresh-rate EDID parsing, and expanded terminal font support.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 09 Oct 2026 20:30:00 +0530
+
 kkfetch (0.20.0-1~ppa2~noble) noble; urgency=medium
 
   * Include upstream original source archive for Launchpad PPA build.
