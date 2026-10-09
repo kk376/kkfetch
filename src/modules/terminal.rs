@@ -522,6 +522,9 @@ pub fn detect_terminal() -> Option<String> {
         "GNOME_TERMINAL_SERVICE",
         "TILIX_ID",
         "WEZTERM_PANE",
+        "PTYXIS_VERSION",
+        "GHOSTTY_VERSION",
+        "GHOSTTY_RESOURCES_DIR",
     ];
 
     let mut present_vars = Vec::new();
@@ -740,6 +743,134 @@ fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
+pub fn format_pango_font(raw: &str) -> String {
+    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
+    if clean.is_empty() {
+        return String::new();
+    }
+    if clean.ends_with("pt)") {
+        return clean.to_string();
+    }
+    if let Some((family, size_str)) = clean.rsplit_once(' ') {
+        let size_clean = size_str.trim_end_matches("pt").trim_end_matches("px");
+        if size_clean.parse::<f32>().is_ok() {
+            return format!("{} ({}pt)", family.trim(), size_clean);
+        }
+    }
+    clean.to_string()
+}
+
+#[cfg(not(windows))]
+fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
+    let cache_path = get_terminal_cache_path("ptyxis_font");
+    let dconf_path = home_path.join(".config/dconf/user");
+
+    let dconf_mtime = if let Ok(meta) = fs::metadata(&dconf_path) {
+        meta.modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|dur| dur.as_secs())
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
+    // 1. Check persistent cache (sub-microsecond execution)
+    if dconf_mtime > 0 {
+        if let Ok(content) = fs::read_to_string(&cache_path) {
+            if let Some((cached_mtime_str, font_str)) = content.split_once('|') {
+                if let Ok(cached_mtime) = cached_mtime_str.parse::<u64>() {
+                    if cached_mtime == dconf_mtime && !font_str.trim().is_empty() {
+                        return Some(font_str.trim().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Direct binary parse of ~/.config/dconf/user (no subprocess fork)
+    if dconf_mtime > 0 {
+        if let Ok(data) = fs::read(&dconf_path) {
+            if let Some(pos) = data.windows(10).position(|w| w == b"font-name\0") {
+                let rest = &data[pos + 10..];
+                let mut start = 0;
+                while start < rest.len() && rest[start] == 0 {
+                    start += 1;
+                }
+                if let Some(end) = rest[start..].iter().position(|&b| b == 0) {
+                    if let Ok(raw_font) = std::str::from_utf8(&rest[start..start + end]) {
+                        let trimmed = raw_font.trim();
+                        if trimmed.len() >= 3
+                            && trimmed.len() <= 80
+                            && trimmed.chars().all(|c| c.is_ascii_graphic() || c == ' ')
+                        {
+                            let formatted = format_pango_font(trimmed);
+                            if !formatted.is_empty() {
+                                let _ = fs::write(&cache_path, format!("{}|{}", dconf_mtime, formatted));
+                                return Some(formatted);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Fallback: dconf / gsettings subprocess if direct binary parse missed
+    let raw = crate::modules::system_command("dconf")
+        .args(["read", "/org/gnome/Ptyxis/font-name"])
+        .output()
+        .ok()
+        .and_then(|out| {
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+            None
+        })
+        .or_else(|| {
+            let out = crate::modules::system_command("dconf")
+                .args(["read", "/org/gnome/desktop/interface/monospace-font-name"])
+                .output()
+                .ok()?;
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+            None
+        })
+        .or_else(|| {
+            let out = crate::modules::system_command("gsettings")
+                .args(["get", "org.gnome.Ptyxis", "font-name"])
+                .output()
+                .ok()?;
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+            None
+        });
+
+    if let Some(r) = raw {
+        let formatted = format_pango_font(&r);
+        if !formatted.is_empty() {
+            if dconf_mtime > 0 {
+                let _ = fs::write(&cache_path, format!("{}|{}", dconf_mtime, formatted));
+            }
+            return Some(formatted);
+        }
+    }
+
+    None
+}
+
 /// Probes the active terminal font configuration from local user dotfiles or system settings.
 #[cfg(not(windows))]
 pub fn detect_terminal_font() -> Option<String> {
@@ -749,7 +880,12 @@ pub fn detect_terminal_font() -> Option<String> {
     let active = detect_terminal().unwrap_or_default().to_lowercase();
 
     // Prioritize active terminal detection first
-    if active.contains("ghostty") {
+    if active.contains("ptyxis") {
+        if let Some(f) = probe_ptyxis_font(home_path) {
+            return Some(f);
+        }
+        return None;
+    } else if active.contains("ghostty") {
         if let Some(f) = probe_ghostty_font(home_path) {
             return Some(f);
         }
@@ -767,11 +903,15 @@ pub fn detect_terminal_font() -> Option<String> {
         }
     }
 
-    // Fallback waterfall if active terminal probe did not resolve
-    probe_ghostty_font(home_path)
-        .or_else(|| probe_kitty_font(home_path))
-        .or_else(|| probe_alacritty_font(home_path))
-        .or_else(|| probe_foot_font(home_path))
+    // Fallback waterfall if active terminal probe did not resolve (only for non-ptyxis)
+    if !active.contains("ptyxis") {
+        probe_ghostty_font(home_path)
+            .or_else(|| probe_kitty_font(home_path))
+            .or_else(|| probe_alacritty_font(home_path))
+            .or_else(|| probe_foot_font(home_path))
+    } else {
+        None
+    }
 }
 
 #[cfg(windows)]
@@ -975,5 +1115,15 @@ font-size = 13
 
         let conf_only_size = "font-size = 14";
         assert_eq!(parse_ghostty_font(conf_only_size), Some("14pt".to_string()));
+    }
+
+    #[test]
+    fn test_format_pango_font() {
+        assert_eq!(format_pango_font("FiraCode Nerd Font 12"), "FiraCode Nerd Font (12pt)");
+        assert_eq!(format_pango_font("'FiraCode Nerd Font 12'"), "FiraCode Nerd Font (12pt)");
+        assert_eq!(format_pango_font("\"Adwaita Mono 11\""), "Adwaita Mono (11pt)");
+        assert_eq!(format_pango_font("JetBrains Mono 10.5"), "JetBrains Mono (10.5pt)");
+        assert_eq!(format_pango_font("Monospace"), "Monospace");
+        assert_eq!(format_pango_font("Fira Code (13pt)"), "Fira Code (13pt)");
     }
 }
