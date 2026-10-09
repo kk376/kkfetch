@@ -743,7 +743,7 @@ fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
-#[cfg(not(windows))]
+/// Formats Pango / Fontconfig font descriptions (e.g. 'FiraCode Nerd Font 12') into display format ('FiraCode Nerd Font (12pt)').
 pub fn format_pango_font(raw: &str) -> String {
     let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
     if clean.is_empty() {
@@ -807,7 +807,10 @@ fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
                         {
                             let formatted = format_pango_font(trimmed);
                             if !formatted.is_empty() {
-                                let _ = fs::write(&cache_path, format!("{}|{}", dconf_mtime, formatted));
+                                let _ = fs::write(
+                                    &cache_path,
+                                    format!("{}|{}", dconf_mtime, formatted),
+                                );
                                 return Some(formatted);
                             }
                         }
@@ -1119,10 +1122,22 @@ font-size = 13
 
     #[test]
     fn test_format_pango_font() {
-        assert_eq!(format_pango_font("FiraCode Nerd Font 12"), "FiraCode Nerd Font (12pt)");
-        assert_eq!(format_pango_font("'FiraCode Nerd Font 12'"), "FiraCode Nerd Font (12pt)");
-        assert_eq!(format_pango_font("\"Adwaita Mono 11\""), "Adwaita Mono (11pt)");
-        assert_eq!(format_pango_font("JetBrains Mono 10.5"), "JetBrains Mono (10.5pt)");
+        assert_eq!(
+            format_pango_font("FiraCode Nerd Font 12"),
+            "FiraCode Nerd Font (12pt)"
+        );
+        assert_eq!(
+            format_pango_font("'FiraCode Nerd Font 12'"),
+            "FiraCode Nerd Font (12pt)"
+        );
+        assert_eq!(
+            format_pango_font("\"Adwaita Mono 11\""),
+            "Adwaita Mono (11pt)"
+        );
+        assert_eq!(
+            format_pango_font("JetBrains Mono 10.5"),
+            "JetBrains Mono (10.5pt)"
+        );
         assert_eq!(format_pango_font("Monospace"), "Monospace");
         assert_eq!(format_pango_font("Fira Code (13pt)"), "Fira Code (13pt)");
     }
