@@ -609,6 +609,18 @@ impl Collector for TerminalCollector {
     }
 }
 
+/// Formats a numeric font size string, trimming unnecessary trailing zeros (e.g. '12.0' -> '12', '12.5' -> '12.5').
+pub fn format_size_num(raw: &str) -> String {
+    let clean = raw.trim_end_matches("pt").trim_end_matches("px").trim();
+    if let Ok(f) = clean.parse::<f32>() {
+        if f.fract().abs() < f32::EPSILON {
+            return format!("{:.0}", f);
+        }
+        return format!("{}", f);
+    }
+    clean.to_string()
+}
+
 #[cfg(any(not(windows), test))]
 fn parse_ghostty_font(content: &str) -> Option<String> {
     let mut families = Vec::new();
@@ -631,11 +643,11 @@ fn parse_ghostty_font(content: &str) -> Option<String> {
     if !families.is_empty() {
         let f = families.join(", ");
         if let Some(s) = size {
-            return Some(format!("{} ({}pt)", f, s));
+            return Some(format!("{} ({}pt)", f, format_size_num(&s)));
         }
         return Some(f);
     } else if let Some(s) = size {
-        return Some(format!("{}pt", s));
+        return Some(format!("{}pt", format_size_num(&s)));
     }
     None
 }
@@ -680,7 +692,7 @@ fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
         }
         if let Some(f) = family {
             if let Some(s) = size {
-                return Some(format!("{} ({}pt)", f, s));
+                return Some(format!("{} ({}pt)", f, format_size_num(&s)));
             }
             return Some(f);
         }
@@ -714,7 +726,7 @@ fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
             }
             if let Some(f) = family {
                 if let Some(s) = size {
-                    return Some(format!("{} ({}pt)", f, s));
+                    return Some(format!("{} ({}pt)", f, format_size_num(&s)));
                 }
                 return Some(f);
             }
@@ -723,10 +735,180 @@ fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+/// Parses Fontconfig pattern syntax (e.g. 'Fira Code:size=12, Symbols Nerd Font Mono:size=12' or 'DejaVu-10').
+pub fn parse_fontconfig_pattern(raw: &str) -> Option<String> {
+    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
+    if clean.is_empty() {
+        return None;
+    }
+
+    let mut families: Vec<String> = Vec::new();
+    let mut detected_size: Option<String> = None;
+
+    for entry in clean.split(',') {
+        let entry_trimmed = entry.trim();
+        if entry_trimmed.is_empty() {
+            continue;
+        }
+
+        let mut parts = entry_trimmed.split(':');
+        let head = parts.next().unwrap_or("").trim();
+        let unescaped_head = head.replace(r"\ ", " ");
+
+        let mut entry_family = unescaped_head.as_str();
+        if let Some(dash_idx) = entry_family.rfind('-') {
+            let potential_size = &entry_family[dash_idx + 1..];
+            if !potential_size.is_empty()
+                && potential_size
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || c == '.')
+                && potential_size.chars().any(|c| c.is_ascii_digit())
+            {
+                if detected_size.is_none() {
+                    let formatted_size = format_size_num(potential_size);
+                    detected_size = Some(format!("{}pt", formatted_size));
+                }
+                entry_family = entry_family[..dash_idx].trim();
+            }
+        }
+
+        let clean_family = entry_family.trim_matches('\'').trim_matches('"').trim();
+        if !clean_family.is_empty() && !families.iter().any(|f| f == clean_family) {
+            families.push(clean_family.to_string());
+        }
+
+        for prop in parts {
+            let prop_trimmed = prop.trim();
+            if let Some((k, v)) = prop_trimmed.split_once('=') {
+                let k_lower = k.trim().to_ascii_lowercase();
+                let v_clean = v.trim().trim_matches('\'').trim_matches('"').trim();
+                if detected_size.is_none() {
+                    if (k_lower == "size" || k_lower == "pointsize") && !v_clean.is_empty() {
+                        let formatted_size = format_size_num(v_clean);
+                        detected_size = Some(format!("{}pt", formatted_size));
+                    } else if k_lower == "pixelsize" && !v_clean.is_empty() {
+                        let formatted_size = format_size_num(v_clean);
+                        detected_size = Some(format!("{}px", formatted_size));
+                    }
+                }
+            }
+        }
+    }
+
+    if families.is_empty() {
+        return None;
+    }
+
+    let families_str = families.join(", ");
+    if let Some(sz) = detected_size {
+        Some(format!("{} ({})", families_str, sz))
+    } else {
+        Some(families_str)
+    }
+}
+
+/// Parses Qt font format string (e.g. 'Fira Code,10,-1,5,50,0,0,0,0,0').
+pub fn parse_qt_font(raw: &str) -> Option<String> {
+    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
+    if !clean.contains(',') {
+        return None;
+    }
+    let parts: Vec<&str> = clean.split(',').map(|s| s.trim()).collect();
+    if parts.len() < 2 {
+        return None;
+    }
+    let family = parts[0];
+    if family.is_empty() {
+        return None;
+    }
+    if let Ok(pt) = parts[1].parse::<f32>() {
+        if pt > 0.0 {
+            return Some(format!("{} ({}pt)", family, format_size_num(parts[1])));
+        }
+    }
+    if parts.len() >= 3 {
+        if let Ok(px) = parts[2].parse::<f32>() {
+            if px > 0.0 {
+                return Some(format!("{} ({}px)", family, format_size_num(parts[2])));
+            }
+        }
+    }
+    None
+}
+
+/// Parses Pango font description (e.g. 'Fira Code 12', 'Cantarell Bold 11').
+pub fn parse_pango_font(raw: &str) -> Option<String> {
+    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
+    if clean.is_empty() {
+        return None;
+    }
+    if clean.ends_with("pt)") || clean.ends_with("px)") {
+        return Some(clean.to_string());
+    }
+    if let Some((family, size_str)) = clean.rsplit_once(' ') {
+        let is_px = size_str.ends_with("px");
+        let size_num = size_str
+            .trim_end_matches("pt")
+            .trim_end_matches("px")
+            .trim();
+        if size_num.parse::<f32>().is_ok() {
+            let formatted_sz = format_size_num(size_num);
+            let unit = if is_px { "px" } else { "pt" };
+            return Some(format!("{} ({}{})", family.trim(), formatted_sz, unit));
+        }
+    }
+    None
+}
+
+/// Universal font normalizer that standardizes Fontconfig patterns, Pango descriptions,
+/// Qt font strings, and pre-formatted font definitions across all terminal emulators.
+pub fn normalize_font_string(raw: &str) -> String {
+    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
+    if clean.is_empty() {
+        return String::new();
+    }
+    if clean.ends_with("pt)") || clean.ends_with("px)") {
+        return clean.to_string();
+    }
+    // 1. Fontconfig pattern with properties (contains ':')
+    if clean.contains(':') {
+        if let Some(parsed) = parse_fontconfig_pattern(clean) {
+            return parsed;
+        }
+    }
+    // 2. Comma-separated font descriptions: try Qt font format first, then Fontconfig fallback list
+    if clean.contains(',') {
+        if let Some(parsed) = parse_qt_font(clean) {
+            return parsed;
+        }
+        if let Some(parsed) = parse_fontconfig_pattern(clean) {
+            return parsed;
+        }
+    }
+    // 3. Fontconfig family with dash-size suffix (e.g. "DejaVu-10")
+    if clean.contains('-') && clean.chars().any(|c| c.is_ascii_digit()) {
+        if let Some(parsed) = parse_fontconfig_pattern(clean) {
+            return parsed;
+        }
+    }
+    // 4. Pango font format (e.g. "Fira Code 12", "Cantarell Bold 11")
+    if let Some(parsed) = parse_pango_font(clean) {
+        return parsed;
+    }
+    clean.to_string()
+}
+
+/// Formats Pango / Fontconfig font descriptions (e.g. 'FiraCode Nerd Font 12') into display format ('FiraCode Nerd Font (12pt)').
+pub fn format_pango_font(raw: &str) -> String {
+    normalize_font_string(raw)
+}
+
 #[cfg(not(windows))]
 fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
     let foot_ini = home_path.join(".config/foot/foot.ini");
     if let Ok(content) = fs::read_to_string(foot_ini) {
+        let mut raw_font = None;
+        let mut size_override = None;
         for line in content.lines() {
             let trimmed = line.trim();
             if trimmed.starts_with('#') || trimmed.starts_with(';') {
@@ -735,30 +917,30 @@ fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
             if let Some(rest) = trimmed.strip_prefix("font=") {
                 let f = rest.trim();
                 if !f.is_empty() {
-                    return Some(f.to_string());
+                    raw_font = Some(f.to_string());
+                }
+            } else if let Some(rest) = trimmed.strip_prefix("font-size-override=") {
+                let s = rest.trim();
+                if !s.is_empty() {
+                    size_override = Some(s.to_string());
                 }
             }
         }
-    }
-    None
-}
-
-/// Formats Pango / Fontconfig font descriptions (e.g. 'FiraCode Nerd Font 12') into display format ('FiraCode Nerd Font (12pt)').
-pub fn format_pango_font(raw: &str) -> String {
-    let clean = raw.trim().trim_matches('\'').trim_matches('"').trim();
-    if clean.is_empty() {
-        return String::new();
-    }
-    if clean.ends_with("pt)") {
-        return clean.to_string();
-    }
-    if let Some((family, size_str)) = clean.rsplit_once(' ') {
-        let size_clean = size_str.trim_end_matches("pt").trim_end_matches("px");
-        if size_clean.parse::<f32>().is_ok() {
-            return format!("{} ({}pt)", family.trim(), size_clean);
+        if let Some(rf) = raw_font {
+            let normalized = normalize_font_string(&rf);
+            if let Some(override_sz) = size_override {
+                let clean_sz = format_size_num(&override_sz);
+                if let Some(idx) = normalized.rfind('(') {
+                    let family_part = normalized[..idx].trim();
+                    return Some(format!("{} ({}pt)", family_part, clean_sz));
+                } else {
+                    return Some(format!("{} ({}pt)", normalized, clean_sz));
+                }
+            }
+            return Some(normalized);
         }
     }
-    clean.to_string()
+    None
 }
 
 #[cfg(not(windows))]
@@ -874,6 +1056,146 @@ fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
+fn probe_wezterm_font(home_path: &std::path::Path) -> Option<String> {
+    for path in &[
+        home_path.join(".config/wezterm/wezterm.lua"),
+        home_path.join(".wezterm.lua"),
+    ] {
+        if let Ok(content) = fs::read_to_string(path) {
+            let mut family = None;
+            let mut size = None;
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("--") {
+                    continue;
+                }
+                if let Some((k, v)) = trimmed.split_once('=') {
+                    let k = k.trim();
+                    let v = v.trim().trim_end_matches(';').trim();
+                    if (k == "font_size" || k.ends_with(".font_size")) && size.is_none() {
+                        let clean_v = v.trim_matches('"').trim_matches('\'').trim();
+                        if clean_v.parse::<f32>().is_ok() {
+                            size = Some(clean_v.to_string());
+                        }
+                    }
+                }
+                if family.is_none() && trimmed.contains("wezterm.font") {
+                    if let Some(start_quote) = trimmed.find(['"', '\'']) {
+                        let quote_char = trimmed.as_bytes()[start_quote] as char;
+                        let rest = &trimmed[start_quote + 1..];
+                        if let Some(end_quote) = rest.find(quote_char) {
+                            let f = rest[..end_quote].trim();
+                            if !f.is_empty() {
+                                family = Some(f.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(f) = family {
+                if let Some(s) = size {
+                    let sz = format_size_num(&s);
+                    return Some(format!("{} ({}pt)", f, sz));
+                }
+                return Some(f);
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn probe_konsole_font(home_path: &std::path::Path) -> Option<String> {
+    let konsolerc = home_path.join(".config/konsolerc");
+    if let Ok(content) = fs::read_to_string(&konsolerc) {
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("Font=") {
+                let normalized = normalize_font_string(rest.trim());
+                if !normalized.is_empty() {
+                    return Some(normalized);
+                }
+            }
+        }
+    }
+    let profiles_dir = home_path.join(".local/share/konsole");
+    if let Ok(entries) = fs::read_dir(profiles_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "profile") {
+                if let Ok(content) = fs::read_to_string(path) {
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if let Some(rest) = trimmed.strip_prefix("Font=") {
+                            let normalized = normalize_font_string(rest.trim());
+                            if !normalized.is_empty() {
+                                return Some(normalized);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn probe_xfce_font(home_path: &std::path::Path) -> Option<String> {
+    let rc = home_path.join(".config/xfce4/terminal/terminalrc");
+    if let Ok(content) = fs::read_to_string(rc) {
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("FontName=") {
+                let normalized = normalize_font_string(rest.trim());
+                if !normalized.is_empty() {
+                    return Some(normalized);
+                }
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn probe_gnome_console_font(_home_path: &std::path::Path) -> Option<String> {
+    let raw = crate::modules::system_command("dconf")
+        .args(["read", "/org/gnome/Console/custom-font"])
+        .output()
+        .ok()
+        .and_then(|out| {
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+            None
+        })
+        .or_else(|| {
+            let out = crate::modules::system_command("dconf")
+                .args(["read", "/org/gnome/desktop/interface/monospace-font-name"])
+                .output()
+                .ok()?;
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+            None
+        });
+
+    if let Some(r) = raw {
+        let normalized = normalize_font_string(&r);
+        if !normalized.is_empty() {
+            return Some(normalized);
+        }
+    }
+    None
+}
+
 /// Probes the active terminal font configuration from local user dotfiles or system settings.
 #[cfg(not(windows))]
 pub fn detect_terminal_font() -> Option<String> {
@@ -882,39 +1204,35 @@ pub fn detect_terminal_font() -> Option<String> {
 
     let active = detect_terminal().unwrap_or_default().to_lowercase();
 
-    // Prioritize active terminal detection first
+    // Prioritize active terminal detection first (strictly isolated, NO cross-terminal contamination)
     if active.contains("ptyxis") {
-        if let Some(f) = probe_ptyxis_font(home_path) {
-            return Some(f);
-        }
-        return None;
-    } else if active.contains("ghostty") {
-        if let Some(f) = probe_ghostty_font(home_path) {
-            return Some(f);
-        }
-    } else if active.contains("kitty") {
-        if let Some(f) = probe_kitty_font(home_path) {
-            return Some(f);
-        }
-    } else if active.contains("alacritty") {
-        if let Some(f) = probe_alacritty_font(home_path) {
-            return Some(f);
-        }
+        return probe_ptyxis_font(home_path);
     } else if active.contains("foot") {
-        if let Some(f) = probe_foot_font(home_path) {
-            return Some(f);
-        }
+        return probe_foot_font(home_path);
+    } else if active.contains("ghostty") {
+        return probe_ghostty_font(home_path);
+    } else if active.contains("kitty") {
+        return probe_kitty_font(home_path);
+    } else if active.contains("alacritty") {
+        return probe_alacritty_font(home_path);
+    } else if active.contains("wezterm") {
+        return probe_wezterm_font(home_path);
+    } else if active.contains("konsole") || active.contains("yakuake") {
+        return probe_konsole_font(home_path);
+    } else if active.contains("xfce") {
+        return probe_xfce_font(home_path);
+    } else if active.contains("kgx") || active.contains("console") {
+        return probe_gnome_console_font(home_path);
     }
 
-    // Fallback waterfall if active terminal probe did not resolve (only for non-ptyxis)
-    if !active.contains("ptyxis") {
-        probe_ghostty_font(home_path)
-            .or_else(|| probe_kitty_font(home_path))
-            .or_else(|| probe_alacritty_font(home_path))
-            .or_else(|| probe_foot_font(home_path))
-    } else {
-        None
-    }
+    // Fallback waterfall ONLY when active terminal is unknown, generic ($TERM), or multiplexer
+    probe_ghostty_font(home_path)
+        .or_else(|| probe_foot_font(home_path))
+        .or_else(|| probe_kitty_font(home_path))
+        .or_else(|| probe_alacritty_font(home_path))
+        .or_else(|| probe_wezterm_font(home_path))
+        .or_else(|| probe_konsole_font(home_path))
+        .or_else(|| probe_ptyxis_font(home_path))
 }
 
 #[cfg(windows)]
@@ -1140,5 +1458,75 @@ font-size = 13
         );
         assert_eq!(format_pango_font("Monospace"), "Monospace");
         assert_eq!(format_pango_font("Fira Code (13pt)"), "Fira Code (13pt)");
+    }
+
+    #[test]
+    fn test_format_size_num() {
+        assert_eq!(format_size_num("12"), "12");
+        assert_eq!(format_size_num("12.0"), "12");
+        assert_eq!(format_size_num("12.5"), "12.5");
+        assert_eq!(format_size_num("13pt"), "13");
+        assert_eq!(format_size_num("14.0px"), "14");
+    }
+
+    #[test]
+    fn test_parse_fontconfig_pattern() {
+        assert_eq!(
+            parse_fontconfig_pattern("Fira Code:size=12, Symbols Nerd Font Mono:size=12"),
+            Some("Fira Code, Symbols Nerd Font Mono (12pt)".to_string())
+        );
+        assert_eq!(
+            parse_fontconfig_pattern(
+                "JetBrains Mono:style=Regular:size=11, Noto Color Emoji:size=11"
+            ),
+            Some("JetBrains Mono, Noto Color Emoji (11pt)".to_string())
+        );
+        assert_eq!(
+            parse_fontconfig_pattern("DejaVu Sans Mono-10"),
+            Some("DejaVu Sans Mono (10pt)".to_string())
+        );
+        assert_eq!(
+            parse_fontconfig_pattern("monospace:pixelsize=16"),
+            Some("monospace (16px)".to_string())
+        );
+        assert_eq!(
+            parse_fontconfig_pattern("Courier New:size=12.5"),
+            Some("Courier New (12.5pt)".to_string())
+        );
+        assert_eq!(
+            parse_fontconfig_pattern("Fira Code"),
+            Some("Fira Code".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_qt_font() {
+        assert_eq!(
+            parse_qt_font("Fira Code,10,-1,5,50,0,0,0,0,0"),
+            Some("Fira Code (10pt)".to_string())
+        );
+        assert_eq!(
+            parse_qt_font("JetBrains Mono,-1,14,5,50,0,0,0,0,0"),
+            Some("JetBrains Mono (14px)".to_string())
+        );
+        assert_eq!(parse_qt_font("Invalid"), None);
+    }
+
+    #[test]
+    fn test_normalize_font_string() {
+        assert_eq!(
+            normalize_font_string("Fira Code:size=12, Symbols Nerd Font Mono:size=12"),
+            "Fira Code, Symbols Nerd Font Mono (12pt)"
+        );
+        assert_eq!(normalize_font_string("Fira Code 12"), "Fira Code (12pt)");
+        assert_eq!(
+            normalize_font_string("Fira Code,10,-1,5,50,0,0,0,0,0"),
+            "Fira Code (10pt)"
+        );
+        assert_eq!(
+            normalize_font_string("Fira Code, Symbols Nerd Font Mono (13pt)"),
+            "Fira Code, Symbols Nerd Font Mono (13pt)"
+        );
+        assert_eq!(normalize_font_string("Monospace"), "Monospace");
     }
 }
