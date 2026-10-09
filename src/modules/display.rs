@@ -30,9 +30,9 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
     let prod_code = (data[10] as u16) | ((data[11] as u16) << 8);
     let mfg_code = format!("{}{}{}{:04X}", c1, c2, c3, prod_code);
 
-    let name = Some(mfg_code);
+    let mut name = Some(mfg_code);
 
-    // 3. Physical screen size in inches from byte 21 (w_cm) and byte 22 (h_cm)
+    // 2. Physical screen size in inches from byte 21 (w_cm) and byte 22 (h_cm)
     let w_cm = data[21] as f64;
     let h_cm = data[22] as f64;
     let size_inches = if w_cm > 0.0 && h_cm > 0.0 {
@@ -47,22 +47,67 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
         None
     };
 
-    // 4. Detailed timing 1 resolution & refresh rate
-    let pixel_clock_10khz = (data[54] as u32) | ((data[55] as u32) << 8);
-    let h_active = (data[56] as u32) | (((data[58] >> 4) as u32) << 8);
-    let h_blank = (data[57] as u32) | (((data[58] & 0x0F) as u32) << 8);
-    let v_active = (data[59] as u32) | (((data[61] >> 4) as u32) << 8);
-    let v_blank = (data[60] as u32) | (((data[61] & 0x0F) as u32) << 8);
+    // 3. Scan 4 descriptor blocks (offsets 54, 72, 90, 108) for timings and monitor name
+    let mut best_hz: Option<u32> = None;
+    let mut best_res: Option<String> = None;
 
-    let h_total = h_active + h_blank;
-    let v_total = v_active + v_blank;
+    for &offset in &[54, 72, 90, 108] {
+        if offset + 18 > data.len() {
+            break;
+        }
+        let block = &data[offset..offset + 18];
+        if block[0] == 0x00 && block[1] == 0x00 {
+            let tag = block[3];
+            if tag == 0xFC || tag == 0xFE {
+                let text_bytes = &block[5..18];
+                let mut text = String::with_capacity(13);
+                for &b in text_bytes {
+                    if b == b'\n' || b == b'\r' || b == 0 {
+                        break;
+                    }
+                    if b.is_ascii_graphic() || b == b' ' {
+                        text.push(b as char);
+                    }
+                }
+                let clean = text.trim();
+                if !clean.is_empty() && (tag == 0xFC || name.is_none()) {
+                    name = Some(clean.to_string());
+                }
+            }
+        } else {
+            let pixel_clock_10khz = (block[0] as u32) | ((block[1] as u32) << 8);
+            let h_active = (block[2] as u32) | (((block[4] >> 4) as u32) << 8);
+            let h_blank = (block[3] as u32) | (((block[4] & 0x0F) as u32) << 8);
+            let v_active = (block[5] as u32) | (((block[7] >> 4) as u32) << 8);
+            let v_blank = (block[6] as u32) | (((block[7] & 0x0F) as u32) << 8);
 
-    let (res, hz) = if pixel_clock_10khz > 0 && h_total > 0 && v_total > 0 {
-        let refresh = ((pixel_clock_10khz as f64 * 10000.0) / (h_total as f64 * v_total as f64))
-            .round() as u32;
-        (format!("{}x{}", h_active, v_active), Some(refresh))
-    } else {
-        ("1920x1080".to_string(), None)
+            let h_total = h_active + h_blank;
+            let v_total = v_active + v_blank;
+
+            if pixel_clock_10khz > 0 && h_total > 0 && v_total > 0 && h_active > 0 && v_active > 0 {
+                let refresh = ((pixel_clock_10khz as f64 * 10000.0)
+                    / (h_total as f64 * v_total as f64))
+                    .round() as u32;
+                let res = format!("{}x{}", h_active, v_active);
+                match best_hz {
+                    None => {
+                        best_hz = Some(refresh);
+                        best_res = Some(res);
+                    }
+                    Some(cur) => {
+                        if refresh > cur {
+                            best_hz = Some(refresh);
+                            best_res = Some(res);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let (res, hz) = match (best_res, best_hz) {
+        (Some(r), h) => (r, h),
+        (None, _) => ("1920x1080".to_string(), None),
     };
 
     // 5. Display type [Built-in] vs [External]
@@ -468,11 +513,290 @@ pub fn parse_wlr_randr_output(output: &str) -> Option<DisplayInfo> {
     None
 }
 
-/// Probes display resolution, refresh rate, size, and monitor name from sysfs DRM or display servers.
-pub fn detect_display() -> Option<DisplayInfo> {
-    // 1. Sysfs DRM modes + EDID fast path (<0.05ms) for Linux (Wayland, X11, KMS, and TTY consoles)
+fn extract_json_str(block: &str, key: &str) -> Option<String> {
+    let pattern = format!("\"{}\":", key);
+    let p = block.find(&pattern)?;
+    let rest = block[p + pattern.len()..].trim_start();
+    if let Some(rest_after_quote) = rest.strip_prefix('"') {
+        let end = rest_after_quote.find('"')?;
+        let s = rest_after_quote[..end].trim();
+        if !s.is_empty() {
+            return Some(s.to_string());
+        }
+    }
+    None
+}
+
+fn extract_json_num(block: &str, key: &str) -> Option<f64> {
+    let pattern = format!("\"{}\":", key);
+    let p = block.find(&pattern)?;
+    let rest = block[p + pattern.len()..].trim_start();
+    let mut end = 0;
+    let bytes = rest.as_bytes();
+    while end < bytes.len()
+        && (bytes[end].is_ascii_digit() || bytes[end] == b'.' || bytes[end] == b'-')
+    {
+        end += 1;
+    }
+    if end > 0 {
+        rest[..end].parse::<f64>().ok()
+    } else {
+        None
+    }
+}
+
+fn extract_json_bool(block: &str, key: &str) -> Option<bool> {
+    let pattern = format!("\"{}\":", key);
+    let p = block.find(&pattern)?;
+    let rest = block[p + pattern.len()..].trim_start();
+    if rest.starts_with("true") {
+        Some(true)
+    } else if rest.starts_with("false") {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn probe_drm_edid_name(connector: &str) -> Option<String> {
+    let entries = fs::read_dir("/sys/class/drm").ok()?;
+    let suffix = format!("-{}", connector);
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        if name_str == connector || name_str.ends_with(&suffix) {
+            let edid_path = entry.path().join("edid");
+            if let Ok(data) = fs::read(edid_path) {
+                if let Some(info) = parse_edid_binary(&data, connector) {
+                    if let Some(n) = info.name {
+                        return Some(n);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_json_objects(json: &str) -> Vec<&str> {
+    let mut depth = 0;
+    let mut start = None;
+    let mut blocks = Vec::new();
+
+    for (i, c) in json.char_indices() {
+        if c == '{' {
+            if depth == 0 {
+                start = Some(i + 1);
+            }
+            depth += 1;
+        } else if c == '}' {
+            depth -= 1;
+            if depth == 0 {
+                if let Some(s) = start {
+                    blocks.push(&json[s..i]);
+                    start = None;
+                }
+            }
+        }
+    }
+    blocks
+}
+
+pub fn parse_hyprland_monitors(json: &str) -> Vec<DisplayInfo> {
+    let mut monitors = Vec::new();
+    let trimmed = json.trim();
+    if !trimmed.starts_with('[') {
+        return monitors;
+    }
+
+    for block in extract_json_objects(trimmed) {
+        if extract_json_bool(block, "disabled") == Some(true) {
+            continue;
+        }
+
+        let name = extract_json_str(block, "name");
+        let desc = extract_json_str(block, "description");
+        let model = extract_json_str(block, "model");
+        let width = extract_json_num(block, "width").map(|n| n as u32);
+        let height = extract_json_num(block, "height").map(|n| n as u32);
+        let refresh_rate = extract_json_num(block, "refreshRate").map(|r| r.round() as u32);
+        let scale = extract_json_num(block, "scale");
+        let pw = extract_json_num(block, "physicalWidth");
+        let ph = extract_json_num(block, "physicalHeight");
+
+        let size_inches = match (pw, ph) {
+            (Some(w_mm), Some(h_mm)) if w_mm > 0.0 && h_mm > 0.0 => {
+                let diag = (w_mm * w_mm + h_mm * h_mm).sqrt();
+                let inches = (diag / 25.4).round() as u32;
+                if inches > 0 {
+                    Some(inches)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
+        let conn_name = name.clone().unwrap_or_default();
+        let conn_lower = conn_name.to_lowercase();
+        let display_type = if conn_lower.contains("edp")
+            || conn_lower.contains("lvds")
+            || conn_lower.contains("dsi")
+        {
+            Some("[Built-in]".to_string())
+        } else if conn_lower.contains("hdmi")
+            || conn_lower.contains("dp")
+            || conn_lower.contains("vga")
+            || conn_lower.contains("dvi")
+        {
+            Some("[External]".to_string())
+        } else {
+            None
+        };
+
+        let mut monitor_name = None;
+        if !conn_name.is_empty() {
+            monitor_name = probe_drm_edid_name(&conn_name);
+        }
+
+        if monitor_name.is_none() {
+            if let Some(ref m) = model {
+                if !m.is_empty() && !m.starts_with("0x") {
+                    monitor_name = Some(m.clone());
+                }
+            }
+        }
+        if monitor_name.is_none() {
+            if let Some(ref d) = desc {
+                if !d.is_empty() {
+                    monitor_name = Some(d.clone());
+                }
+            }
+        }
+        if monitor_name.is_none() {
+            monitor_name = name;
+        }
+
+        let resolution = match (width, height) {
+            (Some(w), Some(h)) => format!("{}x{}", w, h),
+            _ => continue,
+        };
+
+        monitors.push(DisplayInfo {
+            name: monitor_name,
+            resolution,
+            refresh_rate,
+            size_inches,
+            display_type,
+            scale,
+        });
+    }
+
+    monitors
+}
+
+pub fn parse_sway_outputs(json: &str) -> Vec<DisplayInfo> {
+    let mut monitors = Vec::new();
+    let trimmed = json.trim();
+    if !trimmed.starts_with('[') {
+        return monitors;
+    }
+
+    for block in extract_json_objects(trimmed) {
+        if extract_json_bool(block, "active") == Some(false) {
+            continue;
+        }
+
+        let name = extract_json_str(block, "name");
+        let model = extract_json_str(block, "model");
+        let scale = extract_json_num(block, "scale");
+        let width = extract_json_num(block, "width").map(|n| n as u32);
+        let height = extract_json_num(block, "height").map(|n| n as u32);
+        let refresh_rate = extract_json_num(block, "refresh").map(|r| {
+            if r > 1000.0 {
+                (r / 1000.0).round() as u32
+            } else {
+                r.round() as u32
+            }
+        });
+
+        let conn_name = name.clone().unwrap_or_default();
+        let conn_lower = conn_name.to_lowercase();
+        let display_type = if conn_lower.contains("edp")
+            || conn_lower.contains("lvds")
+            || conn_lower.contains("dsi")
+        {
+            Some("[Built-in]".to_string())
+        } else if conn_lower.contains("hdmi")
+            || conn_lower.contains("dp")
+            || conn_lower.contains("vga")
+            || conn_lower.contains("dvi")
+        {
+            Some("[External]".to_string())
+        } else {
+            None
+        };
+
+        let monitor_name = if !conn_name.is_empty() {
+            probe_drm_edid_name(&conn_name)
+        } else {
+            None
+        }
+        .or(model)
+        .or(name);
+
+        let resolution = match (width, height) {
+            (Some(w), Some(h)) => format!("{}x{}", w, h),
+            _ => continue,
+        };
+
+        monitors.push(DisplayInfo {
+            name: monitor_name,
+            resolution,
+            refresh_rate,
+            size_inches: None,
+            display_type,
+            scale,
+        });
+    }
+
+    monitors
+}
+
+/// Probes all active display monitors across Hyprland, Sway, DRM sysfs, or fallback display servers.
+pub fn detect_displays() -> Vec<DisplayInfo> {
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+        .unwrap_or_default()
+        .to_lowercase();
+    let is_hyprland =
+        desktop.contains("hyprland") || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+
+    // 1. Hyprland direct Unix socket IPC (<0.1ms)
+    #[cfg(not(windows))]
+    if is_hyprland {
+        if let Some(json) = get_hyprland_monitors_json() {
+            let displays = parse_hyprland_monitors(json);
+            if !displays.is_empty() {
+                return displays;
+            }
+        }
+    }
+
+    // 2. Sway direct Unix socket IPC
+    #[cfg(not(windows))]
+    if std::env::var_os("SWAYSOCK").is_some() {
+        if let Some(json) = get_sway_outputs_json() {
+            let displays = parse_sway_outputs(json);
+            if !displays.is_empty() {
+                return displays;
+            }
+        }
+    }
+
+    // 3. Sysfs DRM modes + EDID (<0.1ms) for multi-monitor Linux (Wayland, X11, KMS, TTY)
     let drm_dir = "/sys/class/drm";
     if let Ok(entries) = fs::read_dir(drm_dir) {
+        let mut drm_displays = Vec::new();
         for entry in entries.flatten() {
             let path = entry.path();
             if let Ok(status) = fs::read_to_string(path.join("status")) {
@@ -503,12 +827,13 @@ pub fn detect_display() -> Option<DisplayInfo> {
                                 info.resolution = res.clone();
                             }
                             info.scale = scale;
-                            return Some(info);
+                            drm_displays.push(info);
+                            continue;
                         }
                     }
 
                     if let Some(res) = resolution_from_modes {
-                        return Some(DisplayInfo {
+                        drm_displays.push(DisplayInfo {
                             name: None,
                             resolution: res,
                             refresh_rate: None,
@@ -520,16 +845,19 @@ pub fn detect_display() -> Option<DisplayInfo> {
                 }
             }
         }
+        if !drm_displays.is_empty() {
+            return drm_displays;
+        }
     }
 
-    // 2. Fallback: Query xrandr or wlr-randr if graphical display session is active and DRM sysfs is unavailable
+    // 4. Fallback: Query xrandr or wlr-randr if graphical display session is active and DRM sysfs is unavailable
     if std::env::var_os("DISPLAY").is_some() || std::env::var_os("WAYLAND_DISPLAY").is_some() {
         if let Ok(output) = crate::modules::system_command("xrandr").output() {
             if output.status.success() {
                 let text = String::from_utf8_lossy(&output.stdout);
                 if let Some(mut info) = parse_xrandr_output(&text) {
                     info.scale = detect_display_scale(None);
-                    return Some(info);
+                    return vec![info];
                 }
             }
         }
@@ -539,13 +867,18 @@ pub fn detect_display() -> Option<DisplayInfo> {
                 let text = String::from_utf8_lossy(&output.stdout);
                 if let Some(mut info) = parse_wlr_randr_output(&text) {
                     info.scale = detect_display_scale(None);
-                    return Some(info);
+                    return vec![info];
                 }
             }
         }
     }
 
-    None
+    Vec::new()
+}
+
+/// Probes primary display resolution, refresh rate, size, and monitor name.
+pub fn detect_display() -> Option<DisplayInfo> {
+    detect_displays().into_iter().next()
 }
 
 pub struct DisplayCollector;
@@ -555,39 +888,48 @@ impl Collector for DisplayCollector {
         ModuleId::Display
     }
 
-    fn collect(&self, _ctx: &FetchContext) -> Option<ModuleOutput> {
-        let info = detect_display()?;
+    fn collect(&self, ctx: &FetchContext) -> Option<ModuleOutput> {
+        self.collect_multiple(ctx).into_iter().next()
+    }
 
-        let label = match info.name {
-            Some(ref n) => format!("Display ({})", n),
-            None => "Display".to_string(),
-        };
+    fn collect_multiple(&self, _ctx: &FetchContext) -> Vec<ModuleOutput> {
+        let displays = detect_displays();
+        let mut outputs = Vec::with_capacity(displays.len());
 
-        let mut main_str = info.resolution;
-        if let Some(scale) = info.scale {
-            if (scale - 1.0).abs() > 0.01 {
-                main_str.push_str(&format!(" @ {:.2}x", scale));
+        for info in displays {
+            let label = match info.name {
+                Some(ref n) => format!("Display ({})", n),
+                None => "Display".to_string(),
+            };
+
+            let mut main_str = info.resolution;
+            if let Some(scale) = info.scale {
+                if (scale - 1.0).abs() > 0.01 {
+                    main_str.push_str(&format!(" @ {:.2}x", scale));
+                }
             }
-        }
-        if let Some(inch) = info.size_inches {
-            main_str.push_str(&format!(" in {}\"", inch));
-        }
-        let mut sub_parts = vec![main_str];
-        if let Some(hz) = info.refresh_rate {
-            sub_parts.push(format!("{} Hz", hz));
-        }
-        let mut value = sub_parts.join(", ");
-        if let Some(ref dtype) = info.display_type {
-            value.push(' ');
-            value.push_str(dtype);
+            if let Some(inch) = info.size_inches {
+                main_str.push_str(&format!(" in {}\"", inch));
+            }
+            let mut sub_parts = vec![main_str];
+            if let Some(hz) = info.refresh_rate {
+                sub_parts.push(format!("{} Hz", hz));
+            }
+            let mut value = sub_parts.join(", ");
+            if let Some(ref dtype) = info.display_type {
+                value.push(' ');
+                value.push_str(dtype);
+            }
+
+            outputs.push(ModuleOutput {
+                id: ModuleId::Display,
+                label,
+                value,
+                custom_rendered: None,
+            });
         }
 
-        Some(ModuleOutput {
-            id: ModuleId::Display,
-            label,
-            value,
-            custom_rendered: None,
-        })
+        outputs
     }
 }
 
@@ -732,5 +1074,82 @@ rdp-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0
         let scale = parse_hyprctl_scale(sample, Some("eDP-1"));
         assert!(scale.is_some());
         assert!((scale.unwrap() - 1.333333).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_parse_hyprland_monitors_multi() {
+        let sample = r#"[
+{
+    "id": 0,
+    "name": "eDP-1",
+    "description": "AU Optronics 0xD0A2",
+    "make": "AU Optronics",
+    "model": "0xD0A2",
+    "width": 1920,
+    "height": 1080,
+    "physicalWidth": 340,
+    "physicalHeight": 190,
+    "refreshRate": 144.42000,
+    "scale": 1.25,
+    "disabled": false
+},
+{
+    "id": 1,
+    "name": "DP-1",
+    "description": "LG Electronics LG ULTRAGEAR",
+    "make": "LG Electronics",
+    "model": "LG ULTRAGEAR",
+    "width": 1920,
+    "height": 1080,
+    "physicalWidth": 530,
+    "physicalHeight": 300,
+    "refreshRate": 180.00000,
+    "scale": 1.0,
+    "disabled": false
+}
+]"#;
+        let monitors = parse_hyprland_monitors(sample);
+        assert_eq!(monitors.len(), 2);
+
+        assert_eq!(monitors[0].resolution, "1920x1080");
+        assert_eq!(monitors[0].refresh_rate, Some(144));
+        assert_eq!(monitors[0].scale, Some(1.25));
+        assert_eq!(monitors[0].size_inches, Some(15));
+        assert_eq!(monitors[0].display_type.as_deref(), Some("[Built-in]"));
+
+        assert_eq!(monitors[1].resolution, "1920x1080");
+        assert_eq!(monitors[1].refresh_rate, Some(180));
+        assert_eq!(monitors[1].scale, Some(1.0));
+        assert_eq!(monitors[1].name.as_deref(), Some("LG ULTRAGEAR"));
+        assert_eq!(monitors[1].display_type.as_deref(), Some("[External]"));
+    }
+
+    #[test]
+    fn test_parse_sway_outputs_multi() {
+        let sample = r#"[
+  {
+    "name": "eDP-1",
+    "model": "0xD0A2",
+    "active": true,
+    "scale": 1.25,
+    "width": 1920,
+    "height": 1080,
+    "refresh": 144420
+  },
+  {
+    "name": "DP-1",
+    "model": "LG ULTRAGEAR",
+    "active": true,
+    "scale": 1.0,
+    "width": 1920,
+    "height": 1080,
+    "refresh": 180000
+  }
+]"#;
+        let monitors = parse_sway_outputs(sample);
+        assert_eq!(monitors.len(), 2);
+        assert_eq!(monitors[0].refresh_rate, Some(144));
+        assert_eq!(monitors[1].refresh_rate, Some(180));
+        assert_eq!(monitors[1].name.as_deref(), Some("LG ULTRAGEAR"));
     }
 }

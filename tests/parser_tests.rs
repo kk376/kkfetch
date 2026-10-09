@@ -100,7 +100,7 @@ fn test_fixture_centos_stream_9() {
     assert_eq!(info.display_name, "CentOS Stream 9");
     assert_eq!(info.distro_id, "centos");
     let logo = match_logo(None, &info.distro_id, &info.distro_like).unwrap();
-    assert_eq!(logo.name, "rhel");
+    assert_eq!(logo.name, "centos");
 }
 
 #[test]

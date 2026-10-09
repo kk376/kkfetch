@@ -128,7 +128,11 @@ pub fn probe_sysfs_battery_from_dir(power_supply_dir: &std::path::Path) -> Optio
     // When battery threshold limits (e.g. 80%) are enabled in BIOS, status reports "Not charging" while connected to AC
     let status = if raw_status.eq_ignore_ascii_case("not charging") {
         if is_ac {
-            "AC Connected".to_string()
+            if capacity >= 99 {
+                "Full [AC]".to_string()
+            } else {
+                "AC Connected".to_string()
+            }
         } else {
             "Not charging".to_string()
         }
@@ -445,8 +449,8 @@ fn probe_sysfs_battery() -> Option<BatteryInfo> {
 
 /// Probes real-time battery status using a 3-tier hierarchy:
 /// Tier 1: In-RAM tmpfs cache (< 15 µs) with instantaneous AC online line invalidation (< 100 µs).
-/// Tier 2: Direct UPower D-Bus query (~3 ms) with 0 ms hardware EC delay and 100% status bar parity.
-/// Tier 3: Direct sysfs power_supply probing fallback.
+/// Tier 2: Direct sysfs power_supply probing (< 100 µs).
+/// Tier 3: Direct UPower D-Bus query fallback (~3 ms).
 #[cfg(not(windows))]
 pub fn detect_battery() -> Option<BatteryInfo> {
     let ac_online = probe_ac_online();
@@ -461,22 +465,25 @@ pub fn detect_battery() -> Option<BatteryInfo> {
             None => true,
         };
 
-        // Cache valid for 15 seconds if AC line state has not changed
-        if age <= 15 && ac_matches {
+        // Cache valid for 60 seconds if AC line state has not changed
+        if age <= 60 && ac_matches {
             return Some(cached);
         }
     }
 
-    // Tier 2: UPower D-Bus Query Fast-Path
+    // Tier 2: Direct Sysfs Probe Fast Path (< 100 µs)
+    if let Some(info) = probe_sysfs_battery() {
+        write_cached_battery(&info);
+        return Some(info);
+    }
+
+    // Tier 3: UPower D-Bus Query Fallback
     if let Some(info) = probe_upower_battery_with_ac(ac_online) {
         write_cached_battery(&info);
         return Some(info);
     }
 
-    // Tier 3: Direct Sysfs Probe Fallback
-    let info = probe_sysfs_battery()?;
-    write_cached_battery(&info);
-    Some(info)
+    None
 }
 
 /// Probes battery status on Windows via Win32 GetSystemPowerStatus API.

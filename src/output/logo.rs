@@ -766,6 +766,244 @@ pub const ALL_LOGOS: &[Logo] = &[
         distro_color: "\x1b[38;5;208m",
         outer_color: WHITE_COLOR,
     },
+    Logo {
+        name: "cachyos",
+        raw_lines: &[
+            "{w}           .-------------------------:",
+            "{w}          .+=========================.",
+            "{w}         :++===++==================-       {c}:++-",
+            "{w}        :*++====+++++=============-        {c}.==:",
+            "{w}       -*+++=====+***++==========:",
+            "{w}      =*++++========------------:",
+            "{w}     =*+++++=====-                     {c}...",
+            "{w}   .+*+++++=-===:                    {c}.=+++=:",
+            "{w}  :++++=====-==:                     {c}-*****+",
+            "{w} :++========-=.                      {c}.=+**+.",
+            "{w}.+==========-.                          {c}.",
+            "{w} :+++++++====-                                {c}.--==-.",
+            "{w}  :++==========.                             {c}:+++++++:",
+            "{w}   .-===========.                            {c}=*****+*+",
+            "{w}    .-===========:                           {c}.+*****+:",
+            "{w}      -=======++++:::::::::::::::::::::::::-:  {c}.---:",
+            "{w}       :======++++====+++******************=.",
+            "{w}        :=====+++==========++++++++++++++*-",
+            "{w}         .====++==============++++++++++*-",
+            "{w}          .===+==================+++++++:",
+            "{w}           .-=======================+++:",
+            "{w}             ..........................",
+        ],
+        distro_color: "\x1b[38;5;43m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "omarchy",
+        raw_lines: &[
+            "{c}██████████████████████████████████",
+            "{c}██              {w}██              {c}██",
+            "{c}██   {w}█████████████       ████   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}███████                    {w}██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}██                    ██   {c}██",
+            "{c}██   {w}████████████████████████   {c}██",
+            "{c}██              {w}██              {c}██",
+            "{c}██████████████████   █████████████",
+        ],
+        distro_color: "\x1b[38;5;39m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "garuda",
+        raw_lines: &[
+            "{w}                   .%;888:8898898:",
+            "{w}                 x;XxXB%89b8:b8%b88:",
+            "{w}              .8Xxd                8X:.",
+            "{w}            .8Xx;                    8x:.",
+            "{w}          .tt8x          {c}.d            {w}x88;",
+            "{w}       .@8x8;          {c}.db:              {w}xx@;",
+            "{w}     ,tSXX°          {c}.bbbbbbbbbbbbbbbbbbbB8x@;",
+            "{w}   .SXxx            {c}bBBBBBBBBBBBBBBBBBBBbSBX8;",
+            "{w} ,888S              {c}                       pd!",
+            "{w}8X88/               {c}                        q",
+            "{w}8X88/",
+            "{w}GBB.",
+            "{w} x%88        {c}d888@8@X@X@X88X@@XX@@X@8@X.",
+            "{w}   dxXd    {c}dB8b8b8B8B08bB88b998888b88x.",
+            "{w}    dxx8o  {c}                    .@@;.",
+            "{w}      dx88 {c}                  .t@x.",
+            "{w}        d:SS@8ba89aa67a853Sxxad.",
+            "{w}          .d988999889889899dd.",
+        ],
+        distro_color: "\x1b[38;5;208m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "blackarch",
+        raw_lines: &[
+            "{c}                   00",
+            "{c}                   11",
+            "{c}                  ====",
+            "{w}                  .//",
+            "{w}                 `o//:",
+            "{w}                `+o//o:",
+            "{w}               `+oo//oo:",
+            "{w}               -+oo//oo+:",
+            "{w}             `/:-:+//ooo+:",
+            "{w}            `/+++++//+++++:",
+            "{w}           `/++++++//++++++:",
+            "{w}          `/+++oooo{c}//{w}ooooooo/`",
+            "{w}         ./ooosssso{c}//{w}osssssso+`",
+            "{w}        .oossssso-`{c}//{w}`/ossssss+`",
+            "{w}       -osssssso.  {c}//{w}  :ssssssso.",
+            "{w}      :osssssss/   {c}//{w}   osssso+++.",
+            "{w}     /ossssssss/   {c}//{w}   +ssssooo/-",
+            "{w}   `/ossssso+/:-   {c}//{w}   -:/+osssso+-",
+            "{w}  `+sso+:-`        {c}//{w}       `.-/+oso:",
+            "{w} `++:.             {c}//{w}            `-/+/",
+            "{w} .`                {c}/{w}                `/",
+        ],
+        distro_color: "\x1b[38;5;196m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "parrot",
+        raw_lines: &[
+            "{c}  `:oho/-`",
+            "{c}`mMMMMMMMMMMMNmmdhy-",
+            "{c} dMMMMMMMMMMMMMMMMMMs`",
+            "{c} +MMsohNMMMMMMMMMMMMMm/",
+            "{c} .My   {w}.+dMMMMMMMMMMMMMh.",
+            "{c}  +       {w}:NMMMMMMMMMMMMNo",
+            "{w}           `yMMMMMMMMMMMMMm:",
+            "{w}             /NMMMMMMMMMMMMMy`",
+            "{w}              .hMMMMMMMMMMMMMN+",
+            "{w}                  ``-NMMMMMMMMMd-",
+            "{w}                     /MMMMMMMMMMMs`",
+            "{w}                      mMMMMMMMsyNMN/",
+            "{w}                      +MMMMMMMo  :sNh.",
+            "{w}                      `NMMMMMMm     -o/",
+            "{w}                       oMMMMMMM.",
+            "{w}                       `NMMMMMM+",
+            "{w}                        +MMd/NMh",
+            "{w}                         mMm -mN`",
+            "{w}                         /MM  `h:",
+            "{w}                          dM`   .",
+            "{w}                          :M-",
+            "{w}                           d:",
+            "{w}                           -+",
+            "{w}                            -",
+        ],
+        distro_color: "\x1b[38;5;44m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "kubuntu",
+        raw_lines: &[
+            "{w}           `.:/ossyyyysso/:.",
+            "{w}        .:oyyyyyyyyyyyyyyyyyyo:`",
+            "{w}      -oyyyyyyy{c}odMMyyyyyyyysyyyyo{w}-",
+            "{w}    -syyyyyyyyyy{c}dMMyoyyyydmMMyyyyys{w}-",
+            "{w}   oyyysdMysyyyy{c}dMMMMMMMMMMMMMyyyyyyy{w}o",
+            "{w} `oyyyydMMMMysyy{c}soooooodMMMMyyyyyyyy{w}o`",
+            "{w} oyyyyyydMMMMyyy{c}yyyyyyyyysdMMysssssyy{w}o",
+            "{w}-yyyyyyyydMysyyy{c}yyyyyyyyyysdMMMMMysyy{w}y-",
+            "{w}oyyyysoodMyyyyyy{c}yyyyyyyyyyyyydMMMMysyy{w}yo",
+            "{w}yyysdMMMMMyyyyyy{c}yyyyyyyyyyyyysosyyyyyy{w}yy",
+            "{w}yyysdMMMMMyyyyyy{c}yyyyyyyyyyyyyyyyyyyyyy{w}yy",
+            "{w}oyyyyysosdyyyyyy{c}yyyyyyyyyyyyydMMMMysyy{w}yo",
+            "{w}-yyyyyyyydMysyyy{c}yyyyyyyyyysdMMMMMysyy{w}y-",
+            "{w} oyyyyyydMMMysyy{c}yyyyyyyyysdMMyoyyyoyy{w}yo",
+            "{w} `oyyyydMMMysyyy{c}oooooodMMMMyoyyyyyyyy{w}o`",
+            "{w}   oyyysyyoyyyys{c}dMMMMMMMMMMMyyyyyyyy{w}o",
+            "{w}    -syyyyyyyyyd{c}MMMysyyydMMMysyyyys{w}-",
+            "{w}      -oyyyyyyyd{c}MMyyyyyyysosyyyyo{w}-",
+            "{w}        ./oyyyyy{c}yyyyyyyyyyyyyo{w}/.",
+            "{w}           `.:/oosyyyysso/:.`",
+        ],
+        distro_color: "\x1b[38;5;33m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "nobara",
+        raw_lines: &[
+            "{w}      ⢀⣤⣴⣶⣶⣶⣦⣤⡀⠀⣀⣠⣤⣴⣶⣶⣶⣶⣶⣶⣶⣶⣤⣤⣀⡀",
+            "{w}    ⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣤⡀",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⠋⠉⠁⠀⠀⠉⠉⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⠁⠀⠀⠀{c}⢀⣀⣀⡀{w}⠀⠀⠀⠈⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⠀⠀{c}⢠⣾⣿⣿⣿⣿⣷⡄{w}⠀⠀⠀⠻⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⠀⠀⠀{c}⣿⣿⣿⣿⣿⣿⣿⡇{w}⠀⠀⠀⠀⠀⣀⣀⣬⣽⣿⣿⣿⣿⣿⣿",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀{c}⠈⠻⢿⣿⣿⡿⠟⠁{w}⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{w}    ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{c} ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣤⣤⣄⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{c} ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{c} ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+            "{c} ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠟⠛⠉⠉⠛⠛⢿⣿⣿⠀⠀⠀⠀⠀⠸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿",
+            "{c} ⠘⢿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣿⣿⠟⠁",
+            "{c}   ⠈⠙⠛⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠛⠛⠉⠁",
+        ],
+        distro_color: "\x1b[38;5;197m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "bazzite",
+        raw_lines: &[
+            "{w}     %%%%%%====%%%%%%%%%%",
+            "{w}   %%%%%%%%    %%%%%%%%%%%%%%",
+            "{w}  %%%%%%%%%    %%%%%%%%%%%%%%%%",
+            "{w}  %%%%%%%%%    %%%%%%%%%%%%%%%{c}###",
+            "{w}  %%%%%%%%%    %%%%%%%%%%%%%{c}######",
+            "{w}  ==                  =======######",
+            "{w}  ==                  ========={c}#####",
+            "{w}  %%%%%%%%%    %%%%%%%{c}####======#####",
+            "{w}  %%%%%%%%%    %%%%%{c}#######=====#####",
+            "{w}  %%%%%%%%%    %%%{c}#########=====#####",
+            "{w}  %%%%%%%%%    %{c}%##########=====#####",
+            "{w}  %%%%%%%%%===={c}###########=====######",
+            "{w}   %%%%%%%%===={c}#########======######",
+            "{w}    %%%%%%%====={c}#####========######",
+            "{w}     %%%%{c}###===============#######",
+            "{w}      %{c}#######==========#########",
+            "{c}        #######################",
+            "{c}          ###################",
+            "{c}              ###########",
+        ],
+        distro_color: "\x1b[38;5;141m",
+        outer_color: WHITE_COLOR,
+    },
+    Logo {
+        name: "centos",
+        raw_lines: &[
+            "{w}                 ..",
+            "{w}               .PLTJ.",
+            "{w}              <><><><>",
+            "{w}     KKSSV' 4KKK {c}LJ{w} KKKL.'VSSKK",
+            "{w}     KKV' 4KKKKK {c}LJ{w} KKKKAL 'VKK",
+            "{w}     V' ' 'VKKKK {c}LJ{w} KKKKV' ' 'V",
+            "{w}     .4MA.' 'VKK {c}LJ{w} KKV' '.4Mb.",
+            "{w}   . KKKKKA.' 'V {c}LJ{w} V' '.4KKKKK .",
+            "{w} .4D KKKKKKKA.'' {c}LJ{w} ''.4KKKKKKK FA.",
+            "{w}<QDD ++++++++++++  ++++++++++++ GFD>",
+            "{w} 'VD KKKKKKKK'.. {c}LJ{w} ..'KKKKKKKK FV",
+            "{w}   ' VKKKKK'. .4 {c}LJ{w} K. .'KKKKKV '",
+            "{w}      'VK'. .4KK {c}LJ{w} KKA. .'KV'",
+            "{w}     A. . .4KKKK {c}LJ{w} KKKKA. . .4",
+            "{w}     KKA. 'KKKKK {c}LJ{w} KKKKK' .4KK",
+            "{w}     KKSSA. VKKK {c}LJ{w} KKKV .4SSKK",
+            "{w}              <><><><>",
+            "{w}               'MKKM'",
+            "{w}                 ''",
+        ],
+        distro_color: "\x1b[38;5;214m",
+        outer_color: WHITE_COLOR,
+    },
 ];
 
 /// Resolves a matching `Logo` based on the detected OS string or user override.
@@ -794,6 +1032,16 @@ pub fn match_logo(
             "win7" => Some("windows7"),
             "mac" | "darwin" | "apple" | "osx" => Some("macos"),
             "bsd" => Some("freebsd"),
+            "cachyos" | "cachy" => Some("cachyos"),
+            "omarchy" => Some("omarchy"),
+            "garuda" => Some("garuda"),
+            "blackarch" => Some("blackarch"),
+            "parrot" => Some("parrot"),
+            "kubuntu" => Some("kubuntu"),
+            "centos" | "cent" => Some("centos"),
+            "nobara" => Some("nobara"),
+            "bazzite" => Some("bazzite"),
+            "lfs" | "linuxfromscratch" => Some("generic"),
             _ => None,
         };
         if let Some(target) = alias_target {
@@ -821,26 +1069,36 @@ pub fn match_logo(
         (&["windows10", "win10"], "windows10"),
         (&["windows7", "win7"], "windows7"),
         (&["windows", "win"], "windows11"),
-        (&["ubuntu"], "ubuntu"),
-        (&["mint", "linuxmint"], "linuxmint"),
-        (&["fedora"], "fedora"),
+        (&["cachyos", "cachy"], "cachyos"),
+        (&["omarchy"], "omarchy"),
+        (&["garuda"], "garuda"),
+        (&["blackarch"], "blackarch"),
         (&["endeavour"], "endeavouros"),
         (&["manjaro"], "manjaro"),
         (&["artix"], "artix"),
         (&["arch"], "arch"),
+        (&["kubuntu"], "kubuntu"),
+        (&["ubuntu"], "ubuntu"),
+        (&["mint", "linuxmint"], "linuxmint"),
+        (&["parrot"], "parrot"),
+        (&["pop"], "pop"),
+        (&["kali"], "kali"),
+        (&["zorin"], "zorin"),
         (&["debian"], "debian"),
-        (&["redhat", "rhel", "centos"], "rhel"),
+        (&["nobara"], "nobara"),
+        (&["bazzite"], "bazzite"),
+        (&["centos", "cent"], "centos"),
         (&["rocky"], "rocky"),
         (&["alma"], "almalinux"),
+        (&["fedora"], "fedora"),
+        (&["redhat", "rhel"], "rhel"),
         (&["suse", "opensuse"], "opensuse"),
+        (&["nix"], "nixos"),
+        (&["void"], "void"),
         (&["gentoo"], "gentoo"),
         (&["alpine"], "alpine"),
-        (&["void"], "void"),
-        (&["pop"], "pop"),
-        (&["nix"], "nixos"),
-        (&["kali"], "kali"),
+        (&["lfs", "linuxfromscratch"], "generic"),
         (&["slackware"], "slackware"),
-        (&["zorin"], "zorin"),
     ];
 
     for (keywords, logo_name) in KEYWORD_LOGOS {
@@ -856,6 +1114,9 @@ pub fn match_logo(
         ("arch", "arch"),
         ("fedora", "fedora"),
         ("rhel", "rhel"),
+        ("centos", "centos"),
+        ("rocky", "rocky"),
+        ("alma", "almalinux"),
         ("suse", "opensuse"),
     ];
 
@@ -957,5 +1218,87 @@ pub mod tests {
         let logo = match_logo(None, "linux", &[]).unwrap();
         assert_eq!(logo.name, "generic");
         assert_ne!(logo.name, "linuxmint");
+    }
+
+    #[test]
+    fn test_arch_family_logos_and_fallbacks() {
+        assert_eq!(match_logo(None, "cachyos", &[]).unwrap().name, "cachyos");
+        assert_eq!(match_logo(None, "cachy", &[]).unwrap().name, "cachyos");
+        assert_eq!(
+            match_logo(None, "endeavouros", &[]).unwrap().name,
+            "endeavouros"
+        );
+        assert_eq!(match_logo(None, "omarchy", &[]).unwrap().name, "omarchy");
+        assert_eq!(match_logo(None, "manjaro", &[]).unwrap().name, "manjaro");
+        assert_eq!(match_logo(None, "garuda", &[]).unwrap().name, "garuda");
+        assert_eq!(
+            match_logo(None, "blackarch", &[]).unwrap().name,
+            "blackarch"
+        );
+        // Unknown Arch derivative with ID_LIKE="arch"
+        assert_eq!(
+            match_logo(None, "hyperbola", &["arch".to_string()])
+                .unwrap()
+                .name,
+            "arch"
+        );
+    }
+
+    #[test]
+    fn test_debian_family_logos_and_fallbacks() {
+        assert_eq!(match_logo(None, "ubuntu", &[]).unwrap().name, "ubuntu");
+        assert_eq!(
+            match_logo(None, "linuxmint", &[]).unwrap().name,
+            "linuxmint"
+        );
+        assert_eq!(match_logo(None, "debian", &[]).unwrap().name, "debian");
+        assert_eq!(match_logo(None, "kali", &[]).unwrap().name, "kali");
+        assert_eq!(match_logo(None, "pop", &[]).unwrap().name, "pop");
+        assert_eq!(match_logo(None, "parrot", &[]).unwrap().name, "parrot");
+        assert_eq!(match_logo(None, "kubuntu", &[]).unwrap().name, "kubuntu");
+        assert_eq!(match_logo(None, "zorin", &[]).unwrap().name, "zorin");
+        // Unknown Debian derivative with ID_LIKE="debian"
+        assert_eq!(
+            match_logo(None, "pureos", &["debian".to_string()])
+                .unwrap()
+                .name,
+            "debian"
+        );
+    }
+
+    #[test]
+    fn test_redhat_family_logos_and_fallbacks() {
+        assert_eq!(match_logo(None, "fedora", &[]).unwrap().name, "fedora");
+        assert_eq!(match_logo(None, "rhel", &[]).unwrap().name, "rhel");
+        assert_eq!(match_logo(None, "rocky", &[]).unwrap().name, "rocky");
+        assert_eq!(match_logo(None, "centos", &[]).unwrap().name, "centos");
+        assert_eq!(match_logo(None, "opensuse", &[]).unwrap().name, "opensuse");
+        assert_eq!(match_logo(None, "nobara", &[]).unwrap().name, "nobara");
+        assert_eq!(match_logo(None, "bazzite", &[]).unwrap().name, "bazzite");
+        // Unknown RHEL derivative with ID_LIKE="rhel"
+        assert_eq!(
+            match_logo(None, "oracle", &["rhel".to_string()])
+                .unwrap()
+                .name,
+            "rhel"
+        );
+    }
+
+    #[test]
+    fn test_niche_family_logos_and_fallbacks() {
+        assert_eq!(match_logo(None, "nixos", &[]).unwrap().name, "nixos");
+        assert_eq!(match_logo(None, "void", &[]).unwrap().name, "void");
+        assert_eq!(match_logo(None, "gentoo", &[]).unwrap().name, "gentoo");
+        assert_eq!(match_logo(None, "alpine", &[]).unwrap().name, "alpine");
+        assert_eq!(match_logo(None, "lfs", &[]).unwrap().name, "generic");
+        assert_eq!(
+            match_logo(None, "linuxfromscratch", &[]).unwrap().name,
+            "generic"
+        );
+        // Completely unknown niche distro without ID_LIKE falls back to generic Tux penguin
+        assert_eq!(
+            match_logo(None, "obscuredistro", &[]).unwrap().name,
+            "generic"
+        );
     }
 }

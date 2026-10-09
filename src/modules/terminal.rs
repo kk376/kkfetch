@@ -502,6 +502,34 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
 
 #[cfg(not(windows))]
 fn find_multiplexer_outer_terminal() -> Option<String> {
+    let cache_dir = std::env::var("XDG_RUNTIME_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::PathBuf::from("/tmp"));
+    let cache_file = cache_dir.join("kkfetch").join("tmux_outer.cache");
+
+    if let Ok(metadata) = fs::metadata(&cache_file) {
+        if let Ok(modified) = metadata.modified() {
+            if let Ok(age) = modified.elapsed() {
+                if age.as_secs() < 60 {
+                    if let Ok(cached) = fs::read_to_string(&cache_file) {
+                        let trimmed = cached.trim();
+                        if !trimmed.is_empty() {
+                            return Some(trimmed.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let outer = find_multiplexer_outer_terminal_scan()?;
+    let _ = fs::create_dir_all(cache_dir.join("kkfetch"));
+    let _ = fs::write(&cache_file, &outer);
+    Some(outer)
+}
+
+#[cfg(not(windows))]
+fn find_multiplexer_outer_terminal_scan() -> Option<String> {
     let entries = fs::read_dir("/proc").ok()?;
     for entry in entries.flatten() {
         let file_name = entry.file_name();
@@ -578,9 +606,20 @@ fn find_multiplexer_outer_terminal() -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
+static DETECTED_TERMINAL: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
 /// Inspects environment variables and process ancestry to detect terminal emulator.
 #[cfg(not(windows))]
 pub fn detect_terminal() -> Option<String> {
+    DETECTED_TERMINAL
+        .get_or_init(detect_terminal_uncached)
+        .clone()
+}
+
+/// Core terminal detection logic without process-level memoization.
+#[cfg(not(windows))]
+pub fn detect_terminal_uncached() -> Option<String> {
     let term_prog = std::env::var("TERM_PROGRAM").ok();
     let term_prog_ver = std::env::var("TERM_PROGRAM_VERSION").ok();
     let term_val = std::env::var("TERM").ok();
