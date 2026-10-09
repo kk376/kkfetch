@@ -765,30 +765,30 @@ pub fn parse_sway_outputs(json: &str) -> Vec<DisplayInfo> {
 
 /// Probes all active display monitors across Hyprland, Sway, DRM sysfs, or fallback display servers.
 pub fn detect_displays() -> Vec<DisplayInfo> {
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
-        .unwrap_or_default()
-        .to_lowercase();
-    let is_hyprland =
-        desktop.contains("hyprland") || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
-
-    // 1. Hyprland direct Unix socket IPC (<0.1ms)
+    // 1. Hyprland and Sway direct Unix socket IPC (<0.1ms)
     #[cfg(not(windows))]
-    if is_hyprland {
-        if let Some(json) = get_hyprland_monitors_json() {
-            let displays = parse_hyprland_monitors(json);
-            if !displays.is_empty() {
-                return displays;
+    {
+        let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+            .unwrap_or_default()
+            .to_lowercase();
+        let is_hyprland = desktop.contains("hyprland")
+            || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+
+        if is_hyprland {
+            if let Some(json) = get_hyprland_monitors_json() {
+                let displays = parse_hyprland_monitors(json);
+                if !displays.is_empty() {
+                    return displays;
+                }
             }
         }
-    }
 
-    // 2. Sway direct Unix socket IPC
-    #[cfg(not(windows))]
-    if std::env::var_os("SWAYSOCK").is_some() {
-        if let Some(json) = get_sway_outputs_json() {
-            let displays = parse_sway_outputs(json);
-            if !displays.is_empty() {
-                return displays;
+        if std::env::var_os("SWAYSOCK").is_some() {
+            if let Some(json) = get_sway_outputs_json() {
+                let displays = parse_sway_outputs(json);
+                if !displays.is_empty() {
+                    return displays;
+                }
             }
         }
     }
