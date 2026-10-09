@@ -52,29 +52,7 @@ pub fn detect_terminal_from_env(
     env_vars: &[(&str, &str)],
     term: Option<&str>,
 ) -> Option<String> {
-    // 1. Check $TERM_PROGRAM
-    if let Some(prog) = term_program {
-        let clean_prog = prog.trim();
-        if clean_prog.eq_ignore_ascii_case("vscode") || clean_prog == "Code" {
-            if let Some(ver) = term_program_version {
-                let clean_ver = ver.trim();
-                if !clean_ver.is_empty() {
-                    return Some(format!("Visual Studio Code {}", clean_ver));
-                }
-            }
-            return Some("Visual Studio Code".to_string());
-        } else if !clean_prog.is_empty() {
-            if let Some(ver) = term_program_version {
-                let clean_ver = ver.trim();
-                if !clean_ver.is_empty() {
-                    return Some(format!("{} {}", clean_prog, clean_ver));
-                }
-            }
-            return Some(clean_prog.to_string());
-        }
-    }
-
-    // 2. Check dedicated terminal environment signatures
+    // 1. Check dedicated terminal environment signatures first
     let has_env = |var_name: &str| env_vars.iter().any(|&(k, _)| k == var_name);
     let get_env_val = |var_name: &str| {
         env_vars
@@ -182,12 +160,36 @@ pub fn detect_terminal_from_env(
         return Some("Warp".to_string());
     }
 
-    if has_env("ZELLIJ") || has_env("ZELLIJ_SESSION_NAME") {
-        return Some("Zellij".to_string());
-    }
-
     if has_env("FOOT_PID") {
         return Some("foot".to_string());
+    }
+
+    // 2. Check $TERM_PROGRAM for non-multiplexers
+    if let Some(prog) = term_program {
+        let clean_prog = prog.trim();
+        let is_multiplexer = clean_prog.eq_ignore_ascii_case("tmux")
+            || clean_prog.eq_ignore_ascii_case("screen")
+            || clean_prog.eq_ignore_ascii_case("zellij");
+
+        if !is_multiplexer {
+            if clean_prog.eq_ignore_ascii_case("vscode") || clean_prog == "Code" {
+                if let Some(ver) = term_program_version {
+                    let clean_ver = ver.trim();
+                    if !clean_ver.is_empty() {
+                        return Some(format!("Visual Studio Code {}", clean_ver));
+                    }
+                }
+                return Some("Visual Studio Code".to_string());
+            } else if !clean_prog.is_empty() {
+                if let Some(ver) = term_program_version {
+                    let clean_ver = ver.trim();
+                    if !clean_ver.is_empty() {
+                        return Some(format!("{} {}", clean_prog, clean_ver));
+                    }
+                }
+                return Some(clean_prog.to_string());
+            }
+        }
     }
 
     // 3. Fallback to $TERM
@@ -498,6 +500,84 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
     None
 }
 
+#[cfg(not(windows))]
+fn find_multiplexer_outer_terminal() -> Option<String> {
+    let entries = fs::read_dir("/proc").ok()?;
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let name_bytes = file_name.as_encoded_bytes();
+        if name_bytes.is_empty() || !name_bytes.iter().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        let pid_str = match file_name.to_str() {
+            Some(s) => s,
+            None => continue,
+        };
+        let comm_path = format!("/proc/{}/comm", pid_str);
+        let comm = match fs::read_to_string(&comm_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let comm_trimmed = comm.trim().to_lowercase();
+        if !comm_trimmed.starts_with("tmux")
+            && !comm_trimmed.starts_with("screen")
+            && !comm_trimmed.starts_with("zellij")
+        {
+            continue;
+        }
+
+        let status_path = format!("/proc/{}/status", pid_str);
+        let ppid = match fs::read_to_string(&status_path) {
+            Ok(status) => status.lines().find_map(|l| {
+                l.strip_prefix("PPid:")
+                    .and_then(|p| p.trim().parse::<u32>().ok())
+            }),
+            Err(_) => continue,
+        };
+
+        let mut curr_ppid = match ppid {
+            Some(p) if p > 1 => p,
+            _ => continue,
+        };
+
+        for _ in 0..5 {
+            if curr_ppid <= 1 {
+                break;
+            }
+            let parent_comm = fs::read_to_string(format!("/proc/{}/comm", curr_ppid))
+                .unwrap_or_default()
+                .trim()
+                .to_lowercase();
+
+            if !parent_comm.is_empty()
+                && !parent_comm.starts_with("tmux")
+                && !parent_comm.starts_with("screen")
+                && !parent_comm.starts_with("zellij")
+            {
+                if let Some(display_name) = match_terminal_proc(&parent_comm) {
+                    let ver = probe_terminal_cli_version(display_name);
+                    return Some(append_version_if_missing(display_name, ver.as_deref()));
+                }
+            }
+
+            let next_ppid = fs::read_to_string(format!("/proc/{}/status", curr_ppid))
+                .ok()
+                .and_then(|s| {
+                    s.lines().find_map(|l| {
+                        l.strip_prefix("PPid:")
+                            .and_then(|p| p.trim().parse::<u32>().ok())
+                    })
+                });
+
+            match next_ppid {
+                Some(p) if p > 1 => curr_ppid = p,
+                _ => break,
+            }
+        }
+    }
+    None
+}
+
 /// Inspects environment variables and process ancestry to detect terminal emulator.
 #[cfg(not(windows))]
 pub fn detect_terminal() -> Option<String> {
@@ -548,6 +628,7 @@ pub fn detect_terminal() -> Option<String> {
     // 2. Process ancestry traversal: walk up to 8 levels of PPID to jump over subshells, tmux/screen, and sudo wrappers
     // SAFETY: getpid() is a standard POSIX syscall that returns the current process ID without memory safety implications.
     let mut current_pid = unsafe { libc::getpid() as u32 };
+    let mut seen_multiplexer = false;
     for _ in 0..8 {
         let status_path = format!("/proc/{}/status", current_pid);
         let ppid = if let Ok(status) = fs::read_to_string(status_path) {
@@ -569,6 +650,18 @@ pub fn detect_terminal() -> Option<String> {
                 .trim()
                 .to_lowercase();
 
+            let is_multiplexer = comm == "tmux"
+                || comm.starts_with("tmux:")
+                || comm == "screen"
+                || comm.starts_with("screen-")
+                || comm == "zellij";
+
+            if is_multiplexer {
+                seen_multiplexer = true;
+                current_pid = ppid;
+                continue;
+            }
+
             if let Some(display_name) = match_terminal_proc(&comm) {
                 let ver = probe_terminal_cli_version(display_name);
                 return Some(append_version_if_missing(display_name, ver.as_deref()));
@@ -580,7 +673,39 @@ pub fn detect_terminal() -> Option<String> {
         }
     }
 
-    // 3. Fallback to generic $TERM string if specific GUI terminal binary was not found
+    // 3. If running inside a multiplexer, search /proc for outer GUI terminal emulator
+    if seen_multiplexer
+        || std::env::var_os("TMUX").is_some()
+        || std::env::var_os("STY").is_some()
+        || std::env::var_os("ZELLIJ").is_some()
+        || std::env::var_os("ZELLIJ_SESSION_NAME").is_some()
+        || term_prog.as_deref().is_some_and(|p| {
+            let s = p.trim();
+            s.eq_ignore_ascii_case("tmux")
+                || s.eq_ignore_ascii_case("screen")
+                || s.eq_ignore_ascii_case("zellij")
+        })
+    {
+        if let Some(outer) = find_multiplexer_outer_terminal() {
+            return Some(outer);
+        }
+    }
+
+    // 4. Fallback to multiplexer name from $TERM_PROGRAM if outer terminal was not found
+    if let Some(prog) = term_prog {
+        let clean = prog.trim();
+        if !clean.is_empty() {
+            if let Some(ver) = term_prog_ver {
+                let clean_ver = ver.trim();
+                if !clean_ver.is_empty() {
+                    return Some(format!("{} {}", clean, clean_ver));
+                }
+            }
+            return Some(clean.to_string());
+        }
+    }
+
+    // 5. Fallback to generic $TERM string if specific GUI terminal binary was not found
     if let Some(term) = term_val {
         let clean = term.trim();
         if !clean.is_empty() && clean != "unknown" && clean != "dumb" {
@@ -670,9 +795,9 @@ fn probe_ghostty_font(home_path: &std::path::Path) -> Option<String> {
 #[cfg(not(windows))]
 fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
     let kitty_conf = home_path.join(".config/kitty/kitty.conf");
+    let mut family = None;
+    let mut size = None;
     if let Ok(content) = fs::read_to_string(kitty_conf) {
-        let mut family = None;
-        let mut size = None;
         for line in content.lines() {
             let trimmed = line.trim();
             if trimmed.starts_with('#') {
@@ -690,49 +815,57 @@ fn probe_kitty_font(home_path: &std::path::Path) -> Option<String> {
                 }
             }
         }
-        if let Some(f) = family {
-            if let Some(s) = size {
-                return Some(format!("{} ({}pt)", f, format_size_num(&s)));
-            }
-            return Some(f);
-        }
     }
-    None
+
+    let fam = family.unwrap_or_else(|| "monospace".to_string());
+    let sz = size
+        .map(|s| format_size_num(&s))
+        .unwrap_or_else(|| "11".to_string());
+
+    Some(format!("{} ({}pt)", fam, sz))
 }
 
 #[cfg(not(windows))]
 fn probe_alacritty_font(home_path: &std::path::Path) -> Option<String> {
+    let mut family = None;
+    let mut size = None;
+
     for path in &[
         home_path.join(".config/alacritty/alacritty.toml"),
         home_path.join(".alacritty.toml"),
+        home_path.join(".config/alacritty/alacritty.yml"),
+        home_path.join(".alacritty.yml"),
     ] {
         if let Ok(content) = fs::read_to_string(path) {
-            let mut family = None;
-            let mut size = None;
             for line in content.lines() {
                 let trimmed = line.trim();
                 if trimmed.starts_with('#') {
                     continue;
                 }
-                if let Some((k, v)) = trimmed.split_once('=') {
+                let split = trimmed.split_once('=').or_else(|| trimmed.split_once(':'));
+                if let Some((k, v)) = split {
                     let k = k.trim();
-                    let v = v.trim().trim_matches('"').trim_matches('\'');
-                    if k == "family" && family.is_none() {
+                    let v = v.trim().trim_matches('"').trim_matches('\'').trim();
+                    if (k == "family" || k == "normal.family") && family.is_none() && !v.is_empty()
+                    {
                         family = Some(v.to_string());
-                    } else if k == "size" && size.is_none() {
+                    } else if (k == "size" || k == "font.size") && size.is_none() && !v.is_empty() {
                         size = Some(v.to_string());
                     }
                 }
             }
-            if let Some(f) = family {
-                if let Some(s) = size {
-                    return Some(format!("{} ({}pt)", f, format_size_num(&s)));
-                }
-                return Some(f);
+            if family.is_some() || size.is_some() {
+                break;
             }
         }
     }
-    None
+
+    let fam = family.unwrap_or_else(|| "monospace".to_string());
+    let sz = size
+        .map(|s| format_size_num(&s))
+        .unwrap_or_else(|| "11.25".to_string());
+
+    Some(format!("{} ({}pt)", fam, sz))
 }
 
 /// Parses Fontconfig pattern syntax (e.g. 'Fira Code:size=12, Symbols Nerd Font Mono:size=12' or 'DejaVu-10').
@@ -940,7 +1073,7 @@ fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
             return Some(normalized);
         }
     }
-    None
+    Some("monospace (8pt)".to_string())
 }
 
 #[cfg(not(windows))]
@@ -1138,7 +1271,19 @@ fn probe_konsole_font(home_path: &std::path::Path) -> Option<String> {
             }
         }
     }
-    None
+    let kdeglobals = home_path.join(".config/kdeglobals");
+    if let Ok(content) = fs::read_to_string(kdeglobals) {
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("fixed=") {
+                let normalized = normalize_font_string(rest.trim());
+                if !normalized.is_empty() {
+                    return Some(normalized);
+                }
+            }
+        }
+    }
+    Some("monospace (10pt)".to_string())
 }
 
 #[cfg(not(windows))]
@@ -1225,7 +1370,13 @@ pub fn detect_terminal_font() -> Option<String> {
         return probe_gnome_console_font(home_path);
     }
 
-    // Fallback waterfall ONLY when active terminal is unknown, generic ($TERM), or multiplexer
+    // Shield pure multiplexers: if session is running inside tmux/screen/zellij and no outer GUI terminal
+    // was identified, NEVER fall through to leak Ghostty or other local GUI terminal fonts!
+    if active.starts_with("tmux") || active.starts_with("screen") || active.starts_with("zellij") {
+        return None;
+    }
+
+    // Fallback waterfall ONLY when active terminal is unknown or generic ($TERM)
     probe_ghostty_font(home_path)
         .or_else(|| probe_foot_font(home_path))
         .or_else(|| probe_kitty_font(home_path))
@@ -1528,5 +1679,44 @@ font-size = 13
             "Fira Code, Symbols Nerd Font Mono (13pt)"
         );
         assert_eq!(normalize_font_string("Monospace"), "Monospace");
+    }
+
+    #[test]
+    fn test_detect_terminal_from_env_multiplexer_deferred() {
+        let res_tmux = detect_terminal_from_env(Some("tmux"), Some("3.7c"), &[], None);
+        assert_eq!(res_tmux, None);
+
+        let res_screen = detect_terminal_from_env(Some("screen"), Some("4.09.00"), &[], None);
+        assert_eq!(res_screen, None);
+
+        let res_zellij = detect_terminal_from_env(Some("zellij"), Some("0.40.1"), &[], None);
+        assert_eq!(res_zellij, None);
+    }
+
+    #[test]
+    fn test_detect_terminal_from_env_multiplexer_with_outer_signatures() {
+        let kitty_env = [("KITTY_PID", "1234")];
+        assert_eq!(
+            detect_terminal_from_env(Some("tmux"), Some("3.7c"), &kitty_env, None),
+            Some("kitty".to_string())
+        );
+
+        let foot_env = [("FOOT_PID", "5678")];
+        assert_eq!(
+            detect_terminal_from_env(Some("tmux"), Some("3.7c"), &foot_env, None),
+            Some("foot".to_string())
+        );
+
+        let alacritty_env = [("ALACRITTY_SOCKET", "/tmp/alacritty.sock")];
+        assert_eq!(
+            detect_terminal_from_env(Some("tmux"), Some("3.7c"), &alacritty_env, None),
+            Some("Alacritty".to_string())
+        );
+
+        let ghostty_env = [("GHOSTTY_RESOURCES_DIR", "/usr/share/ghostty")];
+        assert_eq!(
+            detect_terminal_from_env(Some("tmux"), Some("3.7c"), &ghostty_env, None),
+            Some("Ghostty".to_string())
+        );
     }
 }
