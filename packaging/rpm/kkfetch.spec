@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.22.0
+Version:        0.23.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Sun Oct 25 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.23.0-1
+- Release version 0.23.0: Vylen Linux and Emerald package manager support, updated documentation, and packaging sync
+
 * Mon Oct 19 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.22.0-1
 - Release version 0.22.0: Zero-wake hybrid GPU architecture, runtime PM D3cold protection, WSL2 isolation, and PCI display guard
 

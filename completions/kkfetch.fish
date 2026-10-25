@@ -68,6 +68,9 @@ set -l logos \
     'slackware\tSlackware Linux logo' \
     'artix\tArtix Linux logo' \
     'zorin\tZorin OS logo' \
+    'nobara\tNobara Linux logo' \
+    'bazzite\tBazzite logo' \
+    'vylen\tVylen Linux logo' \
     'generic\tGeneric Linux Tux logo' \
     'tux\tTux penguin (alias)' \
     'linux\tGeneric Linux (alias)' \

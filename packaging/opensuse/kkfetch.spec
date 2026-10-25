@@ -1,5 +1,5 @@
 Name:           kkfetch
-Version:        0.22.0
+Version:        0.23.0
 Release:        0
 Summary:        Fast, lightweight system information fetch tool written in Rust
 License:        MIT OR Apache-2.0
@@ -72,6 +72,9 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %changelog
+* Sun Oct 25 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.23.0-0
+- Release version 0.23.0 for openSUSE with offline vendored sources
+
 * Mon Oct 19 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.22.0-0
 - Release version 0.22.0 for openSUSE with offline vendored sources
 

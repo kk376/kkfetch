@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-10-25
+
+### Added
+- **Vylen Linux & Emerald Package Manager**: Added dedicated dual-tone ASCII art logo for Vylen Linux (`vylen`), along with native detection and counting for the Emerald (`/var/lib/emerald/db`) package manager.
+- **Shell Completions**: Added tab-completion entries for Vylen Linux (`vylen`), Nobara (`nobara`), and Bazzite (`bazzite`) across Bash, Zsh, and Fish shell completions.
+
+### Documentation & Packaging
+- Linked official Vylen Linux package repository in installation guide.
+- Synchronized version 0.23.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.22.0] - 2026-10-19
 
 ### Added

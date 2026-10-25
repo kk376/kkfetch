@@ -15,7 +15,7 @@ _kkfetch() {
 
     local opts="-m -d -l -h -V --modules --disable --no-color --logo --no-logo --list-modules --disk-path --all-disks --json --timings --no-plugins --doctor --help --version"
     local modules="title os host kernel installed uptime packages pkgs shell display desktop de wm terminal term cpu gpu memory mem swap disk battery localip theme icons colors palette"
-    local logos="ferris rust debian ubuntu linuxmint mint fedora arch archlinux rhel redhat centos rocky rockylinux almalinux alma endeavouros endeavour manjaro generic tux linux opensuse suse alpine gentoo void pop popos nixos kali freebsd slackware artix zorin none"
+    local logos="ferris rust debian ubuntu linuxmint mint fedora arch archlinux rhel redhat centos rocky rockylinux almalinux alma endeavouros endeavour manjaro generic tux linux opensuse suse alpine gentoo void pop popos nixos kali freebsd slackware artix zorin nobara bazzite vylen none"
 
     case "${prev}" in
         -m|--modules|-d|--disable)
