@@ -87,7 +87,7 @@ hyperfine --warmup 20 --runs 100 -N 'kkfetch -d battery' 'fastfetch'
 
 ## Supported Operating Systems & Logos
 
-KKFetch includes high-contrast ASCII art logos with distro brand signature colors for **30 operating systems, platforms, and mascots**:
+KKFetch includes high-contrast ASCII art logos with distro brand signature colors for **31 operating systems, platforms, and mascots**:
 
 | Family / Ecosystem | Supported Distributions & Targets |
 | :--- | :--- |
@@ -99,7 +99,7 @@ KKFetch includes high-contrast ASCII art logos with distro brand signature color
 | **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
 | **macOS** | macOS (Apple Silicon aarch64 & Intel x86_64) (1) |
 | **Android / Mobile** | Android (via Termux aarch64 & x86_64) (1) |
-| **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Slackware (4) |
+| **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Vylen Linux, Slackware (5) |
 | **BSD Family & Mascots** | FreeBSD, OpenBSD, NetBSD, Ferris the Rust Crab (`ferris`), Linux Penguin (`tux`) (5) |
 
 ---
@@ -191,6 +191,12 @@ sudo pacman -U kkfetch-0.22.0-1-x86_64.pkg.tar.zst
 ```
 
 ---
+
+### Vylen Linux
+
+```bash
+emerald install kkfetch
+```
 
 ### macOS
 

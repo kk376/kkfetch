@@ -830,6 +830,32 @@ pub fn count_pip() -> Option<usize> {
     None
 }
 
+pub fn count_emerald_from_dir(emerald_dir: &Path) -> Option<usize> {
+    if let Ok(entries) = fs::read_dir(emerald_dir) {
+        let count = entries
+            .flatten()
+            .filter(|e| {
+                if let Ok(ft) = e.file_type() {
+                    if ft.is_file() || ft.is_dir() {
+                        let name = e.file_name();
+                        let s = name.to_string_lossy();
+                        return !s.starts_with('.');
+                    }
+                }
+                false
+            })
+            .count();
+        if count > 0 {
+            return Some(count);
+        }
+    }
+    None
+}
+
+pub fn count_emerald() -> Option<usize> {
+    count_emerald_from_dir(Path::new("/var/lib/emerald/db"))
+}
+
 /// Gathers and formats package counts across all active package managers on Windows.
 #[cfg(windows)]
 pub fn get_packages_summary() -> Option<String> {
@@ -886,6 +912,9 @@ pub fn get_packages_summary() -> Option<String> {
     }
     if let Some(emerge) = count_emerge() {
         parts.push(format!("{} (emerge)", emerge));
+    }
+    if let Some(emerald) = count_emerald() {
+        parts.push(format!("{} (emerald)", emerald));
     }
     if let Some(flatpak) = count_flatpak() {
         parts.push(format!("{} (flatpak)", flatpak));
@@ -1078,6 +1107,19 @@ Section: libs
             }
         }
         assert_eq!(total, 3);
+    }
+
+    #[test]
+    fn test_count_emerald_from_dir_mock() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path();
+
+        assert_eq!(count_emerald_from_dir(path), None);
+
+        fs::write(path.join("bash"), "").unwrap();
+        fs::write(path.join(".emerald_lock"), "").unwrap();
+
+        assert_eq!(count_emerald_from_dir(path), Some(1));
     }
 
     #[test]
