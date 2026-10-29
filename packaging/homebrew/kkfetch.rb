@@ -2,10 +2,10 @@ class Kkfetch < Formula
   desc "Fast, lightweight Linux, Windows, macOS, and Android system information fetch tool written in Rust"
   homepage "https://github.com/kk376/kkfetch"
   license any_of: ["MIT", "Apache-2.0"]
-  version "0.23.0"
+  version "0.24.0"
 
   on_macos do
-    url "https://github.com/kk376/kkfetch/archive/refs/tags/v0.23.0.tar.gz"
+    url "https://github.com/kk376/kkfetch/archive/refs/tags/v0.24.0.tar.gz"
     sha256 "c88bd5e55a189984f265ccf909a29da8a0ec53f1115ae12100d4509fa58e7426"
     depends_on "rust" => :build
 
@@ -19,7 +19,7 @@ class Kkfetch < Formula
   end
 
   on_linux do
-    url "https://github.com/kk376/kkfetch/releases/download/v0.23.0/kkfetch-0.23.0-x86_64-unknown-linux-gnu.tar.gz"
+    url "https://github.com/kk376/kkfetch/releases/download/v0.24.0/kkfetch-0.24.0-x86_64-unknown-linux-gnu.tar.gz"
     sha256 "386382982820239079f6036b1efd3854460a3ec5b832d50f7322e413d5ff2078"
 
     def install
@@ -32,6 +32,6 @@ class Kkfetch < Formula
   end
 
   test do
-    assert_match "kkfetch 0.23.0", shell_output("#{bin}/kkfetch --version")
+    assert_match "kkfetch 0.24.0", shell_output("#{bin}/kkfetch --version")
   end
 end

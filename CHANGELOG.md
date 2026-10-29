@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-10-30
+
+### Added
+- **Authentic 1977 Rainbow Apple Logo**: Upgraded macOS ASCII art to the classic 17-line 6-color rainbow Apple silhouette with calibrated 1977 vintage palette tones (green, yellow, orange, red, purple, blue).
+- **Multi-Color Stripe Palette Tokens**: Added numbered token parser `{1}`..`{6}` in the logo rendering pipeline for vintage multi-striped distribution art with clean ANSI color stripping in monochrome mode.
+
+### Packaging
+- Synchronized version 0.24.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.23.0] - 2026-10-25
 
 ### Added

@@ -1,3 +1,9 @@
+kkfetch (0.24.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.24.0: Authentic 1977 rainbow Apple logo, multi-color palette tokens, and packaging sync.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 30 Oct 2026 01:45:00 +0530
+
 kkfetch (0.23.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.23.0: Vylen Linux and Emerald package manager support, shell completions, and packaging sync.

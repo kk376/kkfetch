@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.23.0
+Version:        0.24.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Fri Oct 30 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.24.0-1
+- Release version 0.24.0: Authentic 1977 rainbow Apple logo, multi-color palette tokens, and packaging sync
+
 * Sun Oct 25 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.23.0-1
 - Release version 0.23.0: Vylen Linux and Emerald package manager support, updated documentation, and packaging sync
 

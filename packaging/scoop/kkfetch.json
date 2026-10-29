@@ -1,11 +1,11 @@
 {
-    "version": "0.23.0",
+    "version": "0.24.0",
     "description": "Fast, lightweight Linux and Windows system information fetch tool written in Rust",
     "homepage": "https://github.com/kk376/kkfetch",
     "license": "MIT|Apache-2.0",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/kk376/kkfetch/releases/download/v0.23.0/kkfetch-windows-x86_64.zip",
+            "url": "https://github.com/kk376/kkfetch/releases/download/v0.24.0/kkfetch-windows-x86_64.zip",
             "hash": "f29cbb973922553d567feaf13588ab89a354b2a1f6b1f7b09125b8dba9103e87"
         }
     },
