@@ -9,6 +9,16 @@ use crate::output::color::RESET;
 
 pub const WHITE_COLOR: &str = "\x1b[38;5;231m";
 
+/// Standard 6-color palette tokens for vintage multi-color distribution art (e.g., 1977 Apple rainbow).
+pub const RAINBOW_PALETTE: [(&str, &str); 6] = [
+    ("{1}", "\x1b[38;5;76m"),  // Vintage Green
+    ("{2}", "\x1b[38;5;220m"), // Vintage Yellow
+    ("{3}", "\x1b[38;5;208m"), // Vintage Orange
+    ("{4}", "\x1b[38;5;196m"), // Vintage Red
+    ("{5}", "\x1b[38;5;129m"), // Vintage Purple
+    ("{6}", "\x1b[38;5;39m"),  // Vintage Blue
+];
+
 #[derive(Debug, Clone)]
 pub struct Logo {
     pub name: &'static str,
@@ -21,6 +31,8 @@ impl Logo {
     /// Returns the logo lines formatted with ANSI colors if enabled.
     /// The outer layer is styled with `outer_color` (white), and the
     /// highlighted inner emblem is styled with `distro_color`.
+    /// Numbered palette tokens `{1}`..`{6}` provide multi-color stripe
+    /// support for vintage logos such as the 1977 Apple rainbow.
     pub fn render_lines(&self, enable_color: bool) -> Vec<String> {
         self.raw_lines
             .iter()
@@ -30,16 +42,31 @@ impl Logo {
                         .replace("{c}", self.distro_color)
                         .replace("{w}", self.outer_color)
                         .replace("{0}", RESET);
-                    if !line.contains("{c}") && !line.contains("{w}") && !line.is_empty() {
+                    for &(token, color) in &RAINBOW_PALETTE {
+                        rendered = rendered.replace(token, color);
+                    }
+
+                    let has_color = line.contains("{c}")
+                        || line.contains("{w}")
+                        || RAINBOW_PALETTE
+                            .iter()
+                            .any(|(token, _)| line.contains(token));
+
+                    if !has_color && !line.is_empty() {
                         rendered = format!("{}{}{}", self.distro_color, line, RESET);
                     } else if !line.is_empty() {
                         rendered.push_str(RESET);
                     }
                     rendered
                 } else {
-                    line.replace("{c}", "")
+                    let mut stripped = line
+                        .replace("{c}", "")
                         .replace("{w}", "")
-                        .replace("{0}", "")
+                        .replace("{0}", "");
+                    for &(token, _) in &RAINBOW_PALETTE {
+                        stripped = stripped.replace(token, "");
+                    }
+                    stripped
                 }
             })
             .collect()
@@ -708,20 +735,23 @@ pub const ALL_LOGOS: &[Logo] = &[
     Logo {
         name: "macos",
         raw_lines: &[
-            "{w}                    'c.",
-            "{w}                 ,xNMM.",
-            "{w}               .OMMMMo",
-            "{w}               lMM\"",
-            "{w}     .;loddo:.  .oa.       .looo:.",
-            "{w}   {c}cKMMMMMMMMMMNWMMMM4eecl{w}dMMMMMMMMMx",
-            "{w} {c}.KMMMMMMMMMMMMMMMMMMMMMMMWd{w}.kMMMMMMMMK",
-            "{w}{c}wMMMMMMMMMMMMMMMMMMMMMMMMMM{w}mo  Local",
-            "{w}{c}lMMMMMMMMMMMMMMMMMMMMMMMMMM{w}Mo",
-            "{w}{c} kMMMMMMMMMMMMMMMMMMMMMMMM{w}K'",
-            "{w}  {c}kMMMMMMMMMMMMMMMMMMMMMMd",
-            "{w}   {c}'xMMMMMMMMMMMMMMMMMMd.",
-            "{w}     {c}'xNMMMMMMMMMMMMMNk'",
-            "{w}        {c}';okkxOkkko;'.",
+            "{1}                    c.'",
+            "{1}                 ,xNMM.",
+            "{1}               .OMMMMo",
+            "{1}               lMM\"",
+            "{1}     .;loddo:.  .olloddol;.",
+            "{2}   cKMMMMMMMMMMNWMMMMMMMMMM0:",
+            "{2} .KMMMMMMMMMMMMMMMMMMMMMMMWd.",
+            "{3} XMMMMMMMMMMMMMMMMMMMMMMMX.",
+            "{3};MMMMMMMMMMMMMMMMMMMMMMMM:",
+            "{4}:MMMMMMMMMMMMMMMMMMMMMMMM:",
+            "{4}.MMMMMMMMMMMMMMMMMMMMMMMMX.",
+            "{5} kMMMMMMMMMMMMMMMMMMMMMMMMWd.",
+            "{5} 'XMMMMMMMMMMMMMMMMMMMMMMMMMMk",
+            "{5}  'XMMMMMMMMMMMMMMMMMMMMMMMMK.",
+            "{6}    kMMMMMMMMMMMMMMMMMMMMMMd",
+            "{6}     ;KMMMMMMMWXXWMMMMMMMk.",
+            "{6}       \"cooc*\"    \"*coo'\"",
         ],
         distro_color: "\x1b[38;5;250m",
         outer_color: WHITE_COLOR,
@@ -1229,6 +1259,21 @@ pub mod tests {
     fn test_match_logo_macos_and_bsd() {
         let logo_mac = match_logo(None, "macos", &[]).unwrap();
         assert_eq!(logo_mac.name, "macos");
+        assert_eq!(logo_mac.raw_lines.len(), 17);
+
+        // Test colored rendering contains rainbow escape sequences
+        let colored = logo_mac.render_lines(true);
+        assert_eq!(colored.len(), 17);
+        assert!(colored[0].contains("\x1b[38;5;76m")); // Green top
+        assert!(colored[16].contains("\x1b[38;5;39m")); // Blue bottom
+
+        // Test monochrome rendering cleanly strips all tokens and ANSI escapes
+        let plain = logo_mac.render_lines(false);
+        assert_eq!(plain.len(), 17);
+        assert!(!plain.iter().any(|l| l.contains("\x1b")));
+        assert!(!plain.iter().any(|l| l.contains("{1}") || l.contains("{6}")));
+        assert!(plain[0].contains("c.'"));
+
         let logo_darwin = match_logo(None, "darwin", &[]).unwrap();
         assert_eq!(logo_darwin.name, "macos");
 
