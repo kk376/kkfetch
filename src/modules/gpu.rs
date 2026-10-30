@@ -520,8 +520,8 @@ pub fn detect_gpus_from_sysfs_dir(pci_dir: &Path) -> Vec<String> {
                     // 1. For AMD GPUs (vendor 0x1002), consult amdgpu.ids with revision disambiguation first
                     let mut pci_name = None;
                     if vendor_clean == "1002" {
-                        let revision_str = fs::read_to_string(path.join("revision"))
-                            .unwrap_or_default();
+                        let revision_str =
+                            fs::read_to_string(path.join("revision")).unwrap_or_default();
                         pci_name = lookup_amdgpu_ids(&device_clean, &revision_str);
                     }
 
