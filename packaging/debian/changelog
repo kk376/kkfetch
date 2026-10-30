@@ -1,3 +1,9 @@
+kkfetch (0.25.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.25.0: AMD Rembrandt iGPU revision disambiguation via amdgpu.ids and GPU cache auto-migration.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 31 Oct 2026 00:00:00 +0530
+
 kkfetch (0.24.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.24.0: Authentic 1977 rainbow Apple logo, multi-color palette tokens, and packaging sync.

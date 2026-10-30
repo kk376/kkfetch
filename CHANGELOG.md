@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-10-31
+
+### Fixed
+- **AMD Rembrandt iGPU Revision Disambiguation**: Resolved GPU model reporting on AMD Rembrandt APUs (such as Ryzen 5 7535HS and Ryzen 5 6600H/U) where the integrated GPU was incorrectly labeled as Radeon 680M instead of Radeon 660M due to shared PCI device ID `1002:1681`. Native sysfs detection now reads the PCI revision ID, queries `/usr/share/libdrm/amdgpu.ids`, and includes static revision fallback tables without spawning external processes.
+- **Hardware GPU Cache Auto-Migration**: Bumped GPU cache file to `gpu_list_v3.cache` to automatically invalidate stale legacy caches without manual cache clearance while preserving sub-millisecond execution.
+
+### Packaging
+- Synchronized version 0.25.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.24.0] - 2026-10-30
 
 ### Added

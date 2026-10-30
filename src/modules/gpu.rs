@@ -262,6 +262,147 @@ pub fn lookup_pci_ids(vendor_hex: &str, device_hex: &str) -> Option<String> {
     None
 }
 
+/// Parses standard amdgpu.ids file format to resolve device and revision hex IDs to human-readable marketing names.
+pub fn parse_amdgpu_ids_content(
+    content: &str,
+    target_device: &str,
+    target_revision: &str,
+) -> Option<String> {
+    let dev = target_device
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+    let rev = target_revision
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+
+    if dev.is_empty() || rev.is_empty() {
+        return None;
+    }
+
+    let rev_padded = if rev.len() == 1 {
+        format!("0{}", rev)
+    } else {
+        rev.to_string()
+    };
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+
+        let mut parts = trimmed.split(',');
+        if let (Some(d_id), Some(r_id), Some(name)) = (parts.next(), parts.next(), parts.next()) {
+            if d_id.trim().eq_ignore_ascii_case(dev)
+                && r_id.trim().eq_ignore_ascii_case(&rev_padded)
+            {
+                let cleaned = clean_gpu_name(name.trim());
+                if !cleaned.is_empty() {
+                    return Some(cleaned);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Streams standard amdgpu.ids file with early termination upon finding the target device and revision.
+pub fn lookup_amdgpu_ids_from_file(
+    path: &Path,
+    target_device: &str,
+    target_revision: &str,
+) -> Option<String> {
+    use std::io::{BufRead, BufReader};
+    let file = fs::File::open(path).ok()?;
+    let reader = BufReader::new(file);
+
+    let dev = target_device
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+    let rev = target_revision
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+
+    if dev.is_empty() || rev.is_empty() {
+        return None;
+    }
+
+    let rev_padded = if rev.len() == 1 {
+        format!("0{}", rev)
+    } else {
+        rev.to_string()
+    };
+
+    for line_result in reader.lines() {
+        let line = line_result.ok()?;
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+
+        let mut parts = trimmed.split(',');
+        if let (Some(d_id), Some(r_id), Some(name)) = (parts.next(), parts.next(), parts.next()) {
+            if d_id.trim().eq_ignore_ascii_case(dev)
+                && r_id.trim().eq_ignore_ascii_case(&rev_padded)
+            {
+                let cleaned = clean_gpu_name(name.trim());
+                if !cleaned.is_empty() {
+                    return Some(cleaned);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Resolves AMD PCI device and revision hex IDs against local system amdgpu.ids databases.
+pub fn lookup_amdgpu_ids(device_hex: &str, revision_hex: &str) -> Option<String> {
+    let dev = device_hex
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+    let rev = revision_hex
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+
+    if dev.is_empty() || rev.is_empty() {
+        return None;
+    }
+
+    let amdgpu_id_paths = [
+        "/usr/share/libdrm/amdgpu.ids",
+        "/usr/share/misc/amdgpu.ids",
+        "/usr/share/hwdata/amdgpu.ids",
+        "/var/lib/amdgpu.ids",
+    ];
+
+    for path in &amdgpu_id_paths {
+        let p = Path::new(path);
+        if let Some(name) = lookup_amdgpu_ids_from_file(p, dev, rev) {
+            return Some(name);
+        }
+    }
+
+    // Static fallback for Rembrandt (PCI ID 0x1681) when amdgpu.ids is unavailable
+    if dev.eq_ignore_ascii_case("1681") {
+        let rev_clean = rev.to_ascii_lowercase();
+        match rev_clean.as_str() {
+            "07" | "7" | "0b" | "b" | "c9" => return Some("AMD Radeon 660M".to_string()),
+            "06" | "6" | "0a" | "a" | "c7" | "c8" => return Some("AMD Radeon 680M".to_string()),
+            _ => {}
+        }
+    }
+
+    None
+}
+
 /// Formats a VRAM size in bytes into a human-readable string (e.g. `512 MiB`, `4 GiB`).
 pub fn format_vram_bytes(bytes: u64) -> Option<String> {
     if bytes == 0 {
@@ -365,8 +506,31 @@ pub fn detect_gpus_from_sysfs_dir(pci_dir: &Path) -> Vec<String> {
 
                     let vram_bytes = detect_pci_vram_bytes(&path);
 
-                    // 1. Resolve vendor/device IDs against local pci.ids database without spawning lspci
-                    if let Some(pci_name) = lookup_pci_ids(&vendor_str, &device_str) {
+                    let vendor_clean = vendor_str
+                        .trim()
+                        .trim_start_matches("0x")
+                        .trim_start_matches("0X")
+                        .to_lowercase();
+                    let device_clean = device_str
+                        .trim()
+                        .trim_start_matches("0x")
+                        .trim_start_matches("0X")
+                        .to_lowercase();
+
+                    // 1. For AMD GPUs (vendor 0x1002), consult amdgpu.ids with revision disambiguation first
+                    let mut pci_name = None;
+                    if vendor_clean == "1002" {
+                        let revision_str = fs::read_to_string(path.join("revision"))
+                            .unwrap_or_default();
+                        pci_name = lookup_amdgpu_ids(&device_clean, &revision_str);
+                    }
+
+                    // 2. Resolve vendor/device IDs against local pci.ids database without spawning lspci
+                    if pci_name.is_none() {
+                        pci_name = lookup_pci_ids(&vendor_clean, &device_clean);
+                    }
+
+                    if let Some(pci_name) = pci_name {
                         let cleaned = clean_gpu_name(&pci_name);
                         let final_name =
                             if let Some(vram_str) = vram_bytes.and_then(format_vram_bytes) {
@@ -1129,7 +1293,7 @@ fn get_gpu_list_uncached() -> Vec<String> {
         .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
         .map(|p| p.join("kkfetch"));
 
-    let cache_file = cache_dir.as_ref().map(|d| d.join("gpu_list_v2.cache"));
+    let cache_file = cache_dir.as_ref().map(|d| d.join("gpu_list_v3.cache"));
     let current_fingerprint = get_gpu_hardware_fingerprint();
 
     // 0. Fast-path: Check persistent cache validated by current hardware fingerprint
@@ -1722,5 +1886,100 @@ mod tests {
 
         assert!(is_pci_device_suspended(&sleeping_dgpu));
         assert!(has_suspended_pci_display_in_dir(pci_dir));
+    }
+
+    #[test]
+    fn test_parse_amdgpu_ids_content() {
+        let sample = r#"
+# List of AMDGPU IDs
+1681,	06,	AMD Radeon 680M
+1681,	07,	AMD Radeon 660M
+1681,	0A,	AMD Radeon 680M
+1681,	0B,	AMD Radeon 660M
+1681,	C7,	AMD Radeon 680M
+1681,	C8,	AMD Radeon 680M
+1681,	C9,	AMD Radeon 660M
+"#;
+        assert_eq!(
+            parse_amdgpu_ids_content(sample, "1681", "0b"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            parse_amdgpu_ids_content(sample, "1681", "b"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            parse_amdgpu_ids_content(sample, "0x1681", "0x0B"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            parse_amdgpu_ids_content(sample, "1681", "06"),
+            Some("AMD Radeon 680M".to_string())
+        );
+        assert_eq!(parse_amdgpu_ids_content(sample, "1681", "99"), None);
+    }
+
+    #[test]
+    fn test_lookup_amdgpu_ids_from_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let amdgpu_ids_path = temp_dir.path().join("amdgpu.ids");
+        let sample = r#"
+# AMDGPU IDs
+1681,	0B,	AMD Radeon 660M
+1681,	06,	AMD Radeon 680M
+"#;
+        fs::write(&amdgpu_ids_path, sample).unwrap();
+
+        assert_eq!(
+            lookup_amdgpu_ids_from_file(&amdgpu_ids_path, "1681", "0b"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            lookup_amdgpu_ids_from_file(&amdgpu_ids_path, "1681", "06"),
+            Some("AMD Radeon 680M".to_string())
+        );
+        assert_eq!(
+            lookup_amdgpu_ids_from_file(&amdgpu_ids_path, "1681", "ff"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_lookup_amdgpu_ids_rembrandt_fallback() {
+        // Even if non-existent file path, Rembrandt fallback correctly classifies revisions
+        assert_eq!(
+            lookup_amdgpu_ids("1681", "0b"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            lookup_amdgpu_ids("1681", "07"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            lookup_amdgpu_ids("1681", "c9"),
+            Some("AMD Radeon 660M".to_string())
+        );
+        assert_eq!(
+            lookup_amdgpu_ids("1681", "06"),
+            Some("AMD Radeon 680M".to_string())
+        );
+    }
+
+    #[test]
+    fn test_detect_gpus_from_sysfs_dir_amd_rembrandt_revision_mock() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pci_dir = temp_dir.path();
+
+        // GPU: AMD Ryzen 5 Rembrandt with revision 0x0b (660M)
+        let gpu = pci_dir.join("0000:05:00.0");
+        fs::create_dir_all(&gpu).unwrap();
+        fs::write(gpu.join("class"), "0x030000\n").unwrap();
+        fs::write(gpu.join("vendor"), "0x1002\n").unwrap();
+        fs::write(gpu.join("device"), "0x1681\n").unwrap();
+        fs::write(gpu.join("revision"), "0x0b\n").unwrap();
+
+        let gpus = detect_gpus_from_sysfs_dir(pci_dir);
+        assert_eq!(gpus.len(), 1);
+        assert_eq!(gpus[0], "AMD Radeon 660M");
     }
 }
