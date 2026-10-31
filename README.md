@@ -427,6 +427,8 @@ Special thanks to community contributors for architectural recommendations and s
   * **ZRAM Compression Algorithm Discovery (`Swap`)**: Suggested detecting active swap compression algorithms from `/sys/block/zram*/comp_algorithm`.
   * **Integrated GPU Classification (`GPU`)**: Reported false discrete classification on AMD Radeon 610M (Mendocino APU) single-GPU machines, leading to comprehensive mobile APU iGPU classification across RDNA and Intel Arc architectures.
   * **Hardware-Fingerprinted GPU Cache Invalidation (`GPU` / `v0.14.0`)**: Reported stale GPU model caching after swapping an NVMe SSD between differing laptop hardware platforms (Intel to AMD Ryzen), leading to the implementation of zero-overhead sysfs PCI display controller hardware fingerprint verification and automatic cache invalidation.
+* **[@PepegaHS](https://github.com/PepegaHS)**:
+  * **AMD Rembrandt Radeon 660M Disambiguation (`GPU` / `v0.25.0`)**: Reported misidentification of the AMD Radeon 660M integrated GPU (Rembrandt APU) as Radeon 680M due to single-digit PCI revision ID matching in `amdgpu.ids`, leading to runtime two-digit hex revision formatting and disambiguation.
 
 ---
 
