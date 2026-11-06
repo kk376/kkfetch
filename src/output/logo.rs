@@ -5,7 +5,16 @@
 //! KKFetch with high-contrast white structural framing (`{w}`) and
 //! distribution brand signature color emblems (`{c}`).
 
-use crate::output::color::RESET;
+use crate::context::ColorLevel;
+use crate::output::color::{resolve_color, RESET};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LogoVariant {
+    #[default]
+    Auto,
+    Full,
+    Compact,
+}
 
 pub const WHITE_COLOR: &str = "\x1b[38;5;231m";
 
@@ -23,27 +32,64 @@ pub const RAINBOW_PALETTE: [(&str, &str); 6] = [
 pub struct Logo {
     pub name: &'static str,
     pub raw_lines: &'static [&'static str],
+    pub compact_lines: Option<&'static [&'static str]>,
     pub distro_color: &'static str,
     pub outer_color: &'static str,
 }
 
 impl Logo {
-    /// Returns the logo lines formatted with ANSI colors if enabled.
+    /// Returns the compact ASCII lines if defined, or falls back to generic compact Tux penguin or full art.
+    pub fn compact_lines_or_fallback(&self) -> &'static [&'static str] {
+        if let Some(lines) = self.compact_lines {
+            lines
+        } else {
+            ALL_LOGOS
+                .iter()
+                .find(|l| l.name == "generic")
+                .and_then(|g| g.compact_lines)
+                .unwrap_or(self.raw_lines)
+        }
+    }
+
+    /// Returns the logo lines formatted with ANSI colors if enabled (backwards-compatible).
     /// The outer layer is styled with `outer_color` (white), and the
     /// highlighted inner emblem is styled with `distro_color`.
     /// Numbered palette tokens `{1}`..`{6}` provide multi-color stripe
     /// support for vintage logos such as the 1977 Apple rainbow.
     pub fn render_lines(&self, enable_color: bool) -> Vec<String> {
-        self.raw_lines
+        let level = if enable_color {
+            ColorLevel::Color256
+        } else {
+            ColorLevel::None
+        };
+        self.render_variant_lines(LogoVariant::Full, level)
+    }
+
+    /// Returns rendered lines for a specific logo variant and color level.
+    pub fn render_variant_lines(
+        &self,
+        variant: LogoVariant,
+        color_level: ColorLevel,
+    ) -> Vec<String> {
+        let lines = match variant {
+            LogoVariant::Compact => self.compact_lines_or_fallback(),
+            _ => self.raw_lines,
+        };
+
+        let enable_color = color_level != ColorLevel::None;
+        let d_color = resolve_color(self.distro_color, color_level);
+        let o_color = resolve_color(self.outer_color, color_level);
+
+        lines
             .iter()
             .map(|line| {
                 if enable_color {
                     let mut rendered = line
-                        .replace("{c}", self.distro_color)
-                        .replace("{w}", self.outer_color)
+                        .replace("{c}", d_color)
+                        .replace("{w}", o_color)
                         .replace("{0}", RESET);
                     for &(token, color) in &RAINBOW_PALETTE {
-                        rendered = rendered.replace(token, color);
+                        rendered = rendered.replace(token, resolve_color(color, color_level));
                     }
 
                     let has_color = line.contains("{c}")
@@ -53,7 +99,7 @@ impl Logo {
                             .any(|(token, _)| line.contains(token));
 
                     if !has_color && !line.is_empty() {
-                        rendered = format!("{}{}{}", self.distro_color, line, RESET);
+                        rendered = format!("{}{}{}", d_color, line, RESET);
                     } else if !line.is_empty() {
                         rendered.push_str(RESET);
                     }
@@ -88,6 +134,12 @@ pub const ALL_LOGOS: &[Logo] = &[
             "      {c}'-._'-------'_.-'",
             "          {w}/       \\",
         ],
+        compact_lines: Some(&[
+            "  {w}_~^~^~_",
+            " {w}\\) {c}/  o o  \\ {w}\\(",
+            "  {c}'_   -   _'",
+            "  {c}/ '-----' \\",
+        ]),
         distro_color: "\x1b[38;5;208m",
         outer_color: WHITE_COLOR,
     },
@@ -112,6 +164,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}          `\"Y$b._",
             "{c}              `\"\"\"",
         ],
+        compact_lines: Some(&[
+            "{c}  _____",
+            "{c} /  __ \\",
+            "{c}|  /    |",
+            "{c}|  \\___-",
+            "{c} -_",
+            "{c}   --_",
+        ]),
         distro_color: "\x1b[38;5;196m",
         outer_color: WHITE_COLOR,
     },
@@ -139,6 +199,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}        `:+ssssssssssssssssss+:`",
             "{w}            .-\\+oossssoo+/-.",
         ],
+        compact_lines: Some(&[
+            "{c}         _",
+            "{w}     ---{c}(_)",
+            "{w}  _/{c}  ---  {w}\\",
+            "{c} (_){w} |   |",
+            "{w}   \\ {c} --- {w}_/",
+            "{w}     ---{c}(_)",
+        ]),
         distro_color: "\x1b[38;5;208m",
         outer_color: WHITE_COLOR,
     },
@@ -165,6 +233,15 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}            '-MMMMMMMMMMMMM-'",
             "{w}               ``-:::::-``",
         ],
+        compact_lines: Some(&[
+            "{w} _________",
+            "{w}|_        \\",
+            "{w}  | | {c}_____{w} |",
+            "{w}  | | {c}| | |{w} |",
+            "{w}  | | {c}|_|_|{w} |",
+            "{w}  | \\_____/|",
+            "{w}  \\________/",
+        ]),
         distro_color: "\x1b[38;5;46m",
         outer_color: WHITE_COLOR,
     },
@@ -191,6 +268,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}.:cccccccccccccccccccccc:;,..",
             "{w}  '::cccccccccccccc::;,.",
         ],
+        compact_lines: Some(&[
+            "{c}        ____",
+            "{c}       /   /",
+            "{w}   ___/{c} / /",
+            "{w}  / _  {c}/ /",
+            "{w} / /_/ {c}/ /",
+            "{w}/_____{c}/_/",
+        ]),
         distro_color: "\x1b[38;5;33m",
         outer_color: WHITE_COLOR,
     },
@@ -217,6 +302,15 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w} `++:.                           `-/+/",
             "{w} .`                                 `/",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    /\\   \\",
+            "{c}   /      \\",
+            "{c}  /   ,,   \\",
+            "{c} /   |  |  -\\",
+            "{c}/_-''    ''-_/",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -240,6 +334,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}  MMMMMMMMMMMMMMMMyoNNNMMM+.   {w}MMMMMMMM",
             "{c}   MMNMMMNNMMMMMNM+ mhsMNyyyyMNMMMMsMM",
         ],
+        compact_lines: Some(&[
+            "{c}   .---.",
+            "{c}  /     \\",
+            "{c} | {w}() (){c} |",
+            "{c}  \\  -  /",
+            "{c}   '---'",
+        ]),
         distro_color: "\x1b[38;5;196m",
         outer_color: WHITE_COLOR,
     },
@@ -259,6 +360,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}  `-`   ./+++++++++++-",
             "{c}       -+++++++++:-.`",
         ],
+        compact_lines: Some(&[
+            "{c}  .---.",
+            "{c} /   / \\",
+            "{c}|   /   |",
+            "{c} \\ /   /",
+            "{c}  '---'",
+        ]),
         distro_color: "\x1b[38;5;35m",
         outer_color: WHITE_COLOR,
     },
@@ -286,6 +394,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}                ;kkkkl",
             "{w}                 ,od;",
         ],
+        compact_lines: Some(&[
+            "{c}   .---.",
+            "{c}  /  |  \\",
+            "{c} | --+-- |",
+            "{c}  \\  |  /",
+            "{c}   '---'",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -308,6 +423,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}   ./++++++++++++++++++++++++++++++/:.",
             "{w}  `:::::::::::::::::::::::::------``",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}    //  \\\\",
+            "{w}  //     \\\\",
+            "{c} //       \\\\",
+            "{w}/__________\\\\",
+        ]),
         distro_color: "\x1b[38;5;127m",
         outer_color: WHITE_COLOR,
     },
@@ -329,6 +451,12 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}████████  {w}████████  {w}████████",
             "{c}████████  {w}████████  {w}████████",
         ],
+        compact_lines: Some(&[
+            "{c}|||| |||| ||||",
+            "{c}||||          ",
+            "{c}|||| |||| ||||",
+            "{c}|||| |||| ||||",
+        ]),
         distro_color: "\x1b[38;5;34m",
         outer_color: WHITE_COLOR,
     },
@@ -352,6 +480,15 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}    ####{w}#####{c}####",
             "{c}    ###       ###",
         ],
+        compact_lines: Some(&[
+            "{w}   .--.",
+            "{w}  |{c}o_o {w}|",
+            "{w}  |{c}:_/ {w}|",
+            "{w} //   \\ \\",
+            "{w}(|     | )",
+            "{c}/'\\_   _/`\\",
+            "{c}\\___)=(___/",
+        ]),
         distro_color: "\x1b[38;5;220m",
         outer_color: WHITE_COLOR,
     },
@@ -375,6 +512,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}         .;d00xl:^''''''^:ok00d;.",
             "{w}           .;ldkO0000Okdl;.",
         ],
+        compact_lines: Some(&[
+            "{c}  _______",
+            "{c} __|   __ \\",
+            "{c}/   *\\   / \\",
+            "{c}\\__       _/",
+            "{c}   \\_____/",
+        ]),
         distro_color: "\x1b[38;5;71m",
         outer_color: WHITE_COLOR,
     },
@@ -396,6 +540,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}      :dddddddddddddddddddddddddd:",
             "{w}       .hddddddddddddddddddddddh.",
         ],
+        compact_lines: Some(&[
+            "{c}   /\\",
+            "{c}  // \\",
+            "{c} //   \\",
+            "{c}///    \\",
+            "{c}//'     \\",
+        ]),
         distro_color: "\x1b[38;5;32m",
         outer_color: WHITE_COLOR,
     },
@@ -416,6 +567,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}          `:+syd{w}hyyyyyhddddds{w}+",
             "{w}              `-:+syhhhysoo+.",
         ],
+        compact_lines: Some(&[
+            "{c} _-----_",
+            "{c}(       \\",
+            "{c}\\    {w}0{c}  \\",
+            "{c} \\       )",
+            "{c} /      /",
+            "{c}(_____-'",
+        ]),
         distro_color: "\x1b[38;5;141m",
         outer_color: WHITE_COLOR,
     },
@@ -442,6 +601,15 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}            _.=+==++=++=+=+===;.",
             "{w}                __.;=====;.__",
         ],
+        compact_lines: Some(&[
+            "{c}  _______",
+            "{c} \\   ____)",
+            "{c}  \\ \\",
+            "{c}   \\ \\   __",
+            "{c}    \\ \\ (  \\",
+            "{c}     \\ \\_\\  \\",
+            "{c}      \\______)",
+        ]),
         distro_color: "\x1b[38;5;35m",
         outer_color: WHITE_COLOR,
     },
@@ -466,6 +634,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}           -+ydmNNNNNNNmdy+-",
             "{w}             `.-:::-.`",
         ],
+        compact_lines: Some(&[
+            "{c}______",
+            "{c}\\   _ \\",
+            "{c} \\ \\_) )",
+            "{c}  \\  __/",
+            "{c}   \\_\\",
+        ]),
         distro_color: "\x1b[38;5;37m",
         outer_color: WHITE_COLOR,
     },
@@ -499,6 +674,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}         ▟███▛  ▜███▙       {c}▜███▙",
             "{w}         ▝▀▀▀    ▀▀▀▀▘       {c}▀▀▀▘",
         ],
+        compact_lines: Some(&[
+            "{c}  \\\\  //",
+            "{c}   \\\\//",
+            "{w} == >  < ==",
+            "{c}   //\\\\",
+            "{c}  //  \\\\",
+        ]),
         distro_color: "\x1b[38;5;75m",
         outer_color: WHITE_COLOR,
     },
@@ -527,6 +709,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}                                            {c}.'{w}",
             "{w}                                             {c}.{w}",
         ],
+        compact_lines: Some(&[
+            "{c} ..............",
+            "{c}           ...,",
+            "{c}          .---'",
+            "{c}         /     ",
+            "{c}        /      ",
+        ]),
         distro_color: "\x1b[38;5;33m",
         outer_color: WHITE_COLOR,
     },
@@ -549,6 +738,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}       .--             `--.",
             "{w}          .---.....----.",
         ],
+        compact_lines: Some(&[
+            "{c}/\\,-'''''-,/\\",
+            "{c}\\_)       (_/",
+            "{c}|           |",
+            "{c}|           |",
+            "{c} ;         ;",
+            "{c}  '-_____-'",
+        ]),
         distro_color: "\x1b[38;5;196m",
         outer_color: WHITE_COLOR,
     },
@@ -577,6 +774,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}           :::::::::::::::::::::: ",
             "{w}                :::::::::::: ",
         ],
+        compact_lines: Some(&[
+            "{c}   ________",
+            "{c}  /  _____/",
+            "{c}  \\____  \\",
+            "{c}  /       \\",
+            "{c} /______  /",
+            "{c}        \\/",
+        ]),
         distro_color: "\x1b[38;5;61m",
         outer_color: WHITE_COLOR,
     },
@@ -604,6 +809,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w} 'i:'`                          ''{c}:io'",
             "{w}'`                                   `'",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    /`'.,\\",
+            "{c}   /     ',",
+            "{c}  /      ,/",
+            "{c} /__,.-'`",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -628,6 +841,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}       -osssssssssssssssssssssso-",
             "{w}        `osssssssssssssssssssso`",
         ],
+        compact_lines: Some(&[
+            "{c} ______",
+            "{c}|___  /",
+            "{c}   / / ",
+            "{c}  / /__",
+            "{c} /_____|",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -654,6 +874,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}                       ````''*::cll",
             "{w}                                 ``",
         ],
+        compact_lines: Some(&[
+            "{c}####  ####",
+            "{c}####  ####",
+            "",
+            "{c}####  ####",
+            "{c}####  ####",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -680,6 +907,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}                       ````''*::cll",
             "{w}                                 ``",
         ],
+        compact_lines: Some(&[
+            "{c}   ,.  .....",
+            "{c},$$$  $$$$$",
+            "{c}$$$$  $$$$$",
+            "{c}            ",
+            "{c}$$$$  $$$$$",
+            "{c}`$$$  $$$$$",
+        ]),
         distro_color: "\x1b[38;5;33m",
         outer_color: WHITE_COLOR,
     },
@@ -703,6 +938,12 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}             ` :EEEEtttt::::z7",
             "{c}                 \"VEzjt:;;z>*`",
         ],
+        compact_lines: Some(&[
+            "{1} ,.  {2}.....",
+            "{1}$$$  {2}$$$$$",
+            "{4}$$$  {3}$$$$$",
+            "{4} `'  {3}`````",
+        ]),
         distro_color: "\x1b[38;5;33m",
         outer_color: WHITE_COLOR,
     },
@@ -729,6 +970,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}         MMMMo    oMMMM",
             "{c}         ooss     ssoo",
         ],
+        compact_lines: Some(&[
+            "{c}  __   __",
+            "{c} |  \\_/  |",
+            "{c} | {w}O   O{c} |",
+            "{c} \\_______/",
+            "{c} |       |",
+        ]),
         distro_color: "\x1b[38;5;118m",
         outer_color: WHITE_COLOR,
     },
@@ -753,6 +1001,15 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{6}     ;KMMMMMMMWXXWMMMMMMMk.",
             "{6}       \"cooc*\"    \"*coo'\"",
         ],
+        compact_lines: Some(&[
+            "{1}     .:'",
+            "{2}  __ :'__",
+            "{3}.'  `-'  `.",
+            "{4}:          :",
+            "{5}:          :",
+            "{6} :        :",
+            "{6}  `-.__.-'",
+        ]),
         distro_color: "\x1b[38;5;250m",
         outer_color: WHITE_COLOR,
     },
@@ -773,6 +1030,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}       \\__     \\._/ \\_/__/ ./",
             "{c}          `---._____.-'",
         ],
+        compact_lines: Some(&[
+            "{w}      _.",
+            "{c}    .-'{w}*{c}`-.",
+            "{c}  .'  {w}O  O{c}  `.",
+            "{c} :  {w}(____){c}   :",
+            "{c}  `.       .'",
+            "{c}    `-...-'",
+        ]),
         distro_color: "\x1b[38;5;220m",
         outer_color: WHITE_COLOR,
     },
@@ -793,6 +1058,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}          {w}/  /      \\\\ \\\\{c}        \\\\",
             "{c}         {w}/__/{c}        {w}\\\\__\\\\{c}        \\\\",
         ],
+        compact_lines: Some(&[
+            "{w}\\\\`-____",
+            "{c} \\\\",
+            "{c}  \\\\",
+            "{c}   \\\\",
+            "{c}    \\\\",
+        ]),
         distro_color: "\x1b[38;5;208m",
         outer_color: WHITE_COLOR,
     },
@@ -822,6 +1094,14 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}           .-=======================+++:",
             "{w}             ..........................",
         ],
+        compact_lines: Some(&[
+            "{c}     ____",
+            "{c}   .'    `.",
+            "{c}  /   __   \\",
+            "{c} |   /  \\   |",
+            "{c}  \\  \\__/  /",
+            "{c}   `.____.'",
+        ]),
         distro_color: "\x1b[38;5;43m",
         outer_color: WHITE_COLOR,
     },
@@ -844,6 +1124,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}██              {w}██              {c}██",
             "{c}██████████████████   █████████████",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    / () \\",
+            "{c}   /      \\",
+            "{c}  /________\\",
+        ]),
         distro_color: "\x1b[38;5;39m",
         outer_color: WHITE_COLOR,
     },
@@ -869,6 +1156,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}        d:SS@8ba89aa67a853Sxxad.",
             "{w}          .d988999889889899dd.",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    / /\\ \\",
+            "{c}   / /  \\ \\",
+            "{c}  /_/    \\_\\",
+        ]),
         distro_color: "\x1b[38;5;208m",
         outer_color: WHITE_COLOR,
     },
@@ -897,6 +1191,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w} `++:.             {c}//{w}            `-/+/",
             "{w} .`                {c}/{w}                `/",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    / || \\",
+            "{c}   /  ||  \\",
+            "{c}  /___||___\\",
+        ]),
         distro_color: "\x1b[38;5;196m",
         outer_color: WHITE_COLOR,
     },
@@ -928,6 +1229,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}                           -+",
             "{w}                            -",
         ],
+        compact_lines: Some(&[
+            "{c}   .---.",
+            "{c}  /  O  \\",
+            "{c} |   /|  |",
+            "{c}  \\  \\| /",
+            "{c}   '---'",
+        ]),
         distro_color: "\x1b[38;5;44m",
         outer_color: WHITE_COLOR,
     },
@@ -955,6 +1263,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}        ./oyyyyy{c}yyyyyyyyyyyyyo{w}/.",
             "{w}           `.:/oosyyyysso/:.`",
         ],
+        compact_lines: Some(&[
+            "{c}      ___",
+            "{c}    /     \\",
+            "{c}   |   O   |",
+            "{c}    \\     /",
+            "{c}      ---",
+        ]),
         distro_color: "\x1b[38;5;33m",
         outer_color: WHITE_COLOR,
     },
@@ -979,6 +1294,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c} ⠘⢿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣿⣿⠟⠁",
             "{c}   ⠈⠙⠛⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠛⠛⠉⠁",
         ],
+        compact_lines: Some(&[
+            "{c}      /\\",
+            "{c}     /  \\",
+            "{c}    / /\\ \\",
+            "{c}   / /  \\ \\",
+            "{c}  /_/    \\_\\",
+        ]),
         distro_color: "\x1b[38;5;197m",
         outer_color: WHITE_COLOR,
     },
@@ -1005,6 +1327,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}          ###################",
             "{c}              ###########",
         ],
+        compact_lines: Some(&[
+            "{c}   .---.",
+            "{c}  /  B  \\",
+            "{c} |   B   |",
+            "{c}  \\  B  /",
+            "{c}   '---'",
+        ]),
         distro_color: "\x1b[38;5;141m",
         outer_color: WHITE_COLOR,
     },
@@ -1031,6 +1360,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{w}               'MKKM'",
             "{w}                 ''",
         ],
+        compact_lines: Some(&[
+            "{c}   .---.",
+            "{c}  /  |  \\",
+            "{c} | --+-- |",
+            "{c}  \\  |  /",
+            "{c}   '---'",
+        ]),
         distro_color: "\x1b[38;5;214m",
         outer_color: WHITE_COLOR,
     },
@@ -1057,6 +1393,13 @@ pub const ALL_LOGOS: &[Logo] = &[
             "{c}        .:^^^^^^^^^^^^^^^^^^^^:.",
             "{c}          .^^^^^^^^^^^^^^^^^^.",
         ],
+        compact_lines: Some(&[
+            "{c} \\       /",
+            "{c}  \\     / ",
+            "{c}   \\   /  ",
+            "{c}    \\ /   ",
+            "{c}     v    ",
+        ]),
         distro_color: "\x1b[38;5;2m",
         outer_color: WHITE_COLOR,
     },
@@ -1373,5 +1716,58 @@ pub mod tests {
             "generic"
         );
         assert_eq!(match_logo(None, "vylen", &[]).unwrap().name, "vylen");
+    }
+
+    #[test]
+    fn test_compact_logo_variants_defined_and_renderable() {
+        for logo in ALL_LOGOS {
+            let compact = logo.compact_lines_or_fallback();
+            assert!(
+                !compact.is_empty(),
+                "Compact lines for {} must not be empty",
+                logo.name
+            );
+
+            // Render both plain and colored variant lines
+            let plain = logo.render_variant_lines(LogoVariant::Compact, ColorLevel::None);
+            assert_eq!(plain.len(), compact.len());
+            assert!(
+                !plain.iter().any(|l| l.contains("\x1b")),
+                "Monochrome compact lines must strip escapes"
+            );
+
+            let colored = logo.render_variant_lines(LogoVariant::Compact, ColorLevel::Color256);
+            assert_eq!(colored.len(), compact.len());
+        }
+    }
+
+    #[test]
+    fn test_compact_logo_dimensions_smaller_than_full() {
+        // Arch
+        let arch = match_logo(Some("arch"), "arch", &[]).unwrap();
+        assert!(arch.compact_lines_or_fallback().len() < arch.raw_lines.len());
+
+        // Debian
+        let debian = match_logo(Some("debian"), "debian", &[]).unwrap();
+        assert!(debian.compact_lines_or_fallback().len() < debian.raw_lines.len());
+
+        // Ubuntu
+        let ubuntu = match_logo(Some("ubuntu"), "ubuntu", &[]).unwrap();
+        assert!(ubuntu.compact_lines_or_fallback().len() < ubuntu.raw_lines.len());
+
+        // Fedora
+        let fedora = match_logo(Some("fedora"), "fedora", &[]).unwrap();
+        assert!(fedora.compact_lines_or_fallback().len() < fedora.raw_lines.len());
+    }
+
+    #[test]
+    fn test_render_variant_lines_color_level_basic16() {
+        let debian = match_logo(Some("debian"), "debian", &[]).unwrap();
+        let rendered_basic16 = debian.render_variant_lines(LogoVariant::Full, ColorLevel::Basic16);
+        // Debian distro_color is 196 (red). On basic16, it degrades to \x1b[91m or \x1b[31m, never \x1b[38;5;
+        assert!(!rendered_basic16.iter().any(|l| l.contains("\x1b[38;5;")));
+        assert!(rendered_basic16
+            .iter()
+            .any(|l| l.contains("\x1b[91m") || l.contains("\x1b[31m")));
     }
 }

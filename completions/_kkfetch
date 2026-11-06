@@ -95,6 +95,9 @@ _kkfetch() {
         '*--disable=[Disable specific modules (comma-separated)]:DISABLE:_values -s , "module" $modules' \
         '-l+[Override the ASCII logo]:LOGO:_describe "logo" logos' \
         '--logo=[Override the ASCII logo]:LOGO:_describe "logo" logos' \
+        '--logo-variant=[Select ASCII logo variant]:VARIANT:(auto full compact)' \
+        '--compact-logo[Force compact ASCII logo variant]' \
+        '--compact[Force compact ASCII logo variant (alias)]' \
         '--disk-path=[Target mount point or directory path for disk usage statistics (default\: "/")]:DISK_PATH:_directories' \
         '--all-disks[Show all mounted filesystems and auxiliary partitions]' \
         '--no-color[Disable colored ANSI output]' \

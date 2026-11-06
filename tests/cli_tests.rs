@@ -74,6 +74,54 @@ fn test_logo_override_flag() {
     cmd.args(["--no-color", "--logo", "arch", "-m", "os"]);
     let assert = cmd.assert().success();
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    assert!(stdout.contains("OS:"));
+    assert!(stdout.contains("/\\"));
+}
+
+#[test]
+fn test_logo_variant_compact_flag() {
+    let mut cmd = Command::cargo_bin("kkfetch").unwrap();
+    cmd.args(["--no-color", "--logo", "arch", "--compact-logo", "-m", "os"]);
+    let assert = cmd.assert().success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    assert!(stdout.contains("/_-''"));
+    assert!(!stdout.contains("oooo"));
+    assert!(stdout.contains("OS:"));
+}
+
+#[test]
+fn test_logo_variant_option_compact() {
+    let mut cmd = Command::cargo_bin("kkfetch").unwrap();
+    cmd.args([
+        "--no-color",
+        "--logo",
+        "arch",
+        "--logo-variant",
+        "compact",
+        "-m",
+        "os",
+    ]);
+    let assert = cmd.assert().success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    assert!(stdout.contains("/_-''"));
+    assert!(!stdout.contains("oooo"));
+    assert!(stdout.contains("OS:"));
+}
+
+#[test]
+fn test_logo_variant_option_full() {
+    let mut cmd = Command::cargo_bin("kkfetch").unwrap();
+    cmd.args([
+        "--no-color",
+        "--logo",
+        "arch",
+        "--logo-variant",
+        "full",
+        "-m",
+        "os",
+    ]);
+    let assert = cmd.assert().success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
     assert!(stdout.contains("oooo"));
     assert!(stdout.contains("OS:"));
 }
@@ -193,7 +241,15 @@ fn test_various_logo_overrides() {
 
     for (name, snippet) in logos {
         let mut cmd = Command::cargo_bin("kkfetch").unwrap();
-        cmd.args(["--no-color", "--logo", name, "-m", "os"]);
+        cmd.args([
+            "--no-color",
+            "--logo",
+            name,
+            "--logo-variant",
+            "full",
+            "-m",
+            "os",
+        ]);
         let assert = cmd.assert().success();
         let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
         assert!(

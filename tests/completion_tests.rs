@@ -33,6 +33,8 @@ fn test_completion_files_exist_and_cover_all_flags() {
         "--modules",
         "--disable",
         "--logo",
+        "--logo-variant",
+        "--compact-logo",
         "--no-color",
         "--no-logo",
         "--list-modules",

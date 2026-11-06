@@ -10,6 +10,7 @@ pub struct Config {
     pub no_color: Option<bool>,
     pub disk_path: Option<String>,
     pub all_disks: Option<bool>,
+    pub logo_variant: Option<String>,
     pub plugins: Option<Vec<PluginConfig>>,
 }
 
@@ -125,6 +126,12 @@ pub fn parse_config_toml(content: &str) -> Config {
                 "all_disks" | "all-disks" | "disk_all" | "disk-all" => {
                     config.all_disks = Some(val.eq_ignore_ascii_case("true") || val == "1");
                 }
+                "logo_variant" | "logo-variant" => {
+                    let clean = val.trim_matches('"').trim_matches('\'').to_string();
+                    if !clean.is_empty() {
+                        config.logo_variant = Some(clean);
+                    }
+                }
                 _ => {}
             }
         }
@@ -208,5 +215,16 @@ command = "git branch --show-current"
         assert_eq!(plugins[0].command, "playerctl metadata title");
         assert_eq!(plugins[1].name, "Git Branch");
         assert_eq!(plugins[1].command, "git branch --show-current");
+    }
+
+    #[test]
+    fn test_parse_config_toml_logo_variant() {
+        let toml_compact = "logo_variant = \"compact\"\n";
+        let cfg1 = parse_config_toml(toml_compact);
+        assert_eq!(cfg1.logo_variant.as_deref(), Some("compact"));
+
+        let toml_full = "logo-variant = 'full'\n";
+        let cfg2 = parse_config_toml(toml_full);
+        assert_eq!(cfg2.logo_variant.as_deref(), Some("full"));
     }
 }

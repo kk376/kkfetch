@@ -1,6 +1,7 @@
+use crate::context::ColorLevel;
 use crate::modules::ModuleOutput;
-use crate::output::color::format_label;
-use crate::output::logo::Logo;
+use crate::output::color::{format_label, resolve_color};
+use crate::output::logo::{Logo, LogoVariant};
 
 /// Returns the column display width of a Unicode character (1 for standard, 2 for wide CJK/emojis).
 /// Adheres to Unicode Standard Annex #11 (East Asian Width) for terminal cell occupancy.
@@ -40,14 +41,33 @@ pub fn visible_width(s: &str) -> usize {
     len
 }
 
-/// Renders the complete fetch layout with logo and module info lines.
+/// Renders the complete fetch layout with logo and module info lines (backwards-compatible).
 pub fn render_layout(
     logo: Option<&Logo>,
     outputs: &[ModuleOutput],
     term_width: u16,
     enable_color: bool,
 ) -> String {
-    let distro_color = logo.map(|l| l.distro_color).unwrap_or("\x1b[38;5;208m");
+    let color_level = if enable_color {
+        ColorLevel::Color256
+    } else {
+        ColorLevel::None
+    };
+    render_adaptive_layout(logo, outputs, term_width, color_level, None)
+}
+
+/// Renders the complete fetch layout adaptively with logo and module info lines based on
+/// terminal dimensions and color capability.
+pub fn render_adaptive_layout(
+    logo: Option<&Logo>,
+    outputs: &[ModuleOutput],
+    term_width: u16,
+    color_level: ColorLevel,
+    forced_variant: Option<LogoVariant>,
+) -> String {
+    let raw_color = logo.map(|l| l.distro_color).unwrap_or("\x1b[38;5;208m");
+    let distro_color = resolve_color(raw_color, color_level);
+    let enable_color = color_level != ColorLevel::None;
 
     // Flatten module outputs into display lines
     let mut info_lines: Vec<String> = Vec::new();
@@ -69,25 +89,102 @@ pub fn render_layout(
         None => return info_lines.join("\n"),
     };
 
-    let logo_lines = logo.render_lines(enable_color);
+    let full_lines = logo.render_variant_lines(LogoVariant::Full, color_level);
+    let compact_lines = logo.render_variant_lines(LogoVariant::Compact, color_level);
 
-    // Narrow terminal breakpoint: switch to vertical stacked layout below 60 columns to prevent line-wrapping
-    if term_width < 60 {
-        let mut full_output = Vec::new();
-        full_output.extend(logo_lines);
-        if !info_lines.is_empty() {
-            full_output.push(String::new());
-            full_output.extend(info_lines);
-        }
-        return full_output.join("\n");
-    }
-
-    // Side-by-side two-column layout: calculate max logo width to align the info column
-    let max_logo_width = logo_lines
+    let full_width = full_lines
         .iter()
         .map(|l| visible_width(l))
         .max()
         .unwrap_or(0);
+    let compact_width = compact_lines
+        .iter()
+        .map(|l| visible_width(l))
+        .max()
+        .unwrap_or(0);
+    let max_info_width = info_lines
+        .iter()
+        .map(|l| visible_width(l))
+        .max()
+        .unwrap_or(0);
+
+    let term_w = term_width as usize;
+    let separator_w = 3;
+
+    // Constraint solver: determine variant and layout geometry
+    enum SelectedLayout {
+        SideBySide(LogoVariant, usize),
+        Stacked(LogoVariant),
+        InfoOnly,
+    }
+
+    let selected = match forced_variant.unwrap_or(LogoVariant::Auto) {
+        LogoVariant::Full => {
+            if term_w >= 60 && full_width + separator_w + max_info_width <= term_w {
+                SelectedLayout::SideBySide(LogoVariant::Full, full_width)
+            } else {
+                SelectedLayout::Stacked(LogoVariant::Full)
+            }
+        }
+        LogoVariant::Compact => {
+            if term_w >= 50 && compact_width + separator_w + max_info_width <= term_w {
+                SelectedLayout::SideBySide(LogoVariant::Compact, compact_width)
+            } else {
+                SelectedLayout::Stacked(LogoVariant::Compact)
+            }
+        }
+        LogoVariant::Auto => {
+            if term_w < 60 {
+                // Stacked below 60 columns to prevent line cramping
+                if full_width <= term_w && term_w >= 45 {
+                    SelectedLayout::Stacked(LogoVariant::Full)
+                } else if compact_width <= term_w && term_w >= 20 {
+                    SelectedLayout::Stacked(LogoVariant::Compact)
+                } else {
+                    SelectedLayout::InfoOnly
+                }
+            } else {
+                // Width >= 60: attempt side-by-side
+                if full_width + separator_w + max_info_width <= term_w {
+                    SelectedLayout::SideBySide(LogoVariant::Full, full_width)
+                } else if compact_width + separator_w + max_info_width <= term_w {
+                    SelectedLayout::SideBySide(LogoVariant::Compact, compact_width)
+                } else if full_width <= term_w {
+                    SelectedLayout::Stacked(LogoVariant::Full)
+                } else if compact_width <= term_w {
+                    SelectedLayout::Stacked(LogoVariant::Compact)
+                } else {
+                    SelectedLayout::InfoOnly
+                }
+            }
+        }
+    };
+
+    let (logo_lines, max_logo_width) = match selected {
+        SelectedLayout::SideBySide(variant, width) => {
+            let lines = match variant {
+                LogoVariant::Compact => compact_lines,
+                _ => full_lines,
+            };
+            (lines, width)
+        }
+        SelectedLayout::Stacked(variant) => {
+            let lines = match variant {
+                LogoVariant::Compact => compact_lines,
+                _ => full_lines,
+            };
+            let mut full_output = Vec::new();
+            full_output.extend(lines);
+            if !info_lines.is_empty() {
+                full_output.push(String::new());
+                full_output.extend(info_lines);
+            }
+            return full_output.join("\n");
+        }
+        SelectedLayout::InfoOnly => {
+            return info_lines.join("\n");
+        }
+    };
 
     let row_count = std::cmp::max(logo_lines.len(), info_lines.len());
     let mut rows: Vec<String> = Vec::with_capacity(row_count);
@@ -338,6 +435,7 @@ mod tests {
         let logo = Logo {
             name: "test",
             raw_lines: &["AA", "BB"],
+            compact_lines: None,
             distro_color: "",
             outer_color: "",
         };
@@ -358,6 +456,7 @@ mod tests {
         let logo = Logo {
             name: "test",
             raw_lines: &["A", "BBB"],
+            compact_lines: None,
             distro_color: "",
             outer_color: "",
         };
@@ -382,6 +481,69 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0], "A     OS: Linux");
         assert_eq!(lines[1], "BBB   Kernel: 6.1");
+    }
+
+    #[test]
+    fn test_render_adaptive_layout_compact_breakpoint() {
+        let logo = Logo {
+            name: "test",
+            raw_lines: &[
+                "1234567890123456789012345678901234567890", // 40 chars wide
+            ],
+            compact_lines: Some(&[
+                "1234567890", // 10 chars wide
+            ]),
+            distro_color: "",
+            outer_color: "",
+        };
+
+        let outputs = vec![ModuleOutput {
+            id: ModuleId::Os,
+            label: "OS".to_string(),
+            value: "Linux with long info name".to_string(),
+            custom_rendered: None,
+        }];
+        // max_info_width = ~30. 40 + 3 + 30 = 73 cols.
+        // On term_width = 65, full logo (40 + 3 + 30 = 73) does not fit side-by-side.
+        // But compact logo (10 + 3 + 30 = 43 <= 65) DOES fit side-by-side!
+        let rendered = render_adaptive_layout(
+            Some(&logo),
+            &outputs,
+            65,
+            ColorLevel::None,
+            Some(LogoVariant::Auto),
+        );
+        // Verify it rendered side-by-side using the compact logo!
+        assert!(rendered.contains("1234567890   OS: Linux with long info name"));
+    }
+
+    #[test]
+    fn test_render_adaptive_layout_forced_compact() {
+        let logo = Logo {
+            name: "test",
+            raw_lines: &["FULL_LOGO_LINE"],
+            compact_lines: Some(&["COMPACT_LINE"]),
+            distro_color: "",
+            outer_color: "",
+        };
+
+        let outputs = vec![ModuleOutput {
+            id: ModuleId::Os,
+            label: "OS".to_string(),
+            value: "Linux".to_string(),
+            custom_rendered: None,
+        }];
+
+        // Even with 120 cols, forcing compact outputs compact variant
+        let rendered = render_adaptive_layout(
+            Some(&logo),
+            &outputs,
+            120,
+            ColorLevel::None,
+            Some(LogoVariant::Compact),
+        );
+        assert!(rendered.contains("COMPACT_LINE"));
+        assert!(!rendered.contains("FULL_LOGO_LINE"));
     }
 
     #[test]
