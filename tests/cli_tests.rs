@@ -75,7 +75,8 @@ fn test_logo_override_flag() {
     let assert = cmd.assert().success();
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
     assert!(stdout.contains("OS:"));
-    assert!(stdout.contains("/\\"));
+    // Arch logo is matched and rendered adaptively (full or compact variant)
+    assert!(stdout.contains("oooo") || stdout.contains("/_-''"));
 }
 
 #[test]
