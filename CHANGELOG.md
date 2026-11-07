@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-11-07
+
+### Added
+- **Zero-Dependency Adaptive ASCII Logos**: Implemented compact and standard ASCII logo variants across 40 supported operating systems, automatically adapting to terminal dimensions or explicit configuration.
+- **Terminal Width Auto-Adaptation**: Automatically selects compact logo variants when terminal width is constrained below 80 columns.
+- **CLI and Configuration Flags**: Added `--logo-variant <full|compact>` and `--compact-logo` (`-c`) flags, alongside configuration file support.
+- **ANSI Color Degradation**: Added zero-dependency 3-bit / 4-bit standard color fallback support (`Basic16`) for restricted terminal environments.
+
+### Changed
+- **Distro ASCII Art Polish**: Overhauled full and compact logos inspired by clean, modern CLI aesthetics (including Alpine, openSUSE, Windows 7, NetBSD, Kubuntu, Fedora, Nobara, Bazzite, Kali, RHEL, Rocky, AlmaLinux, NixOS, Manjaro, Android, Void, CachyOS, Garuda, Omarchy, and Parrot Security).
+- **Performance Benchmarks**: Updated benchmarks demonstrating 2.04 ms end-to-end execution (13.2x faster than fastfetch).
+
+### Packaging
+- Synchronized version 0.26.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.25.0] - 2026-10-31
 
 ### Fixed

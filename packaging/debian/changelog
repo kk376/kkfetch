@@ -1,3 +1,9 @@
+kkfetch (0.26.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.26.0: Zero-dependency adaptive ASCII logos, compact variants, and terminal auto-adaptation.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 07 Nov 2026 06:10:00 +0530
+
 kkfetch (0.25.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.25.0: AMD Rembrandt iGPU revision disambiguation via amdgpu.ids and GPU cache auto-migration.
