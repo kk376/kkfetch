@@ -2,38 +2,76 @@
 
 A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
 
+### Standard Full Logo
+
 ```text
-╭─   ~ at 01:36 
+╭─   ~ at 05:50 
 ╰─❯  kkfetch
              .',;::::;,'.                kk376@fedora
          .';:cccccccccccc:;,.            ------------
-      .;cccccccccccccccccccccc;.         OS: Fedora Linux 44 (Workstation Edition) x86_64
+      .;cccccccccccccccccccccc;.         OS: Fedora Linux 45 (Workstation Edition) x86_64
     .:cccccccccccccccccccccccccc:.       Host: Thin A15 B7UCX REV:1.0
-  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.13-200.fc44.x86_64
- .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 15 Oct 2026, 08:58 PM (16 days ago)
-.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 3 hours, 16 mins
-,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 1892 (rpm), 4 (flatpak), 1 (npm)
+  .;ccccccccccccc;.:dddl:.;ccccccc;.     Kernel: 7.2.15-300.fc45.x86_64
+ .:ccccccccccccc;OWMKOOXMWd;ccccccc:.    Installed: 15 Oct 2026, 08:58 PM (23 days ago)
+.:ccccccccccccc;KMMc;cc;xMMc;ccccccc:.   Uptime: 2 hours, 44 mins
+,cccccccccccccc;MMM.;cc;;WW:;cccccccc,   Packages: 1904 (rpm), 6 (flatpak), 1 (npm)
 :cccccccccccccc;MMM.;cccccccccccccccc:   Shell: zsh 5.9
 :ccccccc;oxOOOo;MMM0OOk.;cccccccccccc:   Display (AUOD0A2): 1920x1080 @ 1.25x in 15", 144 Hz [Built-in]
 cccccc;0MMKxdd:;MMMkddc.;cccccccccccc;   WM: Mutter (Wayland)
 ccccc;XM0';cccc;MMM.;cccccccccccccccc'   WM Theme: Adwaita
 ccccc;MMo;ccccc;MMW.;ccccccccccccccc;    Desktop: GNOME 50.6
-ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Terminal: kitty 0.47.1
-cccccc;dNMWXXXWM0:;cccccccccccccc:,      Terminal Font: family="FiraCode Nerd Font" (14pt)
+ccccc;0MNc.ccc.xMMd;ccccccccccccccc;     Terminal: Ghostty 1.4.0-1.fc45
+cccccc;dNMWXXXWM0:;cccccccccccccc:,      Terminal Font: FiraCode Nerd Font (13pt)
 cccccccc;.:odl:.;cccccccccccccc:,.       Theme: Adwaita (dark) [GTK/GNOME]
 :cccccccccccccccccccccccccccc:'.         Icons: Adwaita [GTK/GNOME]
 .:cccccccccccccccccccccc:;,..            Cursor: Adwaita (24px) [GTK/GNOME]
-  '::cccccccccccccc::;,.                 CPU: AMD Ryzen 5 7535HS (6c 12t) @ 2.958GHz [4.60GHz max]
+  '::cccccccccccccc::;,.                 CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.340GHz [4.60GHz max]
                                          GPU0: AMD Radeon 660M (512 MiB) [Integrated]
                                          GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
-                                         Memory: 1.67 GiB / 14.82 GiB (11%)
-                                         Swap: 0.00 GiB / 14.82 GiB (0%) - ZSTD
-                                         Disk0: (/) 27.4 GiB / 474.4 GiB (6%) - btrfs
-                                         Disk1: (/mnt/Backup) 463.9 GiB / 931.5 GiB (50%) - fuseblk
-                                         Battery: 98% [AC Connected]
+                                         Memory: 7.99 GiB / 14.82 GiB (54%)
+                                         Swap: 0.81 GiB / 14.82 GiB (5%) - ZSTD
+                                         Disk0: (/) 112.1 GiB / 474.4 GiB (24%) - btrfs
+                                         Disk1: (/mnt/Backup) 495.2 GiB / 931.5 GiB (53%) - fuseblk
+                                         Battery: 96% [AC Connected]
                                          Local IP (Ethernet): 192.168.29.21/24
                                          ███ ███ ███ ███ ███ ███ ███ ███
                                          ███ ███ ███ ███ ███ ███ ███ ███
+```
+
+### Adaptive Compact Logo
+
+```text
+╭─   ~ at 05:50 
+╰─❯  kkfetch --compact-logo
+        ,'''''.    kk376@fedora
+       |   ,.  |   ------------
+       |  |  '_'   OS: Fedora Linux 45 (Workstation Edition) x86_64
+  ,....|  |..      Host: Thin A15 B7UCX REV:1.0
+.'  ,_;|   ..'     Kernel: 7.2.15-300.fc45.x86_64
+|  |   |  |        Installed: 15 Oct 2026, 08:58 PM (23 days ago)
+|  ',_,'  |        Uptime: 2 hours, 44 mins
+ '.     ,'         Packages: 1904 (rpm), 6 (flatpak), 1 (npm)
+   '''''           Shell: zsh 5.9
+                   Display (AUOD0A2): 1920x1080 @ 1.25x in 15", 144 Hz [Built-in]
+                   WM: Mutter (Wayland)
+                   WM Theme: Adwaita
+                   Desktop: GNOME 50.6
+                   Terminal: Ghostty 1.4.0-1.fc45
+                   Terminal Font: FiraCode Nerd Font (13pt)
+                   Theme: Adwaita (dark) [GTK/GNOME]
+                   Icons: Adwaita [GTK/GNOME]
+                   Cursor: Adwaita (24px) [GTK/GNOME]
+                   CPU: AMD Ryzen 5 7535HS (6c 12t) @ 4.020GHz [4.60GHz max]
+                   GPU0: AMD Radeon 660M (512 MiB) [Integrated]
+                   GPU1: NVIDIA GeForce RTX 2050 (4 GiB) [Discrete]
+                   Memory: 8.00 GiB / 14.82 GiB (54%)
+                   Swap: 0.81 GiB / 14.82 GiB (5%) - ZSTD
+                   Disk0: (/) 112.1 GiB / 474.4 GiB (24%) - btrfs
+                   Disk1: (/mnt/Backup) 495.2 GiB / 931.5 GiB (53%) - fuseblk
+                   Battery: 96% [AC Connected]
+                   Local IP (Ethernet): 192.168.29.21/24
+                   ███ ███ ███ ███ ███ ███ ███ ███
+                   ███ ███ ███ ███ ███ ███ ███ ███
 ```
 
 ---
@@ -42,8 +80,9 @@ cccccccc;.:odl:.;cccccccccccccc:,.       Theme: Adwaita (dark) [GTK/GNOME]
 
 Most fetch tools either spawn multiple shell child processes (`neofetch`) or dynamically link heavy C runtime libraries (`fastfetch`). KKFetch is built with a different design philosophy:
 
-* **Sub-3ms Latency**: Queries virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly with zero child process spawning (`fork`/`execve`). In statistical benchmarks, it is **6.1x faster than Fastfetch** on raw data collection across all 27 active modules.
-* **Native OS Install Date**: Probes root filesystem creation timestamp (`statx` birth time) and installer logs, showing exact installation date and relative age (`6 days ago`).
+* **Sub-2ms Latency (Sub-1ms Internal Engine)**: Queries virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly with zero child process spawning (`fork`/`execve`). In statistical benchmarks, it is **13.2x faster than Fastfetch** end-to-end across all active modules.
+* **Responsive Adaptive ASCII Engine**: Zero-dependency constraint solver dynamically evaluates terminal window geometry and selects between Side-by-Side (Full), Side-by-Side (Compact), Stacked, and Info-Only layouts with zero line-wrapping distortion. Includes an automatic 3-tier ANSI fallback engine (TrueColor -> 256-color -> 16-color ANSI) for Linux TTY consoles and serial terminals.
+* **Native OS Install Date**: Probes root filesystem creation timestamp (`statx` birth time) and installer logs, showing exact installation date and relative age (`23 days ago`).
 * **GPU Memory & Classification**: Probes dedicated VRAM and classifies graphics hardware into `[Integrated]` and `[Discrete]` tiers with sequential indexing.
 * **Zero-Fork Display EDID Parsing**: Probes monitor name, refresh rate, physical diagonal size, and panel type directly from DRM sysfs without spawning `xrandr` or display server queries.
 * **Declarative Configuration & Plugins**: Supports `~/.config/kkfetch/config.toml` and custom executable plugin modules with parallel execution.
@@ -53,15 +92,16 @@ Most fetch tools either spawn multiple shell child processes (`neofetch`) or dyn
 
 ## Benchmarks
 
-Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 44 (Linux 7.2.7-200.fc44.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
+Benchmarked against Fastfetch across **100 iterations** (20 warmup runs) on bare-metal Fedora Linux 45 (Linux 7.2.15-300.fc45.x86_64, AMD Ryzen 5 7535HS with 6 physical cores and 12 threads):
 
 ### Results
 
 | Command | Mean Runtime | Median Latency | Min Latency | Max Latency | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `fastfetch` | `14.56 ms` | `13.26 ms` | `10.74 ms` | `114.27 ms` | `1.00` (Baseline) |
-| `kkfetch` (All 27 Modules) | **`2.37 ms`** | **`2.34 ms`** | **`1.79 ms`** | **`2.93 ms`** | **6.14x faster** |
-| `kkfetch` (Pure sysfs/drm) | **`2.35 ms`** | **`2.32 ms`** | **`1.78 ms`** | **`2.90 ms`** | **6.20x faster** |
+| `fastfetch` | `26.94 ms` | `24.70 ms` | `23.70 ms` | `124.86 ms` | `1.00` (Baseline) |
+| `kkfetch` (Standard Full Logo) | **`2.04 ms`** | **`2.01 ms`** | **`1.73 ms`** | **`2.50 ms`** | **13.21x faster** |
+| `kkfetch` (`--compact-logo`) | **`2.04 ms`** | **`2.03 ms`** | **`1.76 ms`** | **`2.49 ms`** | **13.21x faster** |
+| `kkfetch` (Internal Engine via `--timings`) | **`1.08 ms`** | **`0.77 ms`** | **`0.70 ms`** | **`1.14 ms`** | **Sub-1ms Engine** |
 
 *KKFetch achieves lower CPU time and syscall overhead by reading `/proc` and `sysfs` directly in Rust, executing active module collectors concurrently in parallel using `std::thread::scope`, and compiling with Fat Link-Time Optimization (LTO).*
 
@@ -80,7 +120,7 @@ hyperfine --warmup 20 --runs 100 -N 'kkfetch' 'fastfetch'
 ```
 
 **3. Pure Sysfs / Accelerated Mode Benchmark:**
-Measures the core sub-3ms performance of KKFetch with external bus latency disabled, highlighting zero-fork `/proc`, `sysfs`, and DRM kernel prober throughput against Fastfetch:
+Measures the core sub-2ms performance of KKFetch with external bus latency disabled, highlighting zero-fork `/proc`, `sysfs`, and DRM kernel prober throughput against Fastfetch:
 ```bash
 hyperfine --warmup 20 --runs 100 -N 'kkfetch -d battery' 'fastfetch'
 ```
@@ -89,20 +129,20 @@ hyperfine --warmup 20 --runs 100 -N 'kkfetch -d battery' 'fastfetch'
 
 ## Supported Operating Systems & Logos
 
-KKFetch includes high-contrast ASCII art logos with distro brand signature colors for **31 operating systems, platforms, and mascots**:
+KKFetch includes high-contrast ASCII art logos with distro brand signature colors and adaptive compact variants for **40 operating systems, platforms, and mascots**:
 
 | Family / Ecosystem | Supported Distributions & Targets |
 | :--- | :--- |
-| **Debian / Ubuntu Family** | Ubuntu, Debian, Linux Mint, Pop!_OS, Kali Linux, Zorin OS (6) |
-| **Fedora / Red Hat Family** | Fedora 43, 44, 45, Rawhide, RHEL, Rocky Linux, AlmaLinux (4) |
-| **openSUSE** | openSUSE Tumbleweed, openSUSE Leap 15.6 (1) |
+| **Debian / Ubuntu Family** | Ubuntu, Debian, Kubuntu, Linux Mint, Pop!_OS, Kali Linux, Parrot Security, Zorin OS (8) |
+| **Fedora / Red Hat Family** | Fedora (43, 44, 45, Rawhide), RHEL, Rocky Linux, AlmaLinux, CentOS Stream, Nobara Linux (6) |
+| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux, CachyOS, Garuda Linux, BlackArch, Omarchy (8) |
+| **openSUSE** | openSUSE Tumbleweed, openSUSE Leap 15.6, Slowroll (1) |
 | **NixOS / Nix** | NixOS, Nix Flakes (1) |
 | **Windows** | Windows 11, Windows 10, Windows 7 (native Win32 x86_64) (3) |
-| **Arch Family** | Arch Linux, EndeavourOS, Manjaro, Artix Linux (4) |
 | **macOS** | macOS (Apple Silicon aarch64 & Intel x86_64) (1) |
 | **Android / Mobile** | Android (via Termux aarch64 & x86_64) (1) |
-| **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Vylen Linux, Slackware (5) |
-| **BSD Family & Mascots** | FreeBSD, OpenBSD, NetBSD, Ferris the Rust Crab (`ferris`), Linux Penguin (`tux`) (5) |
+| **Alpine & Independent Linux** | Alpine Linux, Gentoo Linux, Void Linux, Vylen Linux, Bazzite, Slackware (6) |
+| **BSD Family & Mascots** | FreeBSD, OpenBSD, NetBSD, Ferris the Rust Crab (`ferris`), Linux Penguin (`tux` / `generic`) (5) |
 
 ---
 
@@ -263,8 +303,11 @@ sudo cp target/release/kkfetch /usr/local/bin/
 | `-m, --modules <LIST>` | Select and order specific modules (e.g. `os,kernel,cpu,memory`) |
 | `-d, --disable <LIST>` | Disable specific modules from output (e.g. `gpu,disk`) |
 | `-l, --logo <NAME>` | Override ASCII logo (e.g. `arch`, `debian`, `ferris`, `ubuntu`, `fedora`, `tux`, `none`) |
+| `--logo-variant <auto\|full\|compact>` | Select ASCII logo variant: `auto` (adaptive constraint solver), `full`, or `compact` |
+| `--compact-logo` | Force compact ASCII logo layout (alias: `--compact`) |
 | `--no-logo` | Suppress the ASCII logo and print only system telemetry |
 | `--no-color` | Disable ANSI color escapes |
+| `--no-plugins` | Disable external plugin discovery and execution |
 | `--disk-path <PATH>` | Target filesystem path for disk statistics (default: `/`) |
 | `--list-modules` | Print all available information modules and exit |
 | `--json` | Output system information in structured JSON format |
