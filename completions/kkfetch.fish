@@ -80,6 +80,9 @@ set -l logos \
 complete -c kkfetch -s m -l modules -d 'Enable specific modules in order (comma-separated)' -r -a "$modules"
 complete -c kkfetch -s d -l disable -d 'Disable specific modules (comma-separated)' -r -a "$modules"
 complete -c kkfetch -s l -l logo -d 'Override the ASCII logo' -r -a "$logos"
+complete -c kkfetch -l logo-variant -d 'Select ASCII logo variant' -r -a 'auto full compact'
+complete -c kkfetch -l compact-logo -d 'Force compact ASCII logo layout'
+complete -c kkfetch -l compact -d 'Force compact ASCII logo layout (alias)'
 complete -c kkfetch -l disk-path -d 'Target mount point or directory path for disk usage statistics' -r -F
 complete -c kkfetch -l all-disks -d 'Show all mounted filesystems and auxiliary partitions'
 complete -c kkfetch -l no-color -d 'Disable colored ANSI output'

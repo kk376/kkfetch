@@ -2,6 +2,7 @@ use crate::cli::Cli;
 use crate::config::Config;
 use crate::modules::os::{detect_os, OsInfo};
 use crate::modules::ModuleId;
+use crate::output::logo::LogoVariant;
 use std::io::IsTerminal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +30,7 @@ pub struct FetchContext {
     pub active_modules: Vec<ModuleId>,
     pub logo_override: Option<String>,
     pub no_logo: bool,
+    pub logo_variant: LogoVariant,
     pub no_plugins: bool,
     pub uname_info: Option<crate::modules::kernel::UnameInfo>,
     pub theme_info: Option<crate::modules::theme::ThemeInfo>,
@@ -59,6 +61,23 @@ impl FetchContext {
 
         let logo_override = cli.logo.clone().or_else(|| config.logo.clone());
         let no_logo = cli.no_logo || config.no_logo.unwrap_or(false);
+        let logo_variant = if cli.compact_logo {
+            LogoVariant::Compact
+        } else if let Some(ref var_str) = cli.logo_variant {
+            match var_str.to_lowercase().as_str() {
+                "compact" => LogoVariant::Compact,
+                "full" => LogoVariant::Full,
+                _ => LogoVariant::Auto,
+            }
+        } else if let Some(ref cfg_var) = config.logo_variant {
+            match cfg_var.to_lowercase().as_str() {
+                "compact" => LogoVariant::Compact,
+                "full" => LogoVariant::Full,
+                _ => LogoVariant::Auto,
+            }
+        } else {
+            LogoVariant::Auto
+        };
         let no_plugins = cli.no_plugins;
 
         let uname_info = crate::modules::kernel::get_uname_info();
@@ -91,6 +110,7 @@ impl FetchContext {
             active_modules,
             logo_override,
             no_logo,
+            logo_variant,
             no_plugins,
             uname_info,
             theme_info,
@@ -100,14 +120,37 @@ impl FetchContext {
     }
 }
 
-/// Detects terminal column width via direct kernel ioctl TIOCGWINSZ, Win32 console info, or $COLUMNS fallback.
+/// Detects terminal column width via $COLUMNS override, kernel ioctl TIOCGWINSZ across standard streams and /dev/tty, or Win32 console info.
 pub fn get_terminal_width() -> u16 {
+    // Explicit environment variable override takes precedence (e.g. COLUMNS=120 kkfetch)
+    if let Ok(cols) = std::env::var("COLUMNS") {
+        if let Ok(c) = cols.trim().parse::<u16>() {
+            if c > 0 {
+                return c.clamp(20, 1000);
+            }
+        }
+    }
+
     #[cfg(unix)]
-    // SAFETY: libc::ioctl with TIOCGWINSZ safely writes to a zeroed winsize struct and requires a valid file descriptor (STDOUT_FILENO).
+    // SAFETY: libc::ioctl with TIOCGWINSZ safely writes to a zeroed winsize struct and requires a valid file descriptor; libc::open and libc::close are invoked with a null-terminated string and valid file descriptor.
     unsafe {
         let mut ws: libc::winsize = std::mem::zeroed();
-        if libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut ws) == 0 && ws.ws_col > 0 {
-            return ws.ws_col;
+        for &fd in &[libc::STDOUT_FILENO, libc::STDERR_FILENO, libc::STDIN_FILENO] {
+            if libc::ioctl(fd, libc::TIOCGWINSZ, &mut ws) == 0 && ws.ws_col > 0 {
+                return ws.ws_col.clamp(20, 1000);
+            }
+        }
+
+        let tty_fd = libc::open(
+            b"/dev/tty\0".as_ptr() as *const libc::c_char,
+            libc::O_RDONLY,
+        );
+        if tty_fd >= 0 {
+            let res = libc::ioctl(tty_fd, libc::TIOCGWINSZ, &mut ws);
+            libc::close(tty_fd);
+            if res == 0 && ws.ws_col > 0 {
+                return ws.ws_col.clamp(20, 1000);
+            }
         }
     }
 
@@ -146,16 +189,7 @@ pub fn get_terminal_width() -> u16 {
         if GetConsoleScreenBufferInfo(handle, &mut csbi) != 0 {
             let width = csbi.sr_window.right - csbi.sr_window.left + 1;
             if width > 0 {
-                return width as u16;
-            }
-        }
-    }
-
-    // Fallback when stdout is redirected into a pipe or subshell without a tty fd
-    if let Ok(cols) = std::env::var("COLUMNS") {
-        if let Ok(c) = cols.trim().parse::<u16>() {
-            if c > 0 {
-                return c;
+                return (width as u16).clamp(20, 1000);
             }
         }
     }
@@ -204,6 +238,13 @@ pub fn detect_color_level(no_color_flag: bool) -> ColorLevel {
         }
         if term_lower.contains("256color") {
             return ColorLevel::Color256;
+        }
+        if term_lower == "linux"
+            || term_lower.starts_with("vt100")
+            || term_lower.starts_with("vt220")
+            || term_lower == "ansi"
+        {
+            return ColorLevel::Basic16;
         }
     }
 
@@ -426,5 +467,44 @@ mod tests {
 
         let active = resolve_active_modules(&cli, &config);
         assert_eq!(active, vec![ModuleId::Os]);
+    }
+
+    #[test]
+    fn test_fetch_context_logo_variant_resolution() {
+        // Default is Auto
+        let cli = Cli::default();
+        let config = Config::default();
+        let ctx = FetchContext::with_config(&cli, config);
+        assert_eq!(ctx.logo_variant, LogoVariant::Auto);
+
+        // CLI --compact-logo flag takes priority
+        let cli_compact_flag = Cli {
+            compact_logo: true,
+            ..Default::default()
+        };
+        let ctx_flag = FetchContext::with_config(&cli_compact_flag, Config::default());
+        assert_eq!(ctx_flag.logo_variant, LogoVariant::Compact);
+
+        // CLI --logo-variant full
+        let cli_full = Cli {
+            logo_variant: Some("full".to_string()),
+            ..Default::default()
+        };
+        let ctx_full = FetchContext::with_config(&cli_full, Config::default());
+        assert_eq!(ctx_full.logo_variant, LogoVariant::Full);
+
+        // Config fallback when CLI is default
+        let config_compact = Config {
+            logo_variant: Some("compact".to_string()),
+            ..Default::default()
+        };
+        let ctx_cfg = FetchContext::with_config(&Cli::default(), config_compact);
+        assert_eq!(ctx_cfg.logo_variant, LogoVariant::Compact);
+    }
+
+    #[test]
+    fn test_get_terminal_width_bounds() {
+        let width = get_terminal_width();
+        assert!((20..=1000).contains(&width));
     }
 }

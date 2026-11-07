@@ -29,6 +29,14 @@ pub struct Cli {
     #[arg(short = 'l', long = "logo")]
     pub logo: Option<String>,
 
+    /// Select ASCII logo variant: "auto", "full", or "compact" (default: "auto")
+    #[arg(long = "logo-variant", value_name = "VARIANT")]
+    pub logo_variant: Option<String>,
+
+    /// Force compact ASCII logo layout (alias for --logo-variant=compact)
+    #[arg(long = "compact-logo", alias = "compact")]
+    pub compact_logo: bool,
+
     /// Do not display any ASCII logo
     #[arg(long = "no-logo")]
     pub no_logo: bool,

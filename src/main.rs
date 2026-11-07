@@ -3,7 +3,7 @@ use clap::Parser;
 use kkfetch::cli::Cli;
 use kkfetch::context::FetchContext;
 use kkfetch::modules::{ModuleId, ModuleRegistry};
-use kkfetch::output::formatter::{render_json, render_layout, render_timings_grid};
+use kkfetch::output::formatter::{render_adaptive_layout, render_json, render_timings_grid};
 use kkfetch::output::logo::match_logo;
 
 fn main() {
@@ -60,8 +60,14 @@ fn main() {
         )
     };
 
-    // Format side-by-side or stacked layout depending on terminal column width
-    let rendered = render_layout(logo, &outputs, ctx.term_width, ctx.enable_color);
+    // Format side-by-side or stacked layout adaptively depending on terminal column width, capabilities, and variant
+    let rendered = render_adaptive_layout(
+        logo,
+        &outputs,
+        ctx.term_width,
+        ctx.caps.color_level,
+        Some(ctx.logo_variant),
+    );
     if !rendered.is_empty() {
         println!("{}", rendered);
     }
