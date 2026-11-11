@@ -2,9 +2,17 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -40,6 +48,8 @@ jobs:
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ubuntu-cargo
 
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
@@ -56,6 +66,8 @@ jobs:
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ubuntu-cargo
 
       - name: Run tests
         run: cargo test --all-targets --all-features
@@ -73,6 +85,8 @@ jobs:
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ubuntu-cargo
 
       - name: Build release binary
         run: cargo build --release --bin kkfetch
@@ -101,6 +115,8 @@ jobs:
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ${{ matrix.os }}-cargo
 
       - name: Check targets
         run: cargo check --all-targets
