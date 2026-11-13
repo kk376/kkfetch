@@ -174,7 +174,7 @@ pub fn get_terminal_width() -> u16 {
             sr_window: SmallRect,
             dw_maximum_window_size: Coord,
         }
-        extern "system" {
+        unsafe extern "system" {
             fn GetStdHandle(n_std_handle: u32) -> isize;
             fn GetConsoleScreenBufferInfo(
                 h_console_output: isize,
