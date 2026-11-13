@@ -9,8 +9,8 @@ Source0:        https://github.com/kk376/kkfetch/archive/refs/tags/v%{version}.t
 Source1:        vendor.tar.zst
 ExclusiveArch:  x86_64 aarch64
 
-BuildRequires:  cargo >= 1.75.0
-BuildRequires:  rust >= 1.75.0
+BuildRequires:  cargo >= 1.85.0
+BuildRequires:  rust >= 1.85.0
 BuildRequires:  zstd
 BuildRequires:  gcc
 

@@ -8,7 +8,7 @@ KKFetch is maintained by **Kushagra Kumar (kk376)**.
 
 ## Prerequisites
 
-- Rust 1.75.0 or later (standard toolchain via `rustup`)
+- Rust Edition 2024 / Rust 1.85.0 or later (standard toolchain via `rustup`)
 - Standard C library headers (`libc`)
 - Optional packaging utilities: `cargo-deb`, `cargo-generate-rpm`, `zstd`
 

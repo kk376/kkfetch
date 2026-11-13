@@ -735,7 +735,7 @@ tempfile = "3.10"
 - Using `split_once(':')`, `split_once('=')`, and standard slice iterators avoids all dependencies, compiles instantly, and processes files in microseconds.
 
 ### Minimum Supported Rust Version (MSRV)
-- **Target**: Rust 1.75.0+
+- **Target**: Rust Edition 2024 (Rust 1.85.0+)
 - Allows standard library `std::io::IsTerminal` without external helper crates.
 
 ---
