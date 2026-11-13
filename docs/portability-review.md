@@ -128,6 +128,7 @@ KKFetch uses direct file parsing for package managers that maintain plain-text m
 ### Disk Usage
 - **Mechanism**: Calls POSIX `libc::statvfs` directly.
 - **Calculations**: Computes total, free, and used capacity using `f_frsize` (or `f_bsize`) and block counts.
+- **Filtering**: Filters `/dev/loop*` and `/dev/ram*` block devices and container mounts (`/var/lib/docker`, `/var/lib/containers`, `/var/lib/flatpak`, `/var/lib/waydroid`) before calling `statvfs` to avoid polluting telemetry with virtual container rootfs and loopback images.
 - **Safety**: Rejects invalid paths containing null bytes or non-existent mount points, returning `None` instead of panicking.
 
 ---

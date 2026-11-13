@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Virtual Loop and Waydroid Mount Filtering (`Disk`)**: Filtered out virtual loop devices (`/dev/loop*`), RAM block devices (`/dev/ram*`), and `/var/lib/waydroid` mount paths from physical disk discovery. Eliminates container overlays and Android rootfs/vendor image mounts from polluting the host disk list.
+- **Clippy Lint Cleanliness**: Simplified boolean return guard in `src/context.rs` to satisfy `clippy::needless_bool` under modern Rust stable toolchains.
+
+### Documentation
+- **Disk Module & CLI Options**: Documented `--all-disks` (`--disk-all`) in the CLI flags table and updated architecture documentation with virtual loop and container mount filtering behavior.
+
 ## [0.26.0] - 2026-11-07
 
 ### Added
