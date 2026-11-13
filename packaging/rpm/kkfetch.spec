@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.26.0
+Version:        0.26.1
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -72,6 +72,9 @@ if [ -n "$SUDO_USER" ]; then
 fi
 
 %changelog
+* Fri Nov 13 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.26.1-1
+- Release version 0.26.1: Virtual loop & Waydroid container mount filtering, clippy lint fixes, and CI timeouts
+
 * Sat Nov 07 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.26.0-1
 - Release version 0.26.0: Zero-dependency adaptive ASCII logos, compact variants, and terminal auto-adaptation
 

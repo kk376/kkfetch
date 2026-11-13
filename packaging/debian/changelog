@@ -1,3 +1,9 @@
+kkfetch (0.26.1-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.26.1: Virtual loop & Waydroid container mount filtering, clippy lint cleanup, and CI timeouts.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 13 Nov 2026 13:40:00 +0530
+
 kkfetch (0.26.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.26.0: Zero-dependency adaptive ASCII logos, compact variants, and terminal auto-adaptation.
