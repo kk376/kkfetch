@@ -201,6 +201,7 @@ const IGNORED_MOUNT_PREFIXES: &[&str] = &[
     "/var/lib/docker",
     "/var/lib/containers",
     "/var/lib/flatpak",
+    "/var/lib/waydroid",
     "/snap",
     "/apex",
     "/bootstrap-apex",
@@ -412,6 +413,11 @@ where
 
         // Ignore kernel pseudo-filesystems (proc, sysfs, tmpfs, cgroups)
         if IGNORED_FS_TYPES.contains(&fs_type) {
+            continue;
+        }
+
+        // Ignore virtual loop and ram block devices (e.g. /dev/loop0, /dev/ram0)
+        if device.starts_with("/dev/loop") || device.starts_with("/dev/ram") {
             continue;
         }
 
@@ -823,5 +829,29 @@ mod tests {
         assert!(all_mount_points.contains(&"/boot"));
         assert!(all_mount_points.contains(&"/boot/efi"));
         assert!(all_mount_points.contains(&"/home"));
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn test_loop_and_waydroid_mounts_filtered() {
+        let sample = "\
+/dev/nvme0n1p3 / btrfs rw,subvolid=256,subvol=/root 0 0
+/dev/sda1 /mnt/Backup fuseblk rw 0 0
+/dev/loop0 /var/lib/waydroid/rootfs ext4 ro 0 0
+/dev/loop1 /var/lib/waydroid/rootfs/vendor ext4 ro 0 0
+/dev/loop2 /mnt/iso ext4 ro 0 0
+overlay /var/lib/waydroid/rootfs overlay ro 0 0
+";
+        let mock_usage = |_path: &str| {
+            Some(DiskUsage {
+                total_bytes: 100 * 1024 * 1024 * 1024,
+                used_bytes: 20 * 1024 * 1024 * 1024,
+                free_bytes: 80 * 1024 * 1024 * 1024,
+                percentage: 20,
+            })
+        };
+        let disks = get_all_disks_with_usage(sample, false, mock_usage);
+        let mount_points: Vec<&str> = disks.iter().map(|d| d.mount_point.as_str()).collect();
+        assert_eq!(mount_points, vec!["/", "/mnt/Backup"]);
     }
 }
