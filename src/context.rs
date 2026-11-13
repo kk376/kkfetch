@@ -302,15 +302,10 @@ pub fn detect_nerd_font_support() -> bool {
     }
 
     // Starship / Oh-My-Posh / Powerlevel10k indicators
-    if std::env::var_os("STARSHIP_SHELL").is_some()
+    std::env::var_os("STARSHIP_SHELL").is_some()
         || std::env::var_os("STARSHIP_SESSION_KEY").is_some()
         || std::env::var_os("POSH_THEME").is_some()
         || std::env::var_os("P9K_SSH").is_some()
-    {
-        return true;
-    }
-
-    false
 }
 
 /// Aggregates all probed terminal capabilities into a single capability descriptor.

@@ -309,6 +309,7 @@ sudo cp target/release/kkfetch /usr/local/bin/
 | `--no-color` | Disable ANSI color escapes |
 | `--no-plugins` | Disable external plugin discovery and execution |
 | `--disk-path <PATH>` | Target filesystem path for disk statistics (default: `/`) |
+| `--all-disks` | Show all mounted physical filesystems (alias: `--disk-all`) |
 | `--list-modules` | Print all available information modules and exit |
 | `--json` | Output system information in structured JSON format |
 | `--timings` | Show execution latency breakdown per module in microseconds |
@@ -390,7 +391,7 @@ rm -f ~/.cargo/bin/kkfetch
 | **GPU** | Sysfs PCI class scan (`0x03xxxx`), local `pci.ids` lookup, VRAM calculation | `lspci -mm` query |
 | **Memory** | `/proc/meminfo` active memory calculation (`MemTotal - MemAvailable`) | Traditional buffer/cache calculation |
 | **Swap** | `/proc/meminfo` swap statistics and ZRAM algorithm detection | Omitted if swap is 0 |
-| **Disk** | Sequential filesystem partition discovery via `statvfs` (NTFS mapping on WSL) | Target mount path |
+| **Disk** | Sequential filesystem partition discovery via `statvfs` with virtual loop, ram, and container mount filtering (NTFS mapping on WSL) | Target mount path / All mounted disks |
 | **Battery** | Direct `/sys/class/power_supply` capacity and charging status | Omitted if AC-only desktop |
 | **Local IP** | POSIX `getifaddrs` active interface address enumeration | Omitted if offline |
 | **Theme** | GTK 3/4 `settings.ini`, KDE `kdeglobals`, XFCE `xsettings.xml`, `$GTK_THEME` | Omitted if not configured |

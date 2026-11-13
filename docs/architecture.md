@@ -321,6 +321,13 @@ pub fn get_disk_usage(path: &str) -> Option<DiskUsage> {
 
 Format: `32.4 GiB / 250.0 GiB (13%)`
 
+#### Multi-Disk Discovery & Filtering Pipeline
+When discovering mounted disks (via `/proc/mounts` or `mounts` table), `kkfetch` filters out pseudo and virtual filesystems to report only meaningful physical partitions:
+1. **Virtual Block Devices**: Ignores `/dev/loop*` and `/dev/ram*` devices (e.g. Waydroid image mounts, snap squashfs images, mounted ISOs) before calling `statvfs` to avoid redundant syscall overhead.
+2. **Container & Sandbox Mount Prefixes**: Filters `/var/lib/docker`, `/var/lib/containers`, `/var/lib/flatpak`, `/var/lib/waydroid`, `/snap`, `/apex`, and temporary runtime directories.
+3. **Pseudo Filesystems**: Skips `tmpfs`, `devtmpfs`, `sysfs`, `proc`, `cgroup`, `overlay`, `squashfs`, and RPC mounts.
+4. **Subvolume Deduplication**: Deduplicates multiple Btrfs subvolumes on identical root backing devices unless `--all-disks` (`--disk-all`) is specified.
+
 ---
 
 ### 2.8 Shell Detection
