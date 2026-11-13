@@ -22,6 +22,7 @@ jobs:
   fmt:
     name: Code Formatting
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,6 +38,7 @@ jobs:
   clippy:
     name: Clippy Linter
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,6 +59,7 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -75,6 +78,7 @@ jobs:
   build:
     name: Release Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [fmt, clippy, test]
     steps:
       - name: Checkout repository
@@ -102,6 +106,7 @@ jobs:
   cross-platform:
     name: Cross-Platform Check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -124,6 +129,7 @@ jobs:
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
