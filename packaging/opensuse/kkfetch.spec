@@ -9,8 +9,13 @@ Source0:        https://github.com/kk376/kkfetch/archive/refs/tags/v%{version}.t
 Source1:        vendor.tar.zst
 ExclusiveArch:  x86_64 aarch64
 
+%if 0%{?suse_version} < 1600
+BuildRequires:  cargo >= 1.75.0
+BuildRequires:  rust >= 1.75.0
+%else
 BuildRequires:  cargo >= 1.85.0
 BuildRequires:  rust >= 1.85.0
+%endif
 BuildRequires:  zstd
 BuildRequires:  gcc
 
@@ -24,8 +29,12 @@ them cleanly alongside colorful ANSI distribution ASCII logos.
 %prep
 %autosetup -n %{name}-%{version}
 tar -I zstd -xf %{SOURCE1}
-sed -i 's/version = "1.1.0"/version = "1.0.0"/' Cargo.lock
-sed -i 's/c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9/3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831/' Cargo.lock
+%if 0%{?suse_version} < 1600
+sed -i -e 's/edition = "2024"/edition = "2021"/' -e '/rust-version/d' Cargo.toml
+sed -i 's|c"/dev/tty".as_ptr()|b"/dev/tty\\0".as_ptr() as *const libc::c_char|g' src/context.rs || true
+sed -i 's/^version = 4$/version = 3/' Cargo.lock
+find vendor -name Cargo.toml -exec sed -i -e 's/edition = "2024"/edition = "2021"/' -e '/rust-version/d' {} +
+%endif
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [source.crates-io]

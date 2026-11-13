@@ -141,7 +141,11 @@ pub fn get_terminal_width() -> u16 {
             }
         }
 
-        let tty_fd = libc::open(c"/dev/tty".as_ptr(), libc::O_RDONLY);
+        #[allow(clippy::manual_c_str_literals)]
+        let tty_fd = libc::open(
+            b"/dev/tty\0".as_ptr() as *const libc::c_char,
+            libc::O_RDONLY,
+        );
         if tty_fd >= 0 {
             let res = libc::ioctl(tty_fd, libc::TIOCGWINSZ, &mut ws);
             libc::close(tty_fd);

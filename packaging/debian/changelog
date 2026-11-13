@@ -1,3 +1,15 @@
+kkfetch (0.27.0-1~ppa3~noble) noble; urgency=medium
+
+  * Downgrade Cargo.lock format version to 3 for Cargo 1.75 LTS compatibility.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 13 Nov 2026 22:45:00 +0530
+
+kkfetch (0.27.0-1~ppa2~noble) noble; urgency=medium
+
+  * Rebuild for Ubuntu Noble LTS with Edition 2021 manifest compatibility.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 13 Nov 2026 22:30:00 +0530
+
 kkfetch (0.27.0-1~ppa1~noble) noble; urgency=medium
 
   * Release version 0.27.0: Migration to Rust Edition 2024 and packaging sync.
