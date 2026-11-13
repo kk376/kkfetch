@@ -6,7 +6,7 @@ This document presents an independent code and quality audit of the KKFetch repo
 
 1. **Correctness and robustness**: Checked for panics, unwrap on untrusted data, division-by-zero, integer overflow, out-of-bounds indexing, and edge-case handling across empty or corrupted inputs.
 2. **Portability**: Evaluated compatibility across Debian, Red Hat, Arch, Alpine, Void, openSUSE distributions, WSL2, and headless/container environments.
-3. **Rust idioms and code quality**: Verified Rust 2021 idioms, safe `libc` bindings, memory allocation efficiency, and compiler/clippy clean status.
+3. **Rust idioms and code quality**: Verified Rust 2024 idioms, safe `libc` bindings, memory allocation efficiency, and compiler/clippy clean status.
 4. **Security**: Checked for shell injection risks, privilege escalation, path traversal, and environment variable leaks.
 5. **Architecture and CLI UX**: Evaluated flag conformance (`-m`, `-d`, `--no-color`, `--no-logo`, `--list-modules`, `--disk-path`, `-h`, `-V`), non-TTY redirection, and responsive formatting.
 6. **Documentation and testing**: Reviewed `README.md`, architectural documentation, humanizer writing standards, and test fixture coverage.

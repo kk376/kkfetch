@@ -6,7 +6,7 @@
 //! distribution brand signature color emblems (`{c}`).
 
 use crate::context::ColorLevel;
-use crate::output::color::{resolve_color, RESET};
+use crate::output::color::{RESET, resolve_color};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LogoVariant {
@@ -1848,8 +1848,10 @@ pub mod tests {
         let rendered_basic16 = debian.render_variant_lines(LogoVariant::Full, ColorLevel::Basic16);
         // Debian distro_color is 196 (red). On basic16, it degrades to \x1b[91m or \x1b[31m, never \x1b[38;5;
         assert!(!rendered_basic16.iter().any(|l| l.contains("\x1b[38;5;")));
-        assert!(rendered_basic16
-            .iter()
-            .any(|l| l.contains("\x1b[91m") || l.contains("\x1b[31m")));
+        assert!(
+            rendered_basic16
+                .iter()
+                .any(|l| l.contains("\x1b[91m") || l.contains("\x1b[31m"))
+        );
     }
 }

@@ -713,8 +713,8 @@ Primary Color: Yellow (`\x1b[38;5;220m`), Accent: White (`\x1b[37m`)
 [package]
 name = "kkfetch"
 version = "0.8.6"
-edition = "2021"
-rust-version = "1.75.0"
+edition = "2024"
+rust-version = "1.85.0"
 
 [dependencies]
 # CLI parsing

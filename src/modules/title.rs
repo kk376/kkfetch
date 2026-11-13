@@ -34,11 +34,7 @@ pub fn get_username() -> String {
         let buf_size = {
             // SAFETY: sysconf is safe to invoke with valid constant _SC_GETPW_R_SIZE_MAX.
             let s = unsafe { libc::sysconf(libc::_SC_GETPW_R_SIZE_MAX) };
-            if s > 0 {
-                s as usize
-            } else {
-                1024
-            }
+            if s > 0 { s as usize } else { 1024 }
         };
         let mut buf = vec![0 as libc::c_char; buf_size];
 
