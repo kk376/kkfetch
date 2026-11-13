@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-11-13
+
+### Changed
+- **Rust Edition 2024**: Migrated codebase and toolchain to Rust Edition 2024 with MSRV 1.85.0. Modernized C-string FFI pointers to compile-time `c"..."` literals, marked FFI blocks as `unsafe extern "system"` to satisfy RFC 3484, and applied Style Edition 2024 idioms.
+
+### Documentation
+- Updated project documentation, architecture guides, and packaging specifications across all distributions to reflect Rust Edition 2024 and MSRV 1.85.0.
+
+### Packaging
+- Synchronized version 0.27.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.26.1] - 2026-11-13
 
 ### Fixed
