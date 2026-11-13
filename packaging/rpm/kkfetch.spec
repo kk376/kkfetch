@@ -9,8 +9,8 @@ License:        MIT OR Apache-2.0
 URL:            https://github.com/kk376/kkfetch
 Source0:        https://github.com/kk376/kkfetch/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
-BuildRequires:  cargo >= 1.75.0
-BuildRequires:  rust >= 1.75.0
+BuildRequires:  cargo >= 1.85.0
+BuildRequires:  rust >= 1.85.0
 BuildRequires:  gcc
 
 %description

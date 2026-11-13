@@ -38,11 +38,7 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
     let size_inches = if w_cm > 0.0 && h_cm > 0.0 {
         let diag_cm = (w_cm * w_cm + h_cm * h_cm).sqrt();
         let inches = (diag_cm / 2.54).round() as u32;
-        if inches > 0 {
-            Some(inches)
-        } else {
-            None
-        }
+        if inches > 0 { Some(inches) } else { None }
     } else {
         None
     };
@@ -628,11 +624,7 @@ pub fn parse_hyprland_monitors(json: &str) -> Vec<DisplayInfo> {
             (Some(w_mm), Some(h_mm)) if w_mm > 0.0 && h_mm > 0.0 => {
                 let diag = (w_mm * w_mm + h_mm * h_mm).sqrt();
                 let inches = (diag / 25.4).round() as u32;
-                if inches > 0 {
-                    Some(inches)
-                } else {
-                    None
-                }
+                if inches > 0 { Some(inches) } else { None }
             }
             _ => None,
         };

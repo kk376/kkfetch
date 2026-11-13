@@ -1279,11 +1279,7 @@ pub fn parse_cached_gpu_list(content: &str, expected_fingerprint: &str) -> Optio
         .map(|l| l.trim().to_string())
         .filter(|l| !l.is_empty())
         .collect();
-    if list.is_empty() {
-        None
-    } else {
-        Some(list)
-    }
+    if list.is_empty() { None } else { Some(list) }
 }
 
 #[cfg(not(windows))]

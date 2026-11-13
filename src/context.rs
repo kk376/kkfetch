@@ -1,7 +1,7 @@
 use crate::cli::Cli;
 use crate::config::Config;
-use crate::modules::os::{detect_os, OsInfo};
 use crate::modules::ModuleId;
+use crate::modules::os::{OsInfo, detect_os};
 use crate::output::logo::LogoVariant;
 use std::io::IsTerminal;
 
@@ -141,10 +141,7 @@ pub fn get_terminal_width() -> u16 {
             }
         }
 
-        let tty_fd = libc::open(
-            b"/dev/tty\0".as_ptr() as *const libc::c_char,
-            libc::O_RDONLY,
-        );
+        let tty_fd = libc::open(c"/dev/tty".as_ptr(), libc::O_RDONLY);
         if tty_fd >= 0 {
             let res = libc::ioctl(tty_fd, libc::TIOCGWINSZ, &mut ws);
             libc::close(tty_fd);
@@ -177,7 +174,7 @@ pub fn get_terminal_width() -> u16 {
             sr_window: SmallRect,
             dw_maximum_window_size: Coord,
         }
-        extern "system" {
+        unsafe extern "system" {
             fn GetStdHandle(n_std_handle: u32) -> isize;
             fn GetConsoleScreenBufferInfo(
                 h_console_output: isize,

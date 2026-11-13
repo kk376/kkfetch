@@ -63,7 +63,7 @@ pub mod ffi {
 
     #[allow(non_snake_case)]
     #[link(name = "advapi32")]
-    extern "system" {
+    unsafe extern "system" {
         pub fn RegOpenKeyExW(
             hKey: isize,
             lpSubKey: *const u16,
@@ -111,7 +111,7 @@ pub mod ffi {
     }
 
     #[link(name = "kernel32")]
-    extern "system" {
+    unsafe extern "system" {
         pub fn GetTickCount64() -> u64;
         pub fn GlobalMemoryStatusEx(lpBuffer: *mut MEMORYSTATUSEX) -> i32;
         pub fn GetDiskFreeSpaceExW(

@@ -356,11 +356,7 @@ pub fn count_nix() -> Option<usize> {
         }
     }
 
-    if total > 0 {
-        Some(total)
-    } else {
-        None
-    }
+    if total > 0 { Some(total) } else { None }
 }
 
 /// Counts installed packages in active Guix profile without running guix package.
@@ -376,11 +372,7 @@ pub fn count_guix() -> Option<usize> {
         }
     }
 
-    if total > 0 {
-        Some(total)
-    } else {
-        None
-    }
+    if total > 0 { Some(total) } else { None }
 }
 
 /// Counts installed packages for FreeBSD, OpenBSD, and NetBSD.
@@ -440,11 +432,7 @@ fn count_subdirs_not_hidden(path: &Path) -> usize {
 /// Counts installed Flatpak applications from specified system and user paths.
 pub fn count_flatpak_from_dirs(sys_path: &Path, user_path: &Path) -> Option<usize> {
     let total = count_subdirs_not_hidden(sys_path) + count_subdirs_not_hidden(user_path);
-    if total > 0 {
-        Some(total)
-    } else {
-        None
-    }
+    if total > 0 { Some(total) } else { None }
 }
 
 /// Counts installed Flatpak applications (system and user level).
@@ -627,11 +615,7 @@ pub fn count_scoop() -> Option<usize> {
 /// Counts installed Chocolatey packages from lib directory.
 pub fn count_choco_from_dir(lib_path: &Path) -> Option<usize> {
     let count = count_subdirs_not_hidden(lib_path);
-    if count > 0 {
-        Some(count)
-    } else {
-        None
-    }
+    if count > 0 { Some(count) } else { None }
 }
 
 /// Counts installed Chocolatey packages.

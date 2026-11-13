@@ -285,7 +285,7 @@ sudo ./install.sh
 
 ### Build from Source
 
-Requires Rust 1.75.0+ and `gcc`.
+Requires Rust Edition 2024 (1.85.0+) and `gcc`.
 
 ```bash
 git clone https://github.com/kk376/kkfetch.git

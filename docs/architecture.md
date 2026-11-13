@@ -713,8 +713,8 @@ Primary Color: Yellow (`\x1b[38;5;220m`), Accent: White (`\x1b[37m`)
 [package]
 name = "kkfetch"
 version = "0.8.6"
-edition = "2021"
-rust-version = "1.75.0"
+edition = "2024"
+rust-version = "1.85.0"
 
 [dependencies]
 # CLI parsing
@@ -735,7 +735,7 @@ tempfile = "3.10"
 - Using `split_once(':')`, `split_once('=')`, and standard slice iterators avoids all dependencies, compiles instantly, and processes files in microseconds.
 
 ### Minimum Supported Rust Version (MSRV)
-- **Target**: Rust 1.75.0+
+- **Target**: Rust Edition 2024 (Rust 1.85.0+)
 - Allows standard library `std::io::IsTerminal` without external helper crates.
 
 ---

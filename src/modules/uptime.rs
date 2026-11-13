@@ -103,11 +103,7 @@ pub fn get_uptime() -> Option<u64> {
     // SAFETY: GetTickCount64 is a safe Windows API call that returns a u64 millisecond counter.
     unsafe {
         let ms = crate::modules::win_util::ffi::GetTickCount64();
-        if ms > 0 {
-            Some(ms / 1000)
-        } else {
-            None
-        }
+        if ms > 0 { Some(ms / 1000) } else { None }
     }
 }
 
