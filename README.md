@@ -1,5 +1,8 @@
 # KKFetch
 
+[![Crates.io Version](https://img.shields.io/crates/v/kkfetch)](https://crates.io/crates/kkfetch)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+
 A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
 
 ### Standard Full Logo
@@ -147,6 +150,14 @@ KKFetch includes high-contrast ASCII art logos with distro brand signature color
 ---
 
 ## Installation
+
+### Via Cargo (Universal)
+
+Available directly on [crates.io](https://crates.io/crates/kkfetch):
+
+```bash
+cargo install kkfetch
+```
 
 ### Ubuntu / Debian / Linux Mint / Pop!_OS
 
