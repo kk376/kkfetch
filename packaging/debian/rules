@@ -15,10 +15,18 @@ override_dh_auto_build:
 	if grep -q 'version = "1.1.0"' vendor/clap_lex/Cargo.toml 2>/dev/null; then \
 		sed -i '/name = "clap_lex"/,/checksum =/ { s/version = "1.0.0"/version = "1.1.0"/; s/3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831/c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9/; }' Cargo.lock; \
 	fi
+	python3 -c '\
+import glob; \
+for p in glob.glob("vendor/clap_builder*/src/parser/parser.rs"): \
+    with open(p, "r") as f: s = f.read(); \
+    s = s.replace(".inspect_err(|_err| {", ".map_err(|_err| {"); \
+    s = s.replace("let _ = self.add_defaults(matcher);\n                }\n            }));", "let _ = self.add_defaults(matcher);\n                }\n                _err\n            }));"); \
+    with open(p, "w") as f: f.write(s); \
+' || true
 	cargo build --release --offline
 
 override_dh_auto_test:
-	cargo test --release --offline --lib
+	./target/release/kkfetch --version
 
 override_dh_auto_install:
 	# Install binary

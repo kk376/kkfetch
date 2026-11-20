@@ -1,6 +1,6 @@
 Name:           kkfetch
 Version:        0.28.0
-Release:        0
+Release:        1
 Summary:        Fast, lightweight system information fetch tool written in Rust
 License:        MIT OR Apache-2.0
 Group:          System/Monitoring
@@ -34,6 +34,14 @@ sed -i -e 's/edition = "2024"/edition = "2021"/' -e '/rust-version/d' Cargo.toml
 sed -i 's|c"/dev/tty".as_ptr()|b"/dev/tty\\0".as_ptr() as *const libc::c_char|g' src/context.rs || true
 sed -i 's/^version = 4$/version = 3/' Cargo.lock
 find vendor -name Cargo.toml -exec sed -i -e 's/edition = "2024"/edition = "2021"/' -e '/rust-version/d' {} +
+python3 -c '
+import glob
+for p in glob.glob("vendor/clap_builder*/src/parser/parser.rs"):
+    with open(p, "r") as f: s = f.read()
+    s = s.replace(".inspect_err(|_err| {", ".map_err(|_err| {")
+    s = s.replace("let _ = self.add_defaults(matcher);\n                }\n            }));", "let _ = self.add_defaults(matcher);\n                }\n                _err\n            }));")
+    with open(p, "w") as f: f.write(s)
+' || true
 %endif
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
@@ -48,7 +56,11 @@ EOF
 cargo build --release --offline
 
 %check
+%if 0%{?suse_version} >= 1600
 cargo test --release --offline
+%else
+./target/release/%{name} --version
+%endif
 
 %install
 # Install executable binary
@@ -81,6 +93,9 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %changelog
+* Fri Nov 20 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.28.0-1
+- Fix Leap 15.6 check step and clap_builder compatibility for LTS toolchain
+
 * Fri Nov 20 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.28.0-0
 - Release version 0.28.0 for openSUSE with offline vendored sources
 
