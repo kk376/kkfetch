@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-11-20
+
+### Changed
+- **Dependency Modernization**: Unfroze `clap` (`4.6.9`), `assert_cmd` (`2.2.2`), `predicates` (`3.1.4`), and `tempfile` (`3.27.0`) to active upstream releases. Pruned dead `clap_complete` from `[dev-dependencies]`. Deduplicated sub-dependencies in `Cargo.lock` by eliminating redundant `syn` and older `windows-sys` dependency trees.
+- **Manifest Hygiene**: Removed redundant `homepage` field in `Cargo.toml` matching `repository`.
+
+### CI & Toolchain
+- **Automated MSRV Verification**: Added continuous integration verification job enforcing Rust 1.85.0 MSRV compatibility on every pull request and push to `main`.
+- **Security Audit**: Upgraded `rustsec/audit-check` GitHub Actions step to `@v2.0.0`.
+
+### Packaging
+- **Repository Cleanliness**: Removed 3.8 MB of stale, tracked v0.11.7 prebuilt binary artifacts under `releases/` (all releases are now dynamically generated and uploaded to GitHub Releases). Removed obsolete Winget documentation.
+- **Distribution Parity**: Synchronized version 0.28.0 across Cargo, RPM, openSUSE OBS, Debian changelog, Arch Linux PKGBUILD, KISS Linux, Nix, Gentoo ebuild, Alpine APKBUILD, Void template, Homebrew formula, and Scoop manifest.
+
 ## [0.27.0] - 2026-11-13
 
 ### Changed

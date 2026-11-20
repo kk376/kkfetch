@@ -1,3 +1,9 @@
+kkfetch (0.28.0-1~ppa1~noble) noble; urgency=medium
+
+  * Release version 0.28.0: Dependency unfreezing, MSRV CI verification, and packaging sync.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Fri, 20 Nov 2026 20:30:00 +0530
+
 kkfetch (0.27.0-1~ppa3~noble) noble; urgency=medium
 
   * Downgrade Cargo.lock format version to 3 for Cargo 1.75 LTS compatibility.

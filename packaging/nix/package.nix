@@ -7,13 +7,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "kkfetch";
-  version = "0.27.0";
+  version = "0.28.0";
 
   src = if src != null then src else fetchFromGitHub {
     owner = "kk376";
     repo = "kkfetch";
     rev = "v${version}";
-    hash = "sha256-V/zDumlQHKmhq+gokXhSKurpRvRNtjFRRhyu5+EJrA4=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   cargoLock = {
