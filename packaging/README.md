@@ -13,12 +13,11 @@ This directory contains package definitions, build scripts, and metadata for Lin
 | **Nix / NixOS** | [`nix/default.nix`](nix/default.nix), [`nix/flake.nix`](nix/flake.nix) | `nix build` | Nix store path |
 | **Void Linux** | [`void/template`](void/template) | `xbps-src` | `.xbps` |
 | **Alpine Linux** | [`alpine/APKBUILD`](alpine/APKBUILD) | `abuild` | `.apk` |
-| **Gentoo Linux** | [`gentoo/kkfetch-0.10.0.ebuild`](gentoo/) | `ebuild` / `emerge` | Portage ebuild |
+| **Gentoo Linux** | [`gentoo/kkfetch-0.27.0.ebuild`](gentoo/) | `ebuild` / `emerge` | Portage ebuild |
 | **Homebrew** | [`homebrew/kkfetch.rb`](homebrew/kkfetch.rb) | `brew` | Formula / Bottled bottle |
 | **openSUSE / OBS** | [`opensuse/kkfetch.spec`](opensuse/kkfetch.spec) | `osc` / `rpmbuild` | `.rpm` |
 | **KISS Linux** | [`kiss/`](kiss/) | `kiss` | KISS package |
 | **Windows (Scoop)** | [`scoop/kkfetch.json`](scoop/kkfetch.json) | `scoop` | Scoop manifest |
-| **Windows Package Manager (Winget)** | [`winget/kkfetch.yaml`](winget/kkfetch.yaml) | `winget` | Winget manifest |
 
 ---
 
@@ -57,7 +56,7 @@ extra-x86_64-build
 4. Commit and push:
    ```bash
    git add PKGBUILD .SRCINFO
-   git commit -m "Update to version 0.10.0"
+   git commit -m "Update to version 0.27.0"
    git push origin master
    ```
 
@@ -82,7 +81,7 @@ dpkg-buildpackage -us -uc -b
 cargo install cargo-deb
 cargo deb
 ```
-Output: `target/debian/kkfetch_0.10.0-1_amd64.deb`
+Output: `target/debian/kkfetch_0.27.0-1_amd64.deb`
 
 #### Debian Submission
 1. Create a signed source package:
@@ -91,11 +90,11 @@ Output: `target/debian/kkfetch_0.10.0-1_amd64.deb`
    ```
 2. Run lintian to verify compliance:
    ```bash
-   lintian --pedantic -I kkfetch_0.10.0-1.dsc
+   lintian --pedantic -I kkfetch_0.27.0-1.dsc
    ```
 3. Upload to Debian Mentors:
    ```bash
-   dput mentors kkfetch_0.10.0-1_source.changes
+   dput mentors kkfetch_0.27.0-1_source.changes
    ```
 4. File an RFS (Request for Sponsorship) bug against `sponsorship-requests` on Debian BTS.
 
@@ -123,7 +122,7 @@ cargo install cargo-generate-rpm
 cargo build --release
 cargo generate-rpm
 ```
-Output: `target/generate-rpm/kkfetch-0.10.0-1.x86_64.rpm`
+Output: `target/generate-rpm/kkfetch-0.27.0-1.x86_64.rpm`
 
 #### Copr Submission
 1. Install Copr CLI:
@@ -132,7 +131,7 @@ Output: `target/generate-rpm/kkfetch-0.10.0-1.x86_64.rpm`
    ```
 2. Build in your Copr repository:
    ```bash
-   copr-cli build kk376/kkfetch ~/rpmbuild/SRPMS/kkfetch-0.10.0-1.*.src.rpm
+   copr-cli build kk376/kkfetch ~/rpmbuild/SRPMS/kkfetch-0.27.0-1.*.src.rpm
    ```
    Or set up a GitHub webhook to build automatically on git release tags.
 
@@ -245,18 +244,18 @@ abuild -r
 
 ### 8. Gentoo Linux
 
-- **Source files**: [`packaging/gentoo/kkfetch-0.10.0.ebuild`](gentoo/)
+- **Source files**: [`packaging/gentoo/kkfetch-0.27.0.ebuild`](gentoo/)
 
 #### Local Build with ebuild
 ```bash
-ebuild packaging/gentoo/kkfetch-0.10.0.ebuild digest
-ebuild packaging/gentoo/kkfetch-0.10.0.ebuild clean compile install
+ebuild packaging/gentoo/kkfetch-0.27.0.ebuild digest
+ebuild packaging/gentoo/kkfetch-0.27.0.ebuild clean compile install
 ```
 
 #### Gentoo Overlay / Main Repository Submission
 1. Test with `pkgcheck`:
    ```bash
-   pkgcheck scan kkfetch-0.10.0.ebuild
+   pkgcheck scan kkfetch-0.27.0.ebuild
    ```
 2. Place in a custom overlay under `app-misc/kkfetch/` or submit a pull request to `gentoo/gentoo` on GitHub.
 
@@ -305,34 +304,17 @@ kiss install kkfetch
 1. Fork and clone `kiss-community/community`.
 2. Create branch `kkfetch`.
 3. Place package files in `community/kkfetch/` (`build`, `version`, `sources`, `checksums`, `depends`).
-4. Commit with message `kkfetch: new package at 0.10.0`.
+4. Commit with message `kkfetch: new package at 0.27.0`.
 5. Open a pull request against `kiss-community/community:main`.
-
----
-
-### 11. Windows Package Manager (Winget)
-
-- **Source files**: [`packaging/winget/kkfetch.yaml`](winget/kkfetch.yaml), [`packaging/winget/kkfetch.installer.yaml`](winget/kkfetch.installer.yaml), [`packaging/winget/kkfetch.locale.en-US.yaml`](winget/kkfetch.locale.en-US.yaml)
-
-#### Manifest Validation
-```powershell
-winget-pkgs/tools/YamlCreate.ps1
-winget validate packaging/winget
-```
-
-#### Winget Submission
-1. Fork `microsoft/winget-pkgs` on GitHub.
-2. Place manifests under `manifests/k/kk376/kkfetch/0.10.0/`.
-3. Open a pull request to `microsoft/winget-pkgs`.
 
 ---
 
 ## Release Checklist for Package Maintainers
 
-1. Tag the release: `git tag -a v0.10.0 -m "Release v0.10.0"` and push tags to GitHub.
+1. Tag the release: `git tag -a v0.27.0 -m "Release v0.27.0"` and push tags to GitHub.
 2. Generate source archive checksum:
    ```bash
-   curl -sL https://github.com/kk376/kkfetch/archive/refs/tags/v0.10.0.tar.gz | sha256sum
+   curl -sL https://github.com/kk376/kkfetch/archive/refs/tags/v0.27.0.tar.gz | sha256sum
    ```
 3. Update version strings and `sha256` checksums across `PKGBUILD`, `.SRCINFO`, `kkfetch.spec`, `build.sh`, `default.nix`, `template`, `APKBUILD`, `ebuild`, `kkfetch.rb`, and `template.py`.
 4. Trigger GitHub release artifacts and update distribution package feeds.
