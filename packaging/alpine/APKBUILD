@@ -54,5 +54,5 @@ fishcomp() {
 }
 
 sha512sums="
-SKIP  kkfetch-0.28.0.tar.gz
+096b71e084ceeb37fc88ba67e3734bb362bcfd0341aa7a9b2c97e90f61a5cf721a6f20711b13416bd501217b935e3ab279dfcbbbd5fc29bf9d9b5b0757628063  kkfetch-0.28.0.tar.gz
 "

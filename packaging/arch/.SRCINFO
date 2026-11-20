@@ -12,6 +12,6 @@ pkgbase = kkfetch
 	makedepends = rust
 	depends = glibc
 	source = kkfetch-0.28.0.tar.gz::https://github.com/kk376/kkfetch/archive/refs/tags/v0.28.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = 7ad4b77f6fc74bae93908e16eff0197c99b3bd4c36c214bb2af0c524d24e47e8
 
 pkgname = kkfetch
