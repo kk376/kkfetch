@@ -13,7 +13,7 @@ rustPlatform.buildRustPackage rec {
     owner = "kk376";
     repo = "kkfetch";
     rev = "v${version}";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-V/zDumlQHKmhq+gokXhSKurpRvRNtjFRRhyu5+EJrA4=";
   };
 
   cargoLock = {
