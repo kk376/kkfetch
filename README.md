@@ -3,7 +3,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/kkfetch)](https://crates.io/crates/kkfetch)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-A fast, lightweight, zero-subprocess system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
+A fast, lightweight system information fetch tool written in Rust for Linux, Windows, macOS, and Android.
 
 ### Standard Full Logo
 
@@ -83,8 +83,8 @@ cccccccc;.:odl:.;cccccccccccccc:,.       Theme: Adwaita (dark) [GTK/GNOME]
 
 Most fetch tools either spawn multiple shell child processes (`neofetch`) or dynamically link heavy C runtime libraries (`fastfetch`). KKFetch is built with a different design philosophy:
 
-* **Sub-2ms Latency (Sub-1ms Internal Engine)**: Queries virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly with zero child process spawning (`fork`/`execve`). In statistical benchmarks, it is **13.2x faster than Fastfetch** end-to-end across all active modules.
-* **Responsive Adaptive ASCII Engine**: Zero-dependency constraint solver dynamically evaluates terminal window geometry and selects between Side-by-Side (Full), Side-by-Side (Compact), Stacked, and Info-Only layouts with zero line-wrapping distortion. Includes an automatic 3-tier ANSI fallback engine (TrueColor -> 256-color -> 16-color ANSI) for Linux TTY consoles and serial terminals.
+* **Sub-2ms Typical Latency**: Reads virtual filesystems (`/proc`, `/sys`), POSIX syscalls, and Win32 APIs directly in the common case, reserving direct-argv subprocess fallbacks for optional probes (`xrandr`, `lspci`, `busctl`, `rpm`). In benchmarked runs with warm caches, it was **13.2x faster than Fastfetch** end-to-end across active modules.
+* **Adaptive ASCII Layout Engine**: Dynamically evaluates terminal window geometry and selects between Side-by-Side (Full), Side-by-Side (Compact), Stacked, and Info-Only layouts without line-wrapping distortion. Includes an automatic 3-tier ANSI fallback (TrueColor -> 256-color -> 16-color ANSI) for Linux TTY consoles and serial terminals.
 * **Native OS Install Date**: Probes root filesystem creation timestamp (`statx` birth time) and installer logs, showing exact installation date and relative age (`23 days ago`).
 * **GPU Memory & Classification**: Probes dedicated VRAM and classifies graphics hardware into `[Integrated]` and `[Discrete]` tiers with sequential indexing.
 * **Zero-Fork Display EDID Parsing**: Probes monitor name, refresh rate, physical diagonal size, and panel type directly from DRM sysfs without spawning `xrandr` or display server queries.

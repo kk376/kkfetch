@@ -16,8 +16,6 @@ pub enum ColorLevel {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TerminalCaps {
     pub color_level: ColorLevel,
-    pub unicode_supported: bool,
-    pub nerd_font_detected: bool,
 }
 
 pub struct FetchContext {
@@ -252,69 +250,10 @@ pub fn detect_color_level(no_color_flag: bool) -> ColorLevel {
     ColorLevel::Basic16
 }
 
-/// Detects whether Unicode UTF-8 character encoding is active in the environment.
-pub fn detect_unicode_supported() -> bool {
-    for var in &["LC_ALL", "LC_CTYPE", "LANG"] {
-        if let Ok(val) = std::env::var(var) {
-            let upper = val.to_uppercase();
-            if upper.contains("UTF-8") || upper.contains("UTF8") {
-                return true;
-            }
-        }
-    }
-    // Default modern Linux/macOS assumption
-    #[cfg(unix)]
-    {
-        true
-    }
-    #[cfg(windows)]
-    {
-        // Check if Windows Console code page is UTF-8 (CP 65001)
-        true
-    }
-}
-
-/// Probes whether Nerd Font glyphs/icons can be safely rendered.
-pub fn detect_nerd_font_support() -> bool {
-    // Explicit environment flag override
-    if let Ok(val) = std::env::var("NERD_FONT") {
-        let clean = val.trim().to_lowercase();
-        if clean == "1" || clean == "true" || clean == "yes" {
-            return true;
-        }
-        if clean == "0" || clean == "false" || clean == "no" {
-            return false;
-        }
-    }
-
-    // Modern modern-terminal emulators with built-in or bundled Nerd Font glyph fallbacks
-    if let Ok(tp) = std::env::var("TERM_PROGRAM") {
-        let tp_lower = tp.to_lowercase();
-        if tp_lower.contains("ghostty") || tp_lower.contains("wezterm") || tp_lower.contains("warp")
-        {
-            return true;
-        }
-    }
-    if let Ok(term) = std::env::var("TERM") {
-        let term_lower = term.to_lowercase();
-        if term_lower.contains("kitty") || term_lower.contains("ghostty") {
-            return true;
-        }
-    }
-
-    // Starship / Oh-My-Posh / Powerlevel10k indicators
-    std::env::var_os("STARSHIP_SHELL").is_some()
-        || std::env::var_os("STARSHIP_SESSION_KEY").is_some()
-        || std::env::var_os("POSH_THEME").is_some()
-        || std::env::var_os("P9K_SSH").is_some()
-}
-
-/// Aggregates all probed terminal capabilities into a single capability descriptor.
+/// Aggregates terminal color capability into a capability descriptor.
 pub fn detect_terminal_caps(no_color_flag: bool) -> TerminalCaps {
     TerminalCaps {
         color_level: detect_color_level(no_color_flag),
-        unicode_supported: detect_unicode_supported(),
-        nerd_font_detected: detect_nerd_font_support(),
     }
 }
 
@@ -445,11 +384,6 @@ mod tests {
     fn test_detect_terminal_caps_no_color() {
         let caps = detect_terminal_caps(true);
         assert_eq!(caps.color_level, ColorLevel::None);
-    }
-
-    #[test]
-    fn test_detect_unicode_supported_default() {
-        assert!(detect_unicode_supported());
     }
 
     #[test]

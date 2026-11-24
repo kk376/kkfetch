@@ -102,7 +102,12 @@ pub fn parse_cpu_info(content: &str) -> Option<CpuInfo> {
                         if rated_max_ghz.is_none() {
                             if let Some(at_idx) = val.find('@') {
                                 let after_at = val[at_idx + 1..].trim();
-                                if let Some(ghz_idx) = after_at.to_lowercase().find("ghz") {
+                                // Match ASCII "ghz" on original slice so Unicode case shifts cannot offset bytes.
+                                if let Some(ghz_idx) = after_at
+                                    .as_bytes()
+                                    .windows(3)
+                                    .position(|w| w.eq_ignore_ascii_case(b"ghz"))
+                                {
                                     if let Ok(ghz_val) = after_at[..ghz_idx].trim().parse::<f64>() {
                                         if ghz_val > 0.0 {
                                             rated_max_ghz = Some(ghz_val);
@@ -484,5 +489,17 @@ cpu cores	: 6
         assert_eq!(info.cores, 3);
         assert_eq!(info.physical_cores, 2); // 2 distinct core IDs: 0 and 1
         assert_eq!(clean_cpu_model(&info.model), "AMD Ryzen 5 7535HS");
+    }
+
+    #[test]
+    fn test_parse_cpu_info_non_ascii_after_at_does_not_panic() {
+        let fixture =
+            "processor\t: 0\nmodel name\t: Custom @ \u{0130}\u{0130}\u{0130}\u{0130}GHz\n";
+        let info = parse_cpu_info(fixture).unwrap();
+        assert_eq!(info.max_freq_ghz, None);
+
+        let fixture_valid = "processor\t: 0\nmodel name\t: \u{0130}ntel CPU @ 3.50GHz\n";
+        let info_valid = parse_cpu_info(fixture_valid).unwrap();
+        assert_eq!(info_valid.max_freq_ghz, Some(3.5));
     }
 }

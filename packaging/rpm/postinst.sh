@@ -1,13 +1,17 @@
 #!/bin/sh
 # Automatically remove any older conflicting cargo or local binaries in PATH
-if [ -n "$SUDO_USER" ]; then
-    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+if [ -n "${SUDO_USER:-}" ]; then
+    USER_HOME=$(getent passwd -- "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)
     if [ -n "$USER_HOME" ]; then
         for shadowed in "$USER_HOME/.cargo/bin/kkfetch" "$USER_HOME/.local/bin/kkfetch" "/usr/local/bin/kkfetch"; do
             if [ -f "$shadowed" ]; then
-                rm -f "$shadowed" 2>/dev/null || true
+                printf 'Notice: %s exists and may shadow /usr/bin/kkfetch in PATH.\n' "$shadowed" >&2
             fi
         done
-        rm -f "$USER_HOME/.cache/kkfetch/de_*.cache" "$USER_HOME/.cache/kkfetch/theme_*.cache" 2>/dev/null || true
+        for cache_file in "$USER_HOME/.cache/kkfetch"/de_*.cache "$USER_HOME/.cache/kkfetch"/theme_*.cache; do
+            if [ -e "$cache_file" ]; then
+                rm -f -- "$cache_file" 2>/dev/null || true
+            fi
+        done
     fi
 fi

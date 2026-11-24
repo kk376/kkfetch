@@ -251,34 +251,9 @@ pub fn probe_ac_online() -> Option<bool> {
 }
 
 #[cfg(not(windows))]
-fn get_ram_cache_path() -> std::path::PathBuf {
-    // 1. Prefer $XDG_RUNTIME_DIR (tmpfs in /run/user/$UID/)
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        return std::path::PathBuf::from(runtime_dir)
-            .join("kkfetch")
-            .join("battery.cache");
-    }
-    // 2. Fallback to /dev/shm (POSIX shared memory tmpfs)
-    let shm_dir = std::path::PathBuf::from("/dev/shm");
-    if shm_dir.is_dir() {
-        // SAFETY: libc::getuid requires no arguments and returns the current user ID.
-        let uid = unsafe { libc::getuid() };
-        return shm_dir
-            .join(format!("kkfetch-{}", uid))
-            .join("battery.cache");
-    }
-    // 3. Fallback to private user-isolated temp directory
-    // SAFETY: libc::getuid requires no arguments and returns the current user ID.
-    let uid = unsafe { libc::getuid() };
-    std::env::temp_dir()
-        .join(format!("kkfetch-{}", uid))
-        .join("battery.cache")
-}
-
-#[cfg(not(windows))]
 fn read_cached_battery() -> Option<(BatteryInfo, u64)> {
-    let path = get_ram_cache_path();
-    let content = fs::read_to_string(path).ok()?;
+    let (content, elapsed) =
+        crate::cache::read_cache_with_age(crate::cache::CacheScope::Runtime, "battery.cache")?;
     let mut parts = content.splitn(4, '|');
     let timestamp = parts.next()?.trim().parse::<u64>().ok()?;
     let capacity = parts.next()?.trim().parse::<u8>().ok()?;
@@ -293,10 +268,10 @@ fn read_cached_battery() -> Option<(BatteryInfo, u64)> {
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .ok()?
-        .as_secs();
+        .ok()
+        .map(|d| d.as_secs().saturating_sub(timestamp));
+    let age = now.unwrap_or(elapsed.as_secs());
 
-    let age = now.saturating_sub(timestamp);
     Some((
         BatteryInfo {
             capacity,
@@ -309,10 +284,6 @@ fn read_cached_battery() -> Option<(BatteryInfo, u64)> {
 
 #[cfg(not(windows))]
 fn write_cached_battery(info: &BatteryInfo) {
-    let path = get_ram_cache_path();
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -324,12 +295,7 @@ fn write_cached_battery(info: &BatteryInfo) {
         info.status,
         info.time_estimate.as_deref().unwrap_or("")
     );
-    let tmp_path = path.with_extension("tmp");
-    if fs::write(&tmp_path, &payload).is_ok() {
-        let _ = fs::rename(&tmp_path, &path);
-    } else {
-        let _ = fs::write(path, payload);
-    }
+    crate::cache::write_cache(crate::cache::CacheScope::Runtime, "battery.cache", &payload);
 }
 
 /// Parses UPower busctl property output into BatteryInfo.
@@ -457,18 +423,16 @@ fn probe_fresh_battery(ac_online: Option<bool>) -> Option<BatteryInfo> {
     probe_upower_battery_with_ac(ac_online).or_else(probe_sysfs_battery)
 }
 
-/// Probes real-time battery status using zero-wait stale-while-revalidate microsecond tmpfs caching:
-/// Tier 1: In-RAM tmpfs cache (< 15 µs) with instantaneous AC transition detection (< 70 µs).
-///         If stale (> 30s) or AC line state changed, serves immediately (< 15 µs) and asynchronously
-///         revalidates in a background thread, completely eliminating 100 ms ACPI EC hardware stalls.
-/// Tier 2: Cold boot fallback when no cache exists. Prioritizes UPower D-Bus query (~3 ms) with
-///         0 ms hardware EC delay to protect against 100 ms ACPI stalls.
-/// Tier 3: Direct sysfs power_supply probing fallback if UPower daemon is absent.
+/// Probes real-time battery status using TTL-bounded tmpfs runtime caching:
+/// Tier 1: In-RAM runtime cache (< 15 µs) when AC state still matches and TTL <= 30s.
+///         On AC state transition or expired TTL, synchronously refreshes via UPower / sysfs
+///         and falls back cleanly to cached status if live probing fails.
+/// Tier 2: Direct UPower D-Bus query falling back to `/sys/class/power_supply`.
 #[cfg(not(windows))]
 pub fn detect_battery() -> Option<BatteryInfo> {
     let ac_online = probe_ac_online();
 
-    // Tier 1: Zero-wait stale-while-revalidate RAM tmpfs cache (< 15 µs)
+    // Tier 1: Fast runtime cache hit while within 30s TTL and AC line unchanged
     if let Some((cached, age)) = read_cached_battery() {
         let was_ac = cached.status.contains("AC")
             || cached.status.contains("Charging")
@@ -478,12 +442,21 @@ pub fn detect_battery() -> Option<BatteryInfo> {
             None => true,
         };
 
+        if ac_matches && age <= 30 {
+            return Some(cached);
+        }
+
+        if let Some(fresh) = probe_fresh_battery(ac_online) {
+            write_cached_battery(&fresh);
+            return Some(fresh);
+        }
+
+        // Probe failed: preserve latest AC transition state cleanly without leaving orphan threads.
         if !ac_matches {
-            // Instant AC line transition detected (< 70 µs)
             let is_ac = ac_online.unwrap_or(false);
-            let mut fast_info = cached.clone();
-            fast_info.status = if is_ac {
-                if fast_info.capacity >= 99 {
+            let mut updated = cached;
+            updated.status = if is_ac {
+                if updated.capacity >= 99 {
                     "Full [AC]".to_string()
                 } else {
                     "Charging".to_string()
@@ -491,36 +464,16 @@ pub fn detect_battery() -> Option<BatteryInfo> {
             } else {
                 "Discharging".to_string()
             };
-            fast_info.time_estimate = None;
-            write_cached_battery(&fast_info);
-
-            // Revalidate fresh telemetry asynchronously in background
-            std::thread::spawn(move || {
-                if let Some(fresh) = probe_fresh_battery(ac_online) {
-                    write_cached_battery(&fresh);
-                }
-            });
-            return Some(fast_info);
+            updated.time_estimate = None;
+            write_cached_battery(&updated);
+            return Some(updated);
         }
 
-        // Fresh cache (<= 30s)
-        if age <= 30 {
-            return Some(cached);
-        }
-
-        // Stale cache (> 30s): touch timestamp immediately to throttle revalidations,
-        // serve cached telemetry without waiting (< 15 µs), and revalidate in background.
         write_cached_battery(&cached);
-        std::thread::spawn(move || {
-            if let Some(fresh) = probe_fresh_battery(ac_online) {
-                write_cached_battery(&fresh);
-            }
-        });
         return Some(cached);
     }
 
-    // Tier 2: Cold boot fallback (no cache file yet).
-    // Prioritize UPower D-Bus query (~3 ms) with 0 ms hardware EC delay to avoid 100 ms ACPI stalls.
+    // Tier 2: Cold start probe
     if let Some(info) = probe_fresh_battery(ac_online) {
         write_cached_battery(&info);
         return Some(info);

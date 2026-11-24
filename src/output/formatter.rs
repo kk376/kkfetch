@@ -20,23 +20,75 @@ pub fn char_width(c: char) -> usize {
     }
 }
 
-/// Calculates the visible printable width of a string, ignoring ANSI escape sequences.
+/// Skips an ANSI/VT escape sequence starting immediately after `\x1b` and returns `true`
+/// if it is a safe CSI SGR styling sequence (`\x1b[...m`).
+fn skip_escape_sequence<I: Iterator<Item = char>>(
+    chars: &mut std::iter::Peekable<I>,
+    sgr_buf: Option<&mut String>,
+) -> bool {
+    match chars.peek().copied() {
+        Some('[') => {
+            chars.next();
+            let mut params = String::new();
+            let mut valid_sgr_params = true;
+            for c in chars.by_ref() {
+                if ('@'..='~').contains(&c) {
+                    if c == 'm' && valid_sgr_params {
+                        if let Some(buf) = sgr_buf {
+                            buf.push_str("\x1b[");
+                            buf.push_str(&params);
+                            buf.push('m');
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+                if !(c.is_ascii_digit() || c == ';' || c == ':') {
+                    valid_sgr_params = false;
+                }
+                if valid_sgr_params && sgr_buf.is_some() {
+                    params.push(c);
+                }
+            }
+            false
+        }
+        Some(']') | Some('P') | Some('X') | Some('^') | Some('_') => {
+            chars.next();
+            while let Some(c) = chars.next() {
+                if c == '\x07' {
+                    break;
+                }
+                if c == '\x1b' && chars.peek() == Some(&'\\') {
+                    chars.next();
+                    break;
+                }
+            }
+            false
+        }
+        Some(_) => {
+            chars.next();
+            false
+        }
+        None => false,
+    }
+}
+
+/// Calculates the visible printable width of a string, ignoring ANSI/OSC escape sequences.
 /// Necessary so colored text does not distort column alignment calculations in side-by-side rendering.
 pub fn visible_width(s: &str) -> usize {
-    let mut in_escape = false;
     let mut len = 0;
+    let mut chars = s.chars().peekable();
 
-    for c in s.chars() {
+    while let Some(c) = chars.next() {
         if c == '\x1b' {
-            in_escape = true;
-        } else if in_escape {
-            // ANSI CSI sequences end with an alphabetic character (e.g. 'm' for SGR)
-            if c.is_ascii_alphabetic() {
-                in_escape = false;
-            }
-        } else {
-            len += char_width(c);
+            let _ = skip_escape_sequence(&mut chars, None);
+            continue;
         }
+        let code = c as u32;
+        if code < 0x20 || code == 0x7F || (0x80..=0x9F).contains(&code) {
+            continue;
+        }
+        len += char_width(c);
     }
     len
 }
@@ -77,7 +129,8 @@ pub fn render_adaptive_layout(
                 info_lines.push(sanitize_terminal_string(line));
             }
         } else if !out.value.is_empty() {
-            let label = format_label(&out.label, distro_color, enable_color);
+            let clean_label = sanitize_terminal_string(&out.label);
+            let label = format_label(&clean_label, distro_color, enable_color);
             let clean_val = sanitize_terminal_string(&out.value);
             info_lines.push(format!("{} {}", label, clean_val));
         }
@@ -89,19 +142,6 @@ pub fn render_adaptive_layout(
         None => return info_lines.join("\n"),
     };
 
-    let full_lines = logo.render_variant_lines(LogoVariant::Full, color_level);
-    let compact_lines = logo.render_variant_lines(LogoVariant::Compact, color_level);
-
-    let full_width = full_lines
-        .iter()
-        .map(|l| visible_width(l))
-        .max()
-        .unwrap_or(0);
-    let compact_width = compact_lines
-        .iter()
-        .map(|l| visible_width(l))
-        .max()
-        .unwrap_or(0);
     let max_info_width = info_lines
         .iter()
         .map(|l| visible_width(l))
@@ -111,68 +151,66 @@ pub fn render_adaptive_layout(
     let term_w = term_width as usize;
     let separator_w = 3;
 
-    // Constraint solver: determine variant and layout geometry
+    // Constraint solver: determine variant and render only needed logo variant(s)
     enum SelectedLayout {
-        SideBySide(LogoVariant, usize),
-        Stacked(LogoVariant),
+        SideBySide(Vec<String>, usize),
+        Stacked(Vec<String>),
         InfoOnly,
     }
 
+    let max_line_width =
+        |lines: &[String]| lines.iter().map(|l| visible_width(l)).max().unwrap_or(0);
+
     let selected = match forced_variant.unwrap_or(LogoVariant::Auto) {
         LogoVariant::Full => {
+            let full_lines = logo.render_variant_lines(LogoVariant::Full, color_level);
+            let full_width = max_line_width(&full_lines);
             if term_w >= 60 && full_width + separator_w + max_info_width <= term_w {
-                SelectedLayout::SideBySide(LogoVariant::Full, full_width)
+                SelectedLayout::SideBySide(full_lines, full_width)
             } else {
-                SelectedLayout::Stacked(LogoVariant::Full)
+                SelectedLayout::Stacked(full_lines)
             }
         }
         LogoVariant::Compact => {
+            let compact_lines = logo.render_variant_lines(LogoVariant::Compact, color_level);
+            let compact_width = max_line_width(&compact_lines);
             if term_w >= 50 && compact_width + separator_w + max_info_width <= term_w {
-                SelectedLayout::SideBySide(LogoVariant::Compact, compact_width)
+                SelectedLayout::SideBySide(compact_lines, compact_width)
             } else {
-                SelectedLayout::Stacked(LogoVariant::Compact)
+                SelectedLayout::Stacked(compact_lines)
             }
         }
         LogoVariant::Auto => {
+            let full_lines = logo.render_variant_lines(LogoVariant::Full, color_level);
+            let compact_lines = logo.render_variant_lines(LogoVariant::Compact, color_level);
+            let full_width = max_line_width(&full_lines);
+            let compact_width = max_line_width(&compact_lines);
             if term_w < 60 {
                 // Stacked below 60 columns to prevent line cramping
                 if full_width <= term_w && term_w >= 45 {
-                    SelectedLayout::Stacked(LogoVariant::Full)
+                    SelectedLayout::Stacked(full_lines)
                 } else if compact_width <= term_w && term_w >= 20 {
-                    SelectedLayout::Stacked(LogoVariant::Compact)
+                    SelectedLayout::Stacked(compact_lines)
                 } else {
                     SelectedLayout::InfoOnly
                 }
+            } else if full_width + separator_w + max_info_width <= term_w {
+                SelectedLayout::SideBySide(full_lines, full_width)
+            } else if compact_width + separator_w + max_info_width <= term_w {
+                SelectedLayout::SideBySide(compact_lines, compact_width)
+            } else if full_width <= term_w {
+                SelectedLayout::Stacked(full_lines)
+            } else if compact_width <= term_w {
+                SelectedLayout::Stacked(compact_lines)
             } else {
-                // Width >= 60: attempt side-by-side
-                if full_width + separator_w + max_info_width <= term_w {
-                    SelectedLayout::SideBySide(LogoVariant::Full, full_width)
-                } else if compact_width + separator_w + max_info_width <= term_w {
-                    SelectedLayout::SideBySide(LogoVariant::Compact, compact_width)
-                } else if full_width <= term_w {
-                    SelectedLayout::Stacked(LogoVariant::Full)
-                } else if compact_width <= term_w {
-                    SelectedLayout::Stacked(LogoVariant::Compact)
-                } else {
-                    SelectedLayout::InfoOnly
-                }
+                SelectedLayout::InfoOnly
             }
         }
     };
 
     let (logo_lines, max_logo_width) = match selected {
-        SelectedLayout::SideBySide(variant, width) => {
-            let lines = match variant {
-                LogoVariant::Compact => compact_lines,
-                _ => full_lines,
-            };
-            (lines, width)
-        }
-        SelectedLayout::Stacked(variant) => {
-            let lines = match variant {
-                LogoVariant::Compact => compact_lines,
-                _ => full_lines,
-            };
+        SelectedLayout::SideBySide(lines, width) => (lines, width),
+        SelectedLayout::Stacked(lines) => {
             let mut full_output = Vec::new();
             full_output.extend(lines);
             if !info_lines.is_empty() {
@@ -225,31 +263,15 @@ pub fn sanitize_terminal_string(s: &str) -> String {
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
         if c == '\x1b' {
-            if chars.peek() == Some(&']') {
-                // Strip OSC sequences (e.g. \x1b]...\x07 or \x1b]...\x1b\)
-                chars.next(); // consume ']'
-                while let Some(osc_c) = chars.next() {
-                    if osc_c == '\x07' {
-                        break;
-                    }
-                    if osc_c == '\x1b' && chars.peek() == Some(&'\\') {
-                        chars.next();
-                        break;
-                    }
-                }
-                continue;
-            }
-            // Preserve standard ANSI styling sequences (\x1b[...m)
-            clean.push(c);
-        } else if (c as u32) < 0x20 && c != '\n' && c != '\t' {
-            // Drop raw non-printable C0 control characters
+            let _ = skip_escape_sequence(&mut chars, Some(&mut clean));
             continue;
-        } else if (c as u32) == 0x7F {
-            // Drop DEL
-            continue;
-        } else {
-            clean.push(c);
         }
+        let code = c as u32;
+        if (code < 0x20 && c != '\n' && c != '\t') || code == 0x7F || (0x80..=0x9F).contains(&code)
+        {
+            continue;
+        }
+        clean.push(c);
     }
     clean
 }
@@ -615,5 +637,43 @@ mod tests {
         // 1-column layout on narrow terminal (width 40)
         let narrow = render_timings_grid(&timings, total, 40, false);
         assert!(narrow.contains("os"));
+    }
+
+    #[test]
+    fn test_sanitize_terminal_string_strips_non_sgr_csi_c1_and_esc() {
+        assert_eq!(
+            sanitize_terminal_string("Safe\x1b[2J\x1b[1A\x1b[?1049h\x1bcText"),
+            "SafeText"
+        );
+        assert_eq!(
+            sanitize_terminal_string("Safe\u{0085}\u{009B}2JText"),
+            "Safe2JText"
+        );
+        assert_eq!(
+            sanitize_terminal_string("\x1b[38;2;255;128;0mColored\x1b[0m"),
+            "\x1b[38;2;255;128;0mColored\x1b[0m"
+        );
+    }
+
+    #[test]
+    fn test_visible_width_handles_osc_hyperlinks() {
+        let linked = "\x1b]8;;https://example.com\x07Link\x1b]8;;\x07";
+        assert_eq!(visible_width(linked), 4);
+        let st_linked = "\x1b]8;;https://example.com\x1b\\Site\x1b]8;;\x1b\\";
+        assert_eq!(visible_width(st_linked), 4);
+    }
+
+    #[test]
+    fn test_render_adaptive_layout_sanitizes_output_label() {
+        let outputs = vec![ModuleOutput {
+            id: ModuleId::Plugin,
+            label: "Plug\x1b]0;evil\x07\x1b[2J".to_string(),
+            value: "ok".to_string(),
+            custom_rendered: None,
+        }];
+        let rendered = render_adaptive_layout(None, &outputs, 80, ColorLevel::None, None);
+        assert!(!rendered.contains("\x1b]0;"));
+        assert!(!rendered.contains("\x1b[2J"));
+        assert_eq!(rendered, "Plug: ok");
     }
 }

@@ -1,41 +1,5 @@
 use crate::context::FetchContext;
 use crate::modules::{Collector, ModuleId, ModuleOutput};
-#[cfg(not(windows))]
-use std::fs;
-
-/// Retrieves the parent process ID from `/proc/<pid>/status`.
-#[cfg(not(windows))]
-fn get_ppid(pid: u32) -> Option<u32> {
-    let path = format!("/proc/{}/status", pid);
-    let content = fs::read_to_string(path).ok()?;
-    for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("PPid:") {
-            return rest.trim().parse::<u32>().ok();
-        }
-    }
-    None
-}
-
-/// Retrieves the process command name from `/proc/<pid>/comm` or `/proc/<pid>/exe`.
-#[cfg(not(windows))]
-fn get_proc_name(pid: u32) -> Option<String> {
-    let exe_path = format!("/proc/{}/exe", pid);
-    if let Ok(target) = fs::read_link(exe_path) {
-        if let Some(file_name) = target.file_name() {
-            return Some(file_name.to_string_lossy().into_owned());
-        }
-    }
-
-    let comm_path = format!("/proc/{}/comm", pid);
-    if let Ok(comm) = fs::read_to_string(comm_path) {
-        let clean = comm.trim().to_string();
-        if !clean.is_empty() {
-            return Some(clean);
-        }
-    }
-
-    None
-}
 
 const KNOWN_SHELLS: &[&str] = &[
     "bash",
@@ -113,21 +77,24 @@ pub fn format_shell_name_version(
 
 #[cfg(not(windows))]
 fn get_shell_cli_version(shell_name: &str) -> Option<String> {
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir
-        .as_ref()
-        .map(|d| d.join(format!("shell_{}.cache", shell_name)));
-
-    if let Some(ref path) = cache_file {
-        if let Ok(cached) = std::fs::read_to_string(path) {
-            let trimmed = cached.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
+    let safe_name: String = shell_name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '.' {
+                c
+            } else {
+                '_'
             }
+        })
+        .collect();
+    let cache_name = format!("shell_{}.cache", safe_name);
+
+    if let Some(cached) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, &cache_name)
+    {
+        let trimmed = cached.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 
@@ -148,12 +115,11 @@ fn get_shell_cli_version(shell_name: &str) -> Option<String> {
             {
                 let ver = clean.split('(').next().unwrap_or(clean);
                 let ver_str = ver.to_string();
-                if let Some(ref dir) = cache_dir {
-                    let _ = std::fs::create_dir_all(dir);
-                }
-                if let Some(ref path) = cache_file {
-                    let _ = std::fs::write(path, &ver_str);
-                }
+                crate::cache::write_cache(
+                    crate::cache::CacheScope::Persistent,
+                    &cache_name,
+                    &ver_str,
+                );
                 return Some(ver_str);
             }
         }
@@ -373,11 +339,11 @@ pub fn detect_shell() -> Option<String> {
 
     // Traverse process parent chain (up to 5 ancestors) to identify the interactive shell that invoked kkfetch
     for _ in 0..5 {
-        if let Some(ppid) = get_ppid(current_pid) {
+        if let Some(ppid) = crate::modules::proc_ppid(current_pid) {
             if ppid <= 1 {
                 break;
             }
-            if let Some(name) = get_proc_name(ppid) {
+            if let Some(name) = crate::modules::proc_name_or_exe(ppid) {
                 let name_clean = extract_shell_name(&name);
                 if is_known_shell(&name_clean) {
                     return Some(format_shell_with_version(&name_clean));

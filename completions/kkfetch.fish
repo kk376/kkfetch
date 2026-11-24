@@ -10,16 +10,25 @@ set -l modules \
     'host\tHardware product and model name' \
     'kernel\tLinux kernel release version' \
     'installed\tOS installation date and relative system age' \
+    'install\tOS installation date (alias)' \
     'uptime\tSystem running time since boot' \
     'packages\tInstalled package counts' \
     'pkgs\tInstalled package counts (alias)' \
     'shell\tCurrent shell name and version' \
     'display\tDisplay resolution and refresh rate' \
+    'resolution\tDisplay resolution (alias)' \
+    'screen\tDisplay resolution (alias)' \
     'desktop\tDesktop Environment or Window Manager' \
     'de\tDesktop Environment (alias)' \
-    'wm\tWindow Manager (alias)' \
+    'wm\tWindow Manager' \
+    'windowmanager\tWindow Manager (alias)' \
+    'wmtheme\tWindow Manager decoration theme' \
+    'wm_theme\tWindow Manager decoration theme (alias)' \
     'terminal\tActive terminal emulator' \
     'term\tTerminal emulator (alias)' \
+    'terminalfont\tActive terminal font' \
+    'termfont\tTerminal font (alias)' \
+    'term_font\tTerminal font (alias)' \
     'cpu\tProcessor model and core count' \
     'gpu\tDetected graphics hardware' \
     'memory\tSystem RAM usage statistics' \
@@ -27,9 +36,24 @@ set -l modules \
     'swap\tSwap space memory usage' \
     'disk\tTarget filesystem storage usage' \
     'battery\tBattery capacity and power status' \
+    'bat\tBattery status (alias)' \
     'localip\tLocal network IP address' \
+    'local_ip\tLocal network IP address (alias)' \
+    'ip\tLocal network IP address (alias)' \
     'theme\tGTK, Qt, or Desktop UI Theme' \
+    'gtk\tGTK theme (alias)' \
+    'gtktheme\tGTK theme (alias)' \
     'icons\tIcon theme name' \
+    'icontheme\tIcon theme (alias)' \
+    'font\tSystem desktop font' \
+    'fonts\tSystem desktop font (alias)' \
+    'gtkfont\tGTK font (alias)' \
+    'cursor\tDesktop cursor theme and size' \
+    'cursortheme\tCursor theme (alias)' \
+    'mouse\tCursor theme (alias)' \
+    'plugin\tExternal custom plugins' \
+    'plugins\tExternal custom plugins (alias)' \
+    'custom\tExternal custom plugins (alias)' \
     'colors\tTerminal 16-color ANSI palette' \
     'palette\tTerminal color palette (alias)'
 

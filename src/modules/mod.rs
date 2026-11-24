@@ -25,8 +25,13 @@ pub mod wm;
 use crate::context::FetchContext;
 
 /// Creates a `std::process::Command` using a trusted canonical system path on Unix
-/// to prevent untrusted $PATH search element attacks (F3).
+/// or validated absolute `$PATH` entries (blocking `.` / relative / world-writable lookups) (F3).
 pub fn system_command(binary: &str) -> std::process::Command {
+    let bin_path = std::path::Path::new(binary);
+    if bin_path.is_absolute() || binary.contains(std::path::MAIN_SEPARATOR) {
+        return std::process::Command::new(binary);
+    }
+
     #[cfg(unix)]
     {
         const TRUSTED_PATHS: &[&str] = &[
@@ -36,15 +41,84 @@ pub fn system_command(binary: &str) -> std::process::Command {
             "/sbin",
             "/usr/local/bin",
             "/system/bin",
+            "/opt/homebrew/bin",
+            "/run/current-system/sw/bin",
         ];
         for dir in TRUSTED_PATHS {
             let full_path = std::path::Path::new(dir).join(binary);
-            if full_path.is_file() {
+            if is_safe_executable(&full_path) {
                 return std::process::Command::new(full_path);
             }
         }
+
+        if let Some(paths) = std::env::var_os("PATH") {
+            for dir in std::env::split_paths(&paths) {
+                if !dir.is_absolute() || is_world_writable_dir(&dir) {
+                    continue;
+                }
+                let candidate = dir.join(binary);
+                if is_safe_executable(&candidate) {
+                    return std::process::Command::new(candidate);
+                }
+            }
+        }
     }
+
     std::process::Command::new(binary)
+}
+
+#[cfg(unix)]
+fn is_world_writable_dir(dir: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    match std::fs::metadata(dir) {
+        Ok(meta) => meta.is_dir() && (meta.permissions().mode() & 0o002 != 0),
+        Err(_) => true,
+    }
+}
+
+#[cfg(unix)]
+fn is_safe_executable(path: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    match std::fs::metadata(path) {
+        Ok(meta) => {
+            let mode = meta.permissions().mode();
+            meta.is_file() && (mode & 0o111 != 0) && (mode & 0o002 == 0)
+        }
+        Err(_) => false,
+    }
+}
+
+/// Reads the parent process ID from `/proc/<pid>/status`.
+#[cfg(not(windows))]
+pub(crate) fn proc_ppid(pid: u32) -> Option<u32> {
+    let content = std::fs::read_to_string(format!("/proc/{}/status", pid)).ok()?;
+    content.lines().find_map(|line| {
+        line.strip_prefix("PPid:")
+            .and_then(|rest| rest.trim().parse::<u32>().ok())
+    })
+}
+
+/// Reads the process name from `/proc/<pid>/comm`.
+#[cfg(not(windows))]
+pub(crate) fn proc_comm(pid: u32) -> Option<String> {
+    let comm = std::fs::read_to_string(format!("/proc/{}/comm", pid)).ok()?;
+    let trimmed = comm.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Resolves the process binary/command name via `/proc/<pid>/exe` falling back to `/proc/<pid>/comm`.
+#[cfg(not(windows))]
+pub(crate) fn proc_name_or_exe(pid: u32) -> Option<String> {
+    if let Ok(target) = std::fs::read_link(format!("/proc/{}/exe", pid)) {
+        if let Some(file_name) = target.file_name() {
+            return Some(file_name.to_string_lossy().into_owned());
+        }
+    }
+    proc_comm(pid)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

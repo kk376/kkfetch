@@ -359,73 +359,65 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
         .and_then(|s| s.parse::<u32>().ok());
 
     // 0. Fast-path: Check persistent cache
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
+    if let Some(content) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, "theme_v2.cache")
+    {
+        let lines: Vec<&str> = content.lines().collect();
+        if lines.len() >= 6 {
+            let cached_desktop = lines.get(7).copied().unwrap_or("");
+            let desktop_matches = current_desktop.is_empty()
+                || cached_desktop.is_empty()
+                || current_desktop == cached_desktop;
 
-    let cache_file = cache_dir.as_ref().map(|d| d.join("theme_v2.cache"));
+            let cached_cursor_size = lines.get(4).and_then(|s| s.parse::<u32>().ok());
+            let cursor_matches = env_cursor_size.is_none() || env_cursor_size == cached_cursor_size;
 
-    if let Some(ref path) = cache_file {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            let lines: Vec<&str> = content.lines().collect();
-            if lines.len() >= 6 {
-                let cached_desktop = lines.get(7).copied().unwrap_or("");
-                let desktop_matches = current_desktop.is_empty()
-                    || cached_desktop.is_empty()
-                    || current_desktop == cached_desktop;
+            if desktop_matches && cursor_matches {
+                let theme = if lines[0].is_empty() {
+                    None
+                } else {
+                    Some(lines[0].to_string())
+                };
+                let icon_theme = if lines[1].is_empty() {
+                    None
+                } else {
+                    Some(lines[1].to_string())
+                };
+                let font = if lines[2].is_empty() {
+                    None
+                } else {
+                    Some(lines[2].to_string())
+                };
+                let cursor = if let Some(ref ct) = env_cursor_theme {
+                    Some(ct.clone())
+                } else if lines[3].is_empty() {
+                    None
+                } else {
+                    Some(lines[3].to_string())
+                };
+                let cursor_size = env_cursor_size.or(cached_cursor_size);
+                let dark_mode = lines
+                    .get(5)
+                    .map(|&d| d == "1" || d.eq_ignore_ascii_case("true"))
+                    .unwrap_or(false);
+                let source = match lines.get(6).copied().unwrap_or("") {
+                    "Gtk" => Some(ThemeSource::Gtk),
+                    "Kde" => Some(ThemeSource::Kde),
+                    "Xfce" => Some(ThemeSource::Xfce),
+                    "GSettings" => Some(ThemeSource::GSettings),
+                    "Env" => Some(ThemeSource::Env),
+                    _ => None,
+                };
 
-                let cached_cursor_size = lines.get(4).and_then(|s| s.parse::<u32>().ok());
-                let cursor_matches =
-                    env_cursor_size.is_none() || env_cursor_size == cached_cursor_size;
-
-                if desktop_matches && cursor_matches {
-                    let theme = if lines[0].is_empty() {
-                        None
-                    } else {
-                        Some(lines[0].to_string())
-                    };
-                    let icon_theme = if lines[1].is_empty() {
-                        None
-                    } else {
-                        Some(lines[1].to_string())
-                    };
-                    let font = if lines[2].is_empty() {
-                        None
-                    } else {
-                        Some(lines[2].to_string())
-                    };
-                    let cursor = if let Some(ref ct) = env_cursor_theme {
-                        Some(ct.clone())
-                    } else if lines[3].is_empty() {
-                        None
-                    } else {
-                        Some(lines[3].to_string())
-                    };
-                    let cursor_size = env_cursor_size.or(cached_cursor_size);
-                    let dark_mode = lines
-                        .get(5)
-                        .map(|&d| d == "1" || d.eq_ignore_ascii_case("true"))
-                        .unwrap_or(false);
-                    let source = match lines.get(6).copied().unwrap_or("") {
-                        "Gtk" => Some(ThemeSource::Gtk),
-                        "Kde" => Some(ThemeSource::Kde),
-                        "Xfce" => Some(ThemeSource::Xfce),
-                        "GSettings" => Some(ThemeSource::GSettings),
-                        "Env" => Some(ThemeSource::Env),
-                        _ => None,
-                    };
-
-                    return Some(ThemeInfo {
-                        theme,
-                        icon_theme,
-                        font,
-                        cursor,
-                        cursor_size,
-                        dark_mode,
-                        source,
-                    });
-                }
+                return Some(ThemeInfo {
+                    theme,
+                    icon_theme,
+                    font,
+                    cursor,
+                    cursor_size,
+                    dark_mode,
+                    source,
+                });
             }
         }
     }
@@ -525,35 +517,34 @@ fn detect_theme_info_uncached() -> Option<ThemeInfo> {
 
     // Save to persistent cache (including current_desktop on line 7)
     if let Some(ref info) = resolved {
-        if let Some(ref dir) = cache_dir {
-            let _ = std::fs::create_dir_all(dir);
-        }
-        if let Some(ref path) = cache_file {
-            let src_str = match info.source {
-                Some(ThemeSource::Gtk) => "Gtk",
-                Some(ThemeSource::Kde) => "Kde",
-                Some(ThemeSource::Xfce) => "Xfce",
-                Some(ThemeSource::GSettings) => "GSettings",
-                Some(ThemeSource::Env) => "Env",
-                Some(ThemeSource::Windows) => "Windows",
-                None => "",
-            };
-            let serialized = format!(
-                "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                info.theme.as_deref().unwrap_or(""),
-                info.icon_theme.as_deref().unwrap_or(""),
-                info.font.as_deref().unwrap_or(""),
-                info.cursor.as_deref().unwrap_or(""),
-                info.cursor_size
-                    .map(|s| s.to_string())
-                    .as_deref()
-                    .unwrap_or(""),
-                if info.dark_mode { "1" } else { "0" },
-                src_str,
-                current_desktop
-            );
-            let _ = std::fs::write(path, serialized);
-        }
+        let src_str = match info.source {
+            Some(ThemeSource::Gtk) => "Gtk",
+            Some(ThemeSource::Kde) => "Kde",
+            Some(ThemeSource::Xfce) => "Xfce",
+            Some(ThemeSource::GSettings) => "GSettings",
+            Some(ThemeSource::Env) => "Env",
+            Some(ThemeSource::Windows) => "Windows",
+            None => "",
+        };
+        let serialized = format!(
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+            info.theme.as_deref().unwrap_or(""),
+            info.icon_theme.as_deref().unwrap_or(""),
+            info.font.as_deref().unwrap_or(""),
+            info.cursor.as_deref().unwrap_or(""),
+            info.cursor_size
+                .map(|s| s.to_string())
+                .as_deref()
+                .unwrap_or(""),
+            if info.dark_mode { "1" } else { "0" },
+            src_str,
+            current_desktop
+        );
+        crate::cache::write_cache(
+            crate::cache::CacheScope::Persistent,
+            "theme_v2.cache",
+            &serialized,
+        );
     }
 
     resolved

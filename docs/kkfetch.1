@@ -1,4 +1,4 @@
-.TH KKFETCH 1 "September 2026" "kkfetch 0.15.2" "User Commands"
+.TH KKFETCH 1 "November 2026" "kkfetch 0.28.0" "User Commands"
 .SH NAME
 kkfetch \- A fast, lightweight Linux system information fetch tool written in Rust
 .SH SYNOPSIS
@@ -6,8 +6,8 @@ kkfetch \- A fast, lightweight Linux system information fetch tool written in Ru
 [\fIOPTIONS\fR]
 .SH DESCRIPTION
 .B kkfetch
-is a high-performance system information tool designed for speed and aesthetic terminal output.
-It gathers hardware and software details with minimal latency.
+is a lightweight system information tool written in Rust.
+It gathers hardware and software details from virtual filesystems and system APIs.
 .SH OPTIONS
 .TP
 \fB\-m\fR, \fB\-\-modules\fR \fI<MODULES>\fR
@@ -20,10 +20,16 @@ Disable specific modules (comma-separated, e.g. "gpu,disk").
 Disable colored ANSI output.
 .TP
 \fB\-\-no-plugins\fR
-Disable execution of external shell plugins.
+Disable execution of external plugins.
 .TP
 \fB\-l\fR, \fB\-\-logo\fR \fI<LOGO>\fR
 Override the ASCII logo (e.g. "arch", "debian", "ubuntu", "ferris", "fedora", "tux").
+.TP
+\fB\-\-logo\-variant\fR \fI<VARIANT>\fR
+Select ASCII logo variant: "auto", "full", or "compact" (default: "auto").
+.TP
+\fB\-\-compact\-logo\fR, \fB\-\-compact\fR
+Force compact ASCII logo layout.
 .TP
 \fB\-\-no-logo\fR
 Do not display any ASCII logo.
@@ -54,4 +60,4 @@ Print version information.
 .SH AUTHORS
 Kushagra Kumar (kk376) <https://github.com/kk376/kkfetch>
 .SH COPYRIGHT
-MIT License.
+MIT OR Apache-2.0.
