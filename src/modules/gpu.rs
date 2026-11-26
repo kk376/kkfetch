@@ -1044,7 +1044,7 @@ pub struct GpuGroup {
 }
 
 /// Groups identical dGPUs and assigns sequential dynamic indices starting at GPU0.
-/// Guarantees that iGPU occupies GPU0 on hybrid laptop configurations and appends [Integrated] / [Discrete] tags.
+/// Guarantees that iGPU occupies GPU0 on hybrid laptop configurations and appends `[Integrated]` / `[Discrete]` tags.
 pub fn group_and_index_gpus(raw_gpus: &[String], cpu_sockets: usize) -> Vec<ModuleOutput> {
     if raw_gpus.is_empty() {
         return Vec::new();
@@ -1257,7 +1257,7 @@ pub fn get_gpu_hardware_fingerprint() -> String {
 }
 
 /// Parses and validates a cached GPU list payload against an expected hardware fingerprint.
-/// Returns Some(Vec<String>) if and only if the header contains `# FINGERPRINT:<expected_fingerprint>`
+/// Returns `Some(Vec<String>)` if and only if the header contains `# FINGERPRINT:<expected_fingerprint>`
 /// and at least one cached GPU entry exists.
 pub fn parse_cached_gpu_list(content: &str, expected_fingerprint: &str) -> Option<Vec<String>> {
     let (fp_line, rest) = content.split_once('\n')?;
@@ -1506,6 +1506,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_detect_gpus_from_sysfs_dir_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1529,6 +1530,7 @@ mod tests {
         assert!(gpus[0].contains("Intel"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_virtio_and_hyperv_sysfs_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1776,6 +1778,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_get_gpu_hardware_fingerprint_from_pci_dir_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1837,6 +1840,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_is_pci_device_suspended_and_display_guard() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1936,6 +1940,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_detect_gpus_from_sysfs_dir_amd_rembrandt_revision_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
