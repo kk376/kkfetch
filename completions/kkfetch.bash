@@ -14,8 +14,8 @@ _kkfetch() {
     fi
 
     local opts="-m -d -l -h -V --modules --disable --no-color --logo --logo-variant --compact-logo --compact --no-logo --list-modules --disk-path --all-disks --json --timings --no-plugins --doctor --help --version"
-    local modules="title os host kernel installed uptime packages pkgs shell display desktop de wm terminal term cpu gpu memory mem swap disk battery localip theme icons colors palette"
-    local logos="ferris rust debian ubuntu linuxmint mint fedora arch archlinux rhel redhat centos rocky rockylinux almalinux alma endeavouros endeavour manjaro generic tux linux opensuse suse alpine gentoo void pop popos nixos kali freebsd slackware artix zorin nobara bazzite vylen none"
+    local modules="title os host kernel installed install uptime packages pkgs shell display resolution screen wm windowmanager wmtheme wm_theme desktop de terminal term terminalfont termfont term_font theme gtk gtktheme icons icontheme font fonts gtkfont cursor cursortheme mouse cpu gpu memory mem swap disk battery bat localip local_ip ip plugin plugins custom colors palette"
+    local logos="ferris rust kkfetch debian ubuntu linuxmint mint kubuntu zorin fedora arch archlinux rhel redhat centos rocky rockylinux almalinux alma endeavouros endeavour manjaro cachyos garuda blackarch omarchy generic tux linux opensuse suse alpine gentoo void pop popos nixos nix kali parrot freebsd openbsd netbsd slackware artix nobara bazzite vylen windows11 windows10 windows7 windows android termux macos darwin none"
 
     case "${prev}" in
         --logo-variant)

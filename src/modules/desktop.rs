@@ -130,27 +130,30 @@ fn get_de_binary_mtime(binary: &str) -> Option<u64> {
 #[cfg(not(windows))]
 pub fn detect_de_version(de_name: &str) -> Option<String> {
     let lower = de_name.to_lowercase();
-
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-    let cache_file = cache_dir
-        .as_ref()
-        .map(|d| d.join(format!("de_{}.cache", lower.replace(' ', "_"))));
+    let safe_key: String = lower
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let cache_name = format!("de_{}.cache", safe_key);
 
     let bin_name = get_de_binary(&lower);
     let bin_mtime = bin_name.and_then(get_de_binary_mtime);
 
-    if let Some(ref path) = cache_file {
-        if let Ok(cached) = fs::read_to_string(path) {
-            let trimmed = cached.trim();
-            if let Some((saved_mtime_str, saved_ver)) = trimmed.split_once(' ') {
-                if let Ok(saved_mtime) = saved_mtime_str.parse::<u64>() {
-                    if let Some(current_mtime) = bin_mtime {
-                        if saved_mtime == current_mtime && !saved_ver.is_empty() {
-                            return Some(saved_ver.to_string());
-                        }
+    if let Some(cached) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, &cache_name)
+    {
+        let trimmed = cached.trim();
+        if let Some((saved_mtime_str, saved_ver)) = trimmed.split_once(' ') {
+            if let Ok(saved_mtime) = saved_mtime_str.parse::<u64>() {
+                if let Some(current_mtime) = bin_mtime {
+                    if saved_mtime == current_mtime && !saved_ver.is_empty() {
+                        return Some(saved_ver.to_string());
                     }
                 }
             }
@@ -160,30 +163,26 @@ pub fn detect_de_version(de_name: &str) -> Option<String> {
     let detected: Option<String> = if lower.contains("gnome") {
         // Fast path 1: Parse GNOME version XML metadata directly (<0.1ms) avoiding spawning gnome-shell
         if let Ok(xml) = fs::read_to_string("/usr/share/gnome/gnome-version.xml") {
-            if let (Some(p_start), Some(m_start)) = (xml.find("<platform>"), xml.find("<minor>")) {
-                let platform = xml[p_start + 10..]
-                    .split("</platform>")
-                    .next()
-                    .unwrap_or("")
-                    .trim();
-                let minor = xml[m_start + 7..]
-                    .split("</minor>")
-                    .next()
-                    .unwrap_or("")
-                    .trim();
-                let micro = xml
-                    .find("<micro>")
-                    .and_then(|idx| xml[idx + 7..].split("</micro>").next())
-                    .map(|s| s.trim())
-                    .unwrap_or("");
-                if !platform.is_empty() && !minor.is_empty() {
-                    if !micro.is_empty() && micro != "0" {
-                        Some(format!("{}.{}.{}", platform, minor, micro))
-                    } else {
-                        Some(format!("{}.{}", platform, minor))
-                    }
+            let platform = xml
+                .split_once("<platform>")
+                .and_then(|(_, r)| r.split_once("</platform>"))
+                .map(|(v, _)| v.trim())
+                .unwrap_or("");
+            let minor = xml
+                .split_once("<minor>")
+                .and_then(|(_, r)| r.split_once("</minor>"))
+                .map(|(v, _)| v.trim())
+                .unwrap_or("");
+            let micro = xml
+                .split_once("<micro>")
+                .and_then(|(_, r)| r.split_once("</micro>"))
+                .map(|(v, _)| v.trim())
+                .unwrap_or("");
+            if !platform.is_empty() && !minor.is_empty() {
+                if !micro.is_empty() && micro != "0" {
+                    Some(format!("{}.{}.{}", platform, minor, micro))
                 } else {
-                    None
+                    Some(format!("{}.{}", platform, minor))
                 }
             } else {
                 None
@@ -267,16 +266,15 @@ pub fn detect_de_version(de_name: &str) -> Option<String> {
     };
 
     if let Some(ref ver) = detected {
-        if let Some(ref dir) = cache_dir {
-            let _ = fs::create_dir_all(dir);
-        }
-        if let Some(ref path) = cache_file {
-            let cache_content = match bin_mtime {
-                Some(m) => format!("{} {}", m, ver),
-                None => ver.to_string(),
-            };
-            let _ = fs::write(path, cache_content);
-        }
+        let cache_content = match bin_mtime {
+            Some(m) => format!("{} {}", m, ver),
+            None => ver.to_string(),
+        };
+        crate::cache::write_cache(
+            crate::cache::CacheScope::Persistent,
+            &cache_name,
+            &cache_content,
+        );
     }
 
     detected

@@ -134,9 +134,13 @@ pub fn parse_edid_binary(data: &[u8], connector_name: &str) -> Option<DisplayInf
 }
 
 fn extract_xml_scale(text: &str) -> Option<f64> {
-    let (s_start, s_end) = (text.find("<scale>")?, text.find("</scale>")?);
-    let s_val = text[s_start + 7..s_end].trim();
-    s_val.parse::<f64>().ok().filter(|&scale| scale > 0.0)
+    let (_, after_open) = text.split_once("<scale>")?;
+    let (s_val, _) = after_open.split_once("</scale>")?;
+    s_val
+        .trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|&scale| scale > 0.0)
 }
 
 /// Parses display scaling factor from GNOME / Mutter monitors.xml.
@@ -1143,5 +1147,13 @@ rdp-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0
         assert_eq!(monitors[0].refresh_rate, Some(144));
         assert_eq!(monitors[1].refresh_rate, Some(180));
         assert_eq!(monitors[1].name.as_deref(), Some("LG ULTRAGEAR"));
+    }
+
+    #[test]
+    fn test_parse_monitors_xml_closing_scale_before_opening_does_not_panic() {
+        let sample =
+            "<monitors><logicalmonitor></scale><scale>1.25</scale></logicalmonitor></monitors>";
+        let scale = parse_monitors_xml_scale(sample, None);
+        assert_eq!(scale, Some(1.25));
     }
 }

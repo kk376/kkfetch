@@ -48,7 +48,53 @@ pub fn get_default_config_path() -> Option<PathBuf> {
     None
 }
 
-/// Fast zero-dependency parser for kkfetch TOML config file.
+/// Strips an unquoted `#` inline comment from a TOML value line.
+fn strip_inline_comment(raw: &str) -> &str {
+    let mut in_double = false;
+    let mut in_single = false;
+    let mut escaped = false;
+
+    for (idx, ch) in raw.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if in_double {
+            match ch {
+                '\\' => escaped = true,
+                '"' => in_double = false,
+                _ => {}
+            }
+        } else if in_single {
+            if ch == '\'' {
+                in_single = false;
+            }
+        } else {
+            match ch {
+                '"' => in_double = true,
+                '\'' => in_single = true,
+                '#' => return raw[..idx].trim(),
+                _ => {}
+            }
+        }
+    }
+
+    raw.trim()
+}
+
+/// Unquotes a single TOML string value after stripping any unquoted trailing comment.
+fn parse_toml_scalar(raw: &str) -> String {
+    let trimmed = strip_inline_comment(raw.trim());
+    if trimmed.len() >= 2
+        && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+            || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+    {
+        return trimmed[1..trimmed.len() - 1].to_string();
+    }
+    trimmed.to_string()
+}
+
+/// Fast parser for kkfetch TOML config file.
 pub fn parse_config_toml(content: &str) -> Config {
     let mut config = Config::default();
     let mut plugins = Vec::new();
@@ -86,10 +132,10 @@ pub fn parse_config_toml(content: &str) -> Config {
 
         if let Some((k, v)) = trimmed.split_once('=') {
             let key = k.trim().to_lowercase();
-            let val = v.trim();
+            let raw_val = strip_inline_comment(v.trim());
 
             if in_plugin_section {
-                let clean_val = val.trim_matches('"').trim_matches('\'').to_string();
+                let clean_val = parse_toml_scalar(v);
                 if key == "name" || key == "label" {
                     current_plugin_name = Some(clean_val);
                 } else if key == "command" || key == "cmd" || key == "exec" {
@@ -100,34 +146,34 @@ pub fn parse_config_toml(content: &str) -> Config {
 
             match key.as_str() {
                 "modules" => {
-                    config.modules = parse_toml_string_array(val);
+                    config.modules = parse_toml_string_array(raw_val);
                 }
                 "disable" => {
-                    config.disable = parse_toml_string_array(val);
+                    config.disable = parse_toml_string_array(raw_val);
                 }
                 "logo" => {
-                    let clean = val.trim_matches('"').trim_matches('\'').to_string();
+                    let clean = parse_toml_scalar(raw_val);
                     if !clean.is_empty() && clean != "auto" {
                         config.logo = Some(clean);
                     }
                 }
                 "no_logo" => {
-                    config.no_logo = Some(val.eq_ignore_ascii_case("true") || val == "1");
+                    config.no_logo = Some(raw_val.eq_ignore_ascii_case("true") || raw_val == "1");
                 }
                 "no_color" => {
-                    config.no_color = Some(val.eq_ignore_ascii_case("true") || val == "1");
+                    config.no_color = Some(raw_val.eq_ignore_ascii_case("true") || raw_val == "1");
                 }
                 "disk_path" => {
-                    let clean = val.trim_matches('"').trim_matches('\'').to_string();
+                    let clean = parse_toml_scalar(raw_val);
                     if !clean.is_empty() {
                         config.disk_path = Some(clean);
                     }
                 }
                 "all_disks" | "all-disks" | "disk_all" | "disk-all" => {
-                    config.all_disks = Some(val.eq_ignore_ascii_case("true") || val == "1");
+                    config.all_disks = Some(raw_val.eq_ignore_ascii_case("true") || raw_val == "1");
                 }
                 "logo_variant" | "logo-variant" => {
-                    let clean = val.trim_matches('"').trim_matches('\'').to_string();
+                    let clean = parse_toml_scalar(raw_val);
                     if !clean.is_empty() {
                         config.logo_variant = Some(clean);
                     }
@@ -152,20 +198,11 @@ pub fn parse_config_toml(content: &str) -> Config {
 }
 
 pub fn parse_toml_string_array(val: &str) -> Option<Vec<String>> {
-    let trimmed = val.trim();
-    if !trimmed.starts_with('[') {
-        return None;
-    }
-    let inner = trimmed.trim_start_matches('[').trim_end_matches(']');
+    let trimmed = strip_inline_comment(val.trim());
+    let inner = trimmed.strip_prefix('[')?.strip_suffix(']')?;
     let items: Vec<String> = inner
         .split(',')
-        .map(|s| {
-            s.trim()
-                .trim_matches('"')
-                .trim_matches('\'')
-                .trim()
-                .to_string()
-        })
+        .map(parse_toml_scalar)
         .filter(|s| !s.is_empty())
         .collect();
     Some(items)
@@ -226,5 +263,31 @@ command = "git branch --show-current"
         let toml_full = "logo-variant = 'full'\n";
         let cfg2 = parse_config_toml(toml_full);
         assert_eq!(cfg2.logo_variant.as_deref(), Some("full"));
+    }
+
+    #[test]
+    fn test_parse_config_toml_inline_comments_and_quotes() {
+        let toml = r##"
+modules = ["os", "kernel"] # active modules
+logo = "arch" # distro override
+no_logo = true # hide logo
+disk_path = "/home#1" # preserve hash in quotes
+
+[[plugins]]
+name = "Tag #1" # comment
+command = "echo ok # literal" # trailing comment
+"##;
+        let cfg = parse_config_toml(toml);
+        assert_eq!(
+            cfg.modules,
+            Some(vec!["os".to_string(), "kernel".to_string()])
+        );
+        assert_eq!(cfg.logo.as_deref(), Some("arch"));
+        assert_eq!(cfg.no_logo, Some(true));
+        assert_eq!(cfg.disk_path.as_deref(), Some("/home#1"));
+        let plugins = cfg.plugins.unwrap();
+        assert_eq!(plugins.len(), 1);
+        assert_eq!(plugins[0].name, "Tag #1");
+        assert_eq!(plugins[0].command, "echo ok # literal");
     }
 }

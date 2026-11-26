@@ -769,24 +769,17 @@ pub fn detect_wsl_gpus() -> Vec<String> {
         }
     }
 
-    // 2. Fast-path: Check persistent user/system cache for discrete GPU to achieve sub-millisecond runs
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir.as_ref().map(|d| d.join("wsl_dgpu_v2.cache"));
-
-    if let Some(ref path) = cache_file {
-        if let Ok(cached) = fs::read_to_string(path) {
-            let trimmed = cached.trim();
-            if trimmed == "NONE" {
-                return gpus;
-            }
-            if !trimmed.is_empty() && !gpus.contains(&trimmed.to_string()) {
-                gpus.push(trimmed.to_string());
-                return gpus;
-            }
+    // 2. Fast-path: Check persistent user cache for discrete GPU to achieve sub-millisecond runs
+    if let Some(cached) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, "wsl_dgpu_v2.cache")
+    {
+        let trimmed = cached.trim();
+        if trimmed == "NONE" {
+            return gpus;
+        }
+        if !trimmed.is_empty() && !gpus.contains(&trimmed.to_string()) {
+            gpus.push(trimmed.to_string());
+            return gpus;
         }
     }
 
@@ -823,12 +816,11 @@ pub fn detect_wsl_gpus() -> Vec<String> {
                                 found_dgpu = true;
 
                                 // Persist discrete GPU cache
-                                if let Some(ref dir) = cache_dir {
-                                    let _ = fs::create_dir_all(dir);
-                                }
-                                if let Some(ref path) = cache_file {
-                                    let _ = fs::write(path, &formatted);
-                                }
+                                crate::cache::write_cache(
+                                    crate::cache::CacheScope::Persistent,
+                                    "wsl_dgpu_v2.cache",
+                                    &formatted,
+                                );
                             }
                         }
                     }
@@ -843,12 +835,11 @@ pub fn detect_wsl_gpus() -> Vec<String> {
     }
 
     if !found_dgpu {
-        if let Some(ref dir) = cache_dir {
-            let _ = fs::create_dir_all(dir);
-        }
-        if let Some(ref path) = cache_file {
-            let _ = fs::write(path, "NONE");
-        }
+        crate::cache::write_cache(
+            crate::cache::CacheScope::Persistent,
+            "wsl_dgpu_v2.cache",
+            "NONE",
+        );
     }
 
     gpus
@@ -1284,20 +1275,14 @@ pub fn parse_cached_gpu_list(content: &str, expected_fingerprint: &str) -> Optio
 
 #[cfg(not(windows))]
 fn get_gpu_list_uncached() -> Vec<String> {
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir.as_ref().map(|d| d.join("gpu_list_v3.cache"));
     let current_fingerprint = get_gpu_hardware_fingerprint();
 
     // 0. Fast-path: Check persistent cache validated by current hardware fingerprint
-    if let Some(ref path) = cache_file {
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Some(list) = parse_cached_gpu_list(&content, &current_fingerprint) {
-                return list;
-            }
+    if let Some(content) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, "gpu_list_v3.cache")
+    {
+        if let Some(list) = parse_cached_gpu_list(&content, &current_fingerprint) {
+            return list;
         }
     }
 
@@ -1307,17 +1292,7 @@ fn get_gpu_list_uncached() -> Vec<String> {
     if is_wsl() {
         let wsl_gpus = detect_wsl_gpus();
         if !wsl_gpus.is_empty() {
-            if let Some(ref dir) = cache_dir {
-                let _ = fs::create_dir_all(dir);
-            }
-            if let Some(ref path) = cache_file {
-                let payload = format!(
-                    "# FINGERPRINT:{}\n{}",
-                    current_fingerprint,
-                    wsl_gpus.join("\n")
-                );
-                let _ = fs::write(path, payload);
-            }
+            write_gpu_cache(&current_fingerprint, &wsl_gpus);
             return wsl_gpus;
         }
     }
@@ -1362,20 +1337,20 @@ fn get_gpu_list_uncached() -> Vec<String> {
         .collect();
 
     if !result.is_empty() {
-        if let Some(ref dir) = cache_dir {
-            let _ = fs::create_dir_all(dir);
-        }
-        if let Some(ref path) = cache_file {
-            let payload = format!(
-                "# FINGERPRINT:{}\n{}",
-                current_fingerprint,
-                result.join("\n")
-            );
-            let _ = fs::write(path, payload);
-        }
+        write_gpu_cache(&current_fingerprint, &result);
     }
 
     result
+}
+
+#[cfg(not(windows))]
+fn write_gpu_cache(fingerprint: &str, gpus: &[String]) {
+    let payload = format!("# FINGERPRINT:{}\n{}", fingerprint, gpus.join("\n"));
+    crate::cache::write_cache(
+        crate::cache::CacheScope::Persistent,
+        "gpu_list_v3.cache",
+        &payload,
+    );
 }
 
 /// Reads display adapter names from Windows registry under Display Class GUID.

@@ -14,15 +14,17 @@ pub struct PluginCollector;
 /// privilege escalation via untrusted user configuration (F1).
 #[cfg(unix)]
 fn is_elevated_context() -> bool {
-    // SAFETY: getuid and geteuid are safe POSIX calls that take no arguments and return integer IDs.
+    // SAFETY: getuid/geteuid/getgid/getegid are POSIX syscalls with no pointer arguments.
     unsafe {
         let uid = libc::getuid();
         let euid = libc::geteuid();
-        if uid != euid || euid == 0 {
+        let gid = libc::getgid();
+        let egid = libc::getegid();
+        if uid != euid || euid == 0 || gid != egid || egid == 0 {
             return true;
         }
     }
-    std::env::var("SUDO_USER").is_ok() || std::env::var("DOAS_USER").is_ok()
+    std::env::var_os("SUDO_USER").is_some() || std::env::var_os("DOAS_USER").is_some()
 }
 
 #[cfg(not(unix))]
@@ -30,11 +32,36 @@ fn is_elevated_context() -> bool {
     false
 }
 
+/// Checks whether the plugins directory itself is a non-symlink directory owned by the current user or root
+/// and not group/world-writable.
+fn is_safe_plugin_dir(dir: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        let Ok(meta) = std::fs::symlink_metadata(dir) else {
+            return false;
+        };
+        if meta.file_type().is_symlink() || !meta.is_dir() {
+            return false;
+        }
+        if meta.permissions().mode() & 0o022 != 0 {
+            return false;
+        }
+        // SAFETY: getuid is a safe POSIX call returning the user ID without memory side-effects.
+        let current_uid = unsafe { libc::getuid() };
+        let dir_uid = meta.uid();
+        dir_uid == current_uid || dir_uid == 0
+    }
+    #[cfg(not(unix))]
+    {
+        dir.is_dir()
+    }
+}
+
 /// Checks whether a plugin file in ~/.config/kkfetch/plugins/ is safe and valid to execute (F2).
 /// Requires:
 /// 1. Regular file (not symlink or directory)
 /// 2. Not a hidden file or editor backup (.swp, ~)
-/// 3. Executable bit (+x) is set on Unix
+/// 3. Executable bit (+x) is set and not group/world-writable on Unix
 /// 4. Owned by current user or root
 fn is_safe_plugin_file(path: &Path) -> bool {
     let file_name = match path.file_name().and_then(|n| n.to_str()) {
@@ -42,7 +69,7 @@ fn is_safe_plugin_file(path: &Path) -> bool {
         None => return false,
     };
 
-    // Ignore hidden files, swap files, editor backups, or common non-executable extensions
+    // Ignore hidden files, swap files, editor backups
     if file_name.starts_with('.') || file_name.ends_with('~') || file_name.ends_with(".swp") {
         return false;
     }
@@ -59,8 +86,9 @@ fn is_safe_plugin_file(path: &Path) -> bool {
             return false;
         }
 
-        // Must have at least one executable permission bit set
-        if meta.permissions().mode() & 0o111 == 0 {
+        let mode = meta.permissions().mode();
+        // Reject files without execute bit or writable by group/others
+        if mode & 0o111 == 0 || mode & 0o022 != 0 {
             return false;
         }
 
@@ -105,12 +133,12 @@ impl Collector for PluginCollector {
             }
         }
 
-        // 2. Executable scripts in ~/.config/kkfetch/plugins/ (F2)
+        // 2. Executable binaries/scripts in ~/.config/kkfetch/plugins/ invoked directly without a shell
         if let Some(plugins_dir) = crate::config::get_default_config_path()
             .and_then(|p| p.parent().map(|d| d.join("plugins")))
         {
-            if plugins_dir.is_dir() {
-                if let Ok(entries) = std::fs::read_dir(plugins_dir) {
+            if is_safe_plugin_dir(&plugins_dir) {
+                if let Ok(entries) = std::fs::read_dir(&plugins_dir) {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if is_safe_plugin_file(&path) {
@@ -119,8 +147,7 @@ impl Collector for PluginCollector {
                                 .unwrap_or_default()
                                 .to_string_lossy()
                                 .to_string();
-                            let cmd = path.to_string_lossy().to_string();
-                            if let Some(out) = execute_plugin_command(&name, &cmd) {
+                            if let Some(out) = collect_command_output(&name, Command::new(&path)) {
                                 outputs.push(out);
                             }
                         }
@@ -133,32 +160,95 @@ impl Collector for PluginCollector {
     }
 }
 
-pub fn execute_plugin_command(name: &str, command: &str) -> Option<ModuleOutput> {
-    #[cfg(unix)]
-    let mut cmd = Command::new("/bin/sh");
-    #[cfg(unix)]
-    cmd.arg("-c").arg(command);
+/// Splits a command string into `(program, args)` supporting single/double quotes and backslash
+/// escapes without spawning a shell.
+fn split_command_args(command: &str) -> Option<Vec<String>> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_token = false;
+    let mut quote: Option<char> = None;
+    let mut chars = command.chars();
 
-    #[cfg(windows)]
-    let mut cmd = Command::new("cmd");
-    #[cfg(windows)]
-    cmd.arg("/C").arg(command);
-
-    if let Ok(output) = cmd.output() {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let clean = stdout.trim();
-            if !clean.is_empty() {
-                return Some(ModuleOutput {
-                    id: ModuleId::Plugin,
-                    label: name.to_string(),
-                    value: clean.to_string(),
-                    custom_rendered: None,
-                });
+    while let Some(c) = chars.next() {
+        match quote {
+            Some('\'') => {
+                if c == '\'' {
+                    quote = None;
+                } else {
+                    current.push(c);
+                }
             }
+            Some('"') => {
+                if c == '"' {
+                    quote = None;
+                } else if c == '\\' {
+                    current.push(chars.next()?);
+                } else {
+                    current.push(c);
+                }
+            }
+            None => match c {
+                '\'' | '"' => {
+                    quote = Some(c);
+                    in_token = true;
+                }
+                '\\' => {
+                    let next = chars.next()?;
+                    current.push(next);
+                    in_token = true;
+                }
+                c if c.is_whitespace() => {
+                    if in_token {
+                        args.push(std::mem::take(&mut current));
+                        in_token = false;
+                    }
+                }
+                _ => {
+                    current.push(c);
+                    in_token = true;
+                }
+            },
+            Some(_) => unreachable!(),
         }
     }
-    None
+
+    if quote.is_some() {
+        return None;
+    }
+    if in_token {
+        args.push(current);
+    }
+    if args.is_empty() { None } else { Some(args) }
+}
+
+fn collect_command_output(name: &str, mut cmd: Command) -> Option<ModuleOutput> {
+    let output = cmd.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let clean = stdout.trim();
+    if clean.is_empty() {
+        return None;
+    }
+    Some(ModuleOutput {
+        id: ModuleId::Plugin,
+        label: name.to_string(),
+        value: clean.to_string(),
+        custom_rendered: None,
+    })
+}
+
+pub fn execute_plugin_command(name: &str, command: &str) -> Option<ModuleOutput> {
+    let parts = split_command_args(command)?;
+    let (program, args) = parts.split_first()?;
+    let mut cmd = if !program.contains('/') && !program.contains('\\') {
+        crate::modules::system_command(program)
+    } else {
+        Command::new(program)
+    };
+    cmd.args(args);
+    collect_command_output(name, cmd)
 }
 
 #[cfg(test)]
@@ -195,5 +285,28 @@ mod tests {
         let hidden = temp_dir.path().join(".hidden_script");
         std::fs::write(&hidden, "echo hidden").unwrap();
         assert!(!is_safe_plugin_file(&hidden));
+
+        #[cfg(unix)]
+        {
+            // Group-writable or world-writable executable files should be rejected
+            let gw_script = temp_dir.path().join("group_writable.sh");
+            std::fs::write(&gw_script, "#!/bin/sh\necho nope\n").unwrap();
+            let mut perms = std::fs::metadata(&gw_script).unwrap().permissions();
+            perms.set_mode(0o775);
+            std::fs::set_permissions(&gw_script, perms).unwrap();
+            assert!(!is_safe_plugin_file(&gw_script));
+
+            // Symlinks pointing to executable scripts should be rejected
+            let symlink_path = temp_dir.path().join("linked.sh");
+            std::os::unix::fs::symlink(&regular_txt, &symlink_path).unwrap();
+            assert!(!is_safe_plugin_file(&symlink_path));
+        }
+    }
+
+    #[test]
+    fn test_execute_plugin_command_no_shell_metachar_interpretation() {
+        let out = execute_plugin_command("EchoLiteral", "printf %s $(id)").unwrap();
+        assert_eq!(out.value, "$(id)");
+        assert!(execute_plugin_command("Chained", "/bin/true && echo pwned").is_none());
     }
 }

@@ -125,4 +125,23 @@ fn test_completion_files_exist_and_cover_all_flags() {
             logo
         );
     }
+
+    for module_id in kkfetch::modules::ModuleId::all() {
+        let name = module_id.as_str();
+        assert!(
+            bash_content.contains(name),
+            "Bash completions missing canonical module: {}",
+            name
+        );
+        assert!(
+            zsh_content.contains(name),
+            "Zsh completions missing canonical module: {}",
+            name
+        );
+        assert!(
+            fish_content.contains(name),
+            "Fish completions missing canonical module: {}",
+            name
+        );
+    }
 }

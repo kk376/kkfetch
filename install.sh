@@ -26,17 +26,21 @@ else
     exit 1
 fi
 
-# Automatically remove conflicting/shadowed binaries in user environment
-SUDO_CALLER="${SUDO_USER:-$USER}"
+# Warn about conflicting/shadowed user binaries and invalidate stale DE/theme cache files
+SUDO_CALLER="${SUDO_USER:-${USER:-}}"
 if [ -n "$SUDO_CALLER" ]; then
-    CALLER_HOME=$(getent passwd "$SUDO_CALLER" 2>/dev/null | cut -d: -f6 || echo "${HOME:-}")
+    CALLER_HOME=$(getent passwd -- "$SUDO_CALLER" 2>/dev/null | cut -d: -f6 || echo "${HOME:-}")
     if [ -n "$CALLER_HOME" ]; then
         for conflicting in "$CALLER_HOME/.cargo/bin/kkfetch" "$CALLER_HOME/.local/bin/kkfetch"; do
-            if [ -f "$conflicting" ]; then
-                rm -f "$conflicting" 2>/dev/null || true
+            if [ -f "$conflicting" ] && [ "$conflicting" != "${BIN_DIR}/kkfetch" ]; then
+                echo "Notice: Existing binary at $conflicting may shadow ${BIN_DIR}/kkfetch in PATH." >&2
             fi
         done
-        rm -f "$CALLER_HOME/.cache/kkfetch/de_*.cache" "$CALLER_HOME/.cache/kkfetch/theme_*.cache" 2>/dev/null || true
+        for cache_file in "$CALLER_HOME/.cache/kkfetch"/de_*.cache "$CALLER_HOME/.cache/kkfetch"/theme_*.cache; do
+            if [ -e "$cache_file" ]; then
+                rm -f -- "$cache_file" 2>/dev/null || true
+            fi
+        done
     fi
 fi
 

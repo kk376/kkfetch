@@ -19,13 +19,13 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends}
 Description: fast, lightweight Linux system information fetch tool written in Rust
- KKFetch is a zero-runtime-dependency CLI system information fetch tool
- written in Rust, tailored for Linux systems. It gathers system specifications
- and displays them cleanly alongside distribution ASCII art logos with
- sub-millisecond execution performance and minimal resource overhead.
+ KKFetch is a lightweight CLI system information fetch tool
+ written in Rust for Linux systems. It gathers system specifications
+ and displays them alongside distribution ASCII art logos using direct
+ /proc, /sys, and POSIX probing where possible.
  .
  Features include:
-  * Zero external runtime dependencies (native Linux kernel and /proc, /sys parsers)
+  * Direct kernel and virtual filesystem telemetry (/proc, /sys, libc)
   * Comprehensive metrics: CPU, GPU, Memory, Storage, Packages, Kernel, Desktop
   * Multi-distro ASCII art logos with ANSI 256-color support
   * Shell completions for Bash, Zsh, and Fish

@@ -22,13 +22,6 @@ pub fn parse_dpkg_status(content: &str) -> usize {
 
 /// Counts installed packages for Debian/Ubuntu family from a status file path.
 pub fn count_dpkg_from_path(path: &Path) -> Option<usize> {
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir.as_ref().map(|d| d.join("dpkg_v1.cache"));
-
     if let Ok(meta) = fs::metadata(path) {
         if let Ok(mtime) = meta.modified() {
             let mtime_sec = mtime
@@ -36,15 +29,15 @@ pub fn count_dpkg_from_path(path: &Path) -> Option<usize> {
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
 
-            if let Some(ref c_path) = cache_file {
-                if let Ok(cached) = fs::read_to_string(c_path) {
-                    if let Some((saved_mtime, saved_count)) = cached.trim().split_once(' ') {
-                        if let (Ok(s_mtime), Ok(count)) =
-                            (saved_mtime.parse::<u64>(), saved_count.parse::<usize>())
-                        {
-                            if s_mtime == mtime_sec && count > 0 {
-                                return Some(count);
-                            }
+            if let Some(cached) =
+                crate::cache::read_cache(crate::cache::CacheScope::Persistent, "dpkg_v1.cache")
+            {
+                if let Some((saved_mtime, saved_count)) = cached.trim().split_once(' ') {
+                    if let (Ok(s_mtime), Ok(count)) =
+                        (saved_mtime.parse::<u64>(), saved_count.parse::<usize>())
+                    {
+                        if s_mtime == mtime_sec && count > 0 {
+                            return Some(count);
                         }
                     }
                 }
@@ -53,12 +46,11 @@ pub fn count_dpkg_from_path(path: &Path) -> Option<usize> {
             if let Ok(bytes) = fs::read(path) {
                 let count = parse_dpkg_status_bytes(&bytes);
                 if count > 0 {
-                    if let Some(ref dir) = cache_dir {
-                        let _ = fs::create_dir_all(dir);
-                    }
-                    if let Some(ref c_path) = cache_file {
-                        let _ = fs::write(c_path, format!("{} {}", mtime_sec, count));
-                    }
+                    crate::cache::write_cache(
+                        crate::cache::CacheScope::Persistent,
+                        "dpkg_v1.cache",
+                        &format!("{} {}", mtime_sec, count),
+                    );
                     return Some(count);
                 }
             }
@@ -207,13 +199,6 @@ pub fn count_sqlite_table_cells(path: &Path, rootpage: u32) -> Option<usize> {
 
 /// Counts installed packages for Red Hat / Fedora family via rpm with zero-subprocess SQLite parsing and mtime caching.
 pub fn count_rpm_from_paths(db_paths: &[&str]) -> Option<usize> {
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir.as_ref().map(|d| d.join("rpm_v1.cache"));
-
     // Find the active RPM database path
     let mut active_db: Option<(&str, u64)> = None;
     for &p in db_paths {
@@ -230,15 +215,15 @@ pub fn count_rpm_from_paths(db_paths: &[&str]) -> Option<usize> {
     }
 
     if let Some((path, mtime_sec)) = active_db {
-        if let Some(ref c_path) = cache_file {
-            if let Ok(cached) = fs::read_to_string(c_path) {
-                if let Some((saved_mtime, saved_count)) = cached.trim().split_once(' ') {
-                    if let (Ok(s_mtime), Ok(count)) =
-                        (saved_mtime.parse::<u64>(), saved_count.parse::<usize>())
-                    {
-                        if s_mtime == mtime_sec && count > 0 {
-                            return Some(count);
-                        }
+        if let Some(cached) =
+            crate::cache::read_cache(crate::cache::CacheScope::Persistent, "rpm_v1.cache")
+        {
+            if let Some((saved_mtime, saved_count)) = cached.trim().split_once(' ') {
+                if let (Ok(s_mtime), Ok(count)) =
+                    (saved_mtime.parse::<u64>(), saved_count.parse::<usize>())
+                {
+                    if s_mtime == mtime_sec && count > 0 {
+                        return Some(count);
                     }
                 }
             }
@@ -251,12 +236,11 @@ pub fn count_rpm_from_paths(db_paths: &[&str]) -> Option<usize> {
             let cell_count = count_sqlite_table_cells(Path::new(path), 4)
                 .or_else(|| count_sqlite_table_cells(Path::new(path), 2));
             if let Some(count) = cell_count {
-                if let Some(ref dir) = cache_dir {
-                    let _ = fs::create_dir_all(dir);
-                }
-                if let Some(ref c_path) = cache_file {
-                    let _ = fs::write(c_path, format!("{} {}", mtime_sec, count));
-                }
+                crate::cache::write_cache(
+                    crate::cache::CacheScope::Persistent,
+                    "rpm_v1.cache",
+                    &format!("{} {}", mtime_sec, count),
+                );
                 return Some(count);
             }
         }
@@ -266,12 +250,11 @@ pub fn count_rpm_from_paths(db_paths: &[&str]) -> Option<usize> {
             if output.status.success() {
                 let count = count_newline_entries(&output.stdout);
                 if count > 0 {
-                    if let Some(ref dir) = cache_dir {
-                        let _ = fs::create_dir_all(dir);
-                    }
-                    if let Some(ref c_path) = cache_file {
-                        let _ = fs::write(c_path, format!("{} {}", mtime_sec, count));
-                    }
+                    crate::cache::write_cache(
+                        crate::cache::CacheScope::Persistent,
+                        "rpm_v1.cache",
+                        &format!("{} {}", mtime_sec, count),
+                    );
                     return Some(count);
                 }
             }

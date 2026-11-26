@@ -1,5 +1,6 @@
 #![warn(clippy::undocumented_unsafe_blocks)]
 
+pub mod cache;
 pub mod cli;
 pub mod config;
 pub mod context;

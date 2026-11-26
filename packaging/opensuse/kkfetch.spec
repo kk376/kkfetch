@@ -20,11 +20,11 @@ BuildRequires:  zstd
 BuildRequires:  gcc
 
 %description
-KKFetch is a fast, zero-runtime-dependency CLI system information fetch tool
-written in Rust, specifically designed for Linux distributions. It gathers system
+KKFetch is a fast, lightweight CLI system information fetch tool
+written in Rust for Linux distributions. It gathers system
 metrics including OS release, kernel version, CPU, GPU, memory, disk usage,
 package managers, desktop environment, uptime, and shell information, formatting
-them cleanly alongside colorful ANSI distribution ASCII logos.
+them alongside ANSI distribution ASCII logos.
 
 %prep
 %autosetup -n %{name}-%{version}

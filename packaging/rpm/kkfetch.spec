@@ -14,11 +14,11 @@ BuildRequires:  rust >= 1.85.0
 BuildRequires:  gcc
 
 %description
-KKFetch is a fast, zero-runtime-dependency CLI system information fetch tool
-written in Rust, specifically designed for Linux distributions. It gathers system
+KKFetch is a fast, lightweight CLI system information fetch tool
+written in Rust for Linux distributions. It gathers system
 metrics including OS release, kernel version, CPU, GPU, memory, disk usage,
 package managers, desktop environment, uptime, and shell information, formatting
-them cleanly alongside colorful ANSI distribution ASCII logos.
+them alongside ANSI distribution ASCII logos.
 
 %prep
 %autosetup -n %{name}-%{version}
@@ -58,16 +58,20 @@ install -Dpm 0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 %{_datadir}/fish/vendor_completions.d/%{name}.fish
 
 %post
-# Automatically remove any older conflicting cargo or local binaries in PATH
-if [ -n "$SUDO_USER" ]; then
-    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+# Warn about any older conflicting cargo or local binaries in PATH and clear stale DE/theme cache
+if [ -n "${SUDO_USER:-}" ]; then
+    USER_HOME=$(getent passwd -- "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)
     if [ -n "$USER_HOME" ]; then
         for shadowed in "$USER_HOME/.cargo/bin/%{name}" "$USER_HOME/.local/bin/%{name}" "/usr/local/bin/%{name}"; do
             if [ -f "$shadowed" ]; then
-                rm -f "$shadowed" 2>/dev/null || true
+                printf 'Notice: %s exists and may shadow %{_bindir}/%{name} in PATH.\n' "$shadowed" >&2
             fi
         done
-        rm -f "$USER_HOME/.cache/%{name}/de_*.cache" "$USER_HOME/.cache/%{name}/theme_*.cache" 2>/dev/null || true
+        for cache_file in "$USER_HOME/.cache/%{name}"/de_*.cache "$USER_HOME/.cache/%{name}"/theme_*.cache; do
+            if [ -e "$cache_file" ]; then
+                rm -f -- "$cache_file" 2>/dev/null || true
+            fi
+        done
     fi
 fi
 

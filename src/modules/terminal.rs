@@ -322,45 +322,18 @@ pub fn append_version_if_missing(term_display_name: &str, version: Option<&str>)
 }
 
 #[cfg(not(windows))]
-fn get_terminal_cache_path(binary: &str) -> std::path::PathBuf {
-    // 1. Prefer $XDG_CACHE_HOME or ~/.cache/kkfetch/ for persistent caching across boots
-    if let Ok(cache_home) = std::env::var("XDG_CACHE_HOME") {
-        let dir = std::path::PathBuf::from(cache_home).join("kkfetch");
-        let _ = std::fs::create_dir_all(&dir);
-        return dir.join(format!("term_{}.cache", binary));
-    }
-    if let Ok(home) = std::env::var("HOME") {
-        let dir = std::path::PathBuf::from(home)
-            .join(".cache")
-            .join("kkfetch");
-        let _ = std::fs::create_dir_all(&dir);
-        return dir.join(format!("term_{}.cache", binary));
-    }
-    // 2. Fallback to $XDG_RUNTIME_DIR
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        let dir = std::path::Path::new(&runtime_dir);
-        if dir.is_dir() {
-            return dir.join(format!("kkfetch_term_{}.cache", binary));
-        }
-    }
-    // 3. Fallback to private user-isolated temporary directory (mode 0700 on Unix)
-    #[cfg(unix)]
-    let temp_dir = {
-        // SAFETY: getuid() is a POSIX syscall that returns the real user ID of the calling process without side effects.
-        let uid = unsafe { libc::getuid() };
-        let dir = std::env::temp_dir().join(format!("kkfetch-{}", uid));
-        let _ = std::fs::create_dir_all(&dir);
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
-        dir
-    };
-    #[cfg(not(unix))]
-    let temp_dir = {
-        let dir = std::env::temp_dir().join("kkfetch");
-        let _ = std::fs::create_dir_all(&dir);
-        dir
-    };
-    temp_dir.join(format!("term_{}.cache", binary))
+fn terminal_cache_name(binary: &str) -> String {
+    let safe_bin: String = binary
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    format!("term_{}.cache", safe_bin)
 }
 
 #[cfg(not(windows))]
@@ -463,12 +436,14 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
         return None;
     };
 
-    let cache_path = get_terminal_cache_path(binary);
+    let cache_name = terminal_cache_name(binary);
     let bin_mtime = get_binary_mtime(binary);
 
-    // 1. Try reading from mtime-validated tmpfs runtime cache (< 2 µs)
+    // 1. Try reading from mtime-validated user cache (< 2 µs)
     if let Some(current_mtime) = bin_mtime {
-        if let Ok(content) = fs::read_to_string(&cache_path) {
+        if let Some(content) =
+            crate::cache::read_cache(crate::cache::CacheScope::PersistentOrRuntime, &cache_name)
+        {
             if let Some((cached_mtime_str, ver)) = content.split_once('|') {
                 if let Ok(cached_mtime) = cached_mtime_str.parse::<u64>() {
                     if cached_mtime == current_mtime && !ver.trim().is_empty() {
@@ -479,7 +454,7 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
         }
     }
 
-    // 2. Cache miss: execute subprocess once and persist to tmpfs
+    // 2. Cache miss: execute subprocess once and persist
     if let Ok(output) = crate::modules::system_command(binary).args(args).output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let ver = if let Some(v) = extract_terminal_version_from_output(&stdout) {
@@ -491,7 +466,11 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
 
         if let Some(ref version_str) = ver {
             if let Some(current_mtime) = bin_mtime {
-                let _ = fs::write(&cache_path, format!("{}|{}", current_mtime, version_str));
+                crate::cache::write_cache(
+                    crate::cache::CacheScope::PersistentOrRuntime,
+                    &cache_name,
+                    &format!("{}|{}", current_mtime, version_str),
+                );
             }
         }
 
@@ -502,29 +481,23 @@ fn probe_terminal_cli_version_uncached(term_name: &str) -> Option<String> {
 
 #[cfg(not(windows))]
 fn find_multiplexer_outer_terminal() -> Option<String> {
-    let cache_dir = std::env::var("XDG_RUNTIME_DIR")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|_| std::path::PathBuf::from("/tmp"));
-    let cache_file = cache_dir.join("kkfetch").join("tmux_outer.cache");
-
-    if let Ok(metadata) = fs::metadata(&cache_file) {
-        if let Ok(modified) = metadata.modified() {
-            if let Ok(age) = modified.elapsed() {
-                if age.as_secs() < 60 {
-                    if let Ok(cached) = fs::read_to_string(&cache_file) {
-                        let trimmed = cached.trim();
-                        if !trimmed.is_empty() {
-                            return Some(trimmed.to_string());
-                        }
-                    }
-                }
+    if let Some((cached, age)) =
+        crate::cache::read_cache_with_age(crate::cache::CacheScope::Runtime, "tmux_outer.cache")
+    {
+        if age.as_secs() < 60 {
+            let trimmed = cached.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
             }
         }
     }
 
     let outer = find_multiplexer_outer_terminal_scan()?;
-    let _ = fs::create_dir_all(cache_dir.join("kkfetch"));
-    let _ = fs::write(&cache_file, &outer);
+    crate::cache::write_cache(
+        crate::cache::CacheScope::Runtime,
+        "tmux_outer.cache",
+        &outer,
+    );
     Some(outer)
 }
 
@@ -537,16 +510,13 @@ fn find_multiplexer_outer_terminal_scan() -> Option<String> {
         if name_bytes.is_empty() || !name_bytes.iter().all(|b| b.is_ascii_digit()) {
             continue;
         }
-        let pid_str = match file_name.to_str() {
-            Some(s) => s,
-            None => continue,
+        let Some(pid) = file_name.to_str().and_then(|s| s.parse::<u32>().ok()) else {
+            continue;
         };
-        let comm_path = format!("/proc/{}/comm", pid_str);
-        let comm = match fs::read_to_string(&comm_path) {
-            Ok(c) => c,
-            Err(_) => continue,
+        let Some(comm) = crate::modules::proc_comm(pid) else {
+            continue;
         };
-        let comm_trimmed = comm.trim().to_lowercase();
+        let comm_trimmed = comm.to_lowercase();
         if !comm_trimmed.starts_with("tmux")
             && !comm_trimmed.starts_with("screen")
             && !comm_trimmed.starts_with("zellij")
@@ -554,16 +524,7 @@ fn find_multiplexer_outer_terminal_scan() -> Option<String> {
             continue;
         }
 
-        let status_path = format!("/proc/{}/status", pid_str);
-        let ppid = match fs::read_to_string(&status_path) {
-            Ok(status) => status.lines().find_map(|l| {
-                l.strip_prefix("PPid:")
-                    .and_then(|p| p.trim().parse::<u32>().ok())
-            }),
-            Err(_) => continue,
-        };
-
-        let mut curr_ppid = match ppid {
+        let mut curr_ppid = match crate::modules::proc_ppid(pid) {
             Some(p) if p > 1 => p,
             _ => continue,
         };
@@ -572,9 +533,8 @@ fn find_multiplexer_outer_terminal_scan() -> Option<String> {
             if curr_ppid <= 1 {
                 break;
             }
-            let parent_comm = fs::read_to_string(format!("/proc/{}/comm", curr_ppid))
+            let parent_comm = crate::modules::proc_comm(curr_ppid)
                 .unwrap_or_default()
-                .trim()
                 .to_lowercase();
 
             if !parent_comm.is_empty()
@@ -588,17 +548,8 @@ fn find_multiplexer_outer_terminal_scan() -> Option<String> {
                 }
             }
 
-            let next_ppid = fs::read_to_string(format!("/proc/{}/status", curr_ppid))
-                .ok()
-                .and_then(|s| {
-                    s.lines().find_map(|l| {
-                        l.strip_prefix("PPid:")
-                            .and_then(|p| p.trim().parse::<u32>().ok())
-                    })
-                });
-
-            match next_ppid {
-                Some(p) if p > 1 => curr_ppid = p,
+            match crate::modules::proc_ppid(curr_ppid) {
+                Some(p) if p > 1 && p != curr_ppid => curr_ppid = p,
                 _ => break,
             }
         }
@@ -669,24 +620,13 @@ pub fn detect_terminal_uncached() -> Option<String> {
     let mut current_pid = unsafe { libc::getpid() as u32 };
     let mut seen_multiplexer = false;
     for _ in 0..8 {
-        let status_path = format!("/proc/{}/status", current_pid);
-        let ppid = if let Ok(status) = fs::read_to_string(status_path) {
-            status.lines().find_map(|l| {
-                l.strip_prefix("PPid:")
-                    .and_then(|p| p.trim().parse::<u32>().ok())
-            })
-        } else {
-            None
-        };
-
-        if let Some(ppid) = ppid {
+        if let Some(ppid) = crate::modules::proc_ppid(current_pid) {
             if ppid <= 1 {
                 break;
             }
 
-            let comm = fs::read_to_string(format!("/proc/{}/comm", ppid))
+            let comm = crate::modules::proc_comm(ppid)
                 .unwrap_or_default()
-                .trim()
                 .to_lowercase();
 
             let is_multiplexer = comm == "tmux"
@@ -1117,7 +1057,7 @@ fn probe_foot_font(home_path: &std::path::Path) -> Option<String> {
 
 #[cfg(not(windows))]
 fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
-    let cache_path = get_terminal_cache_path("ptyxis_font");
+    let cache_name = terminal_cache_name("ptyxis_font");
     let dconf_path = home_path.join(".config/dconf/user");
 
     let dconf_mtime = if let Ok(meta) = fs::metadata(&dconf_path) {
@@ -1132,7 +1072,9 @@ fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
 
     // 1. Check persistent cache (sub-microsecond execution)
     if dconf_mtime > 0 {
-        if let Ok(content) = fs::read_to_string(&cache_path) {
+        if let Some(content) =
+            crate::cache::read_cache(crate::cache::CacheScope::PersistentOrRuntime, &cache_name)
+        {
             if let Some((cached_mtime_str, font_str)) = content.split_once('|') {
                 if let Ok(cached_mtime) = cached_mtime_str.parse::<u64>() {
                     if cached_mtime == dconf_mtime && !font_str.trim().is_empty() {
@@ -1161,9 +1103,10 @@ fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
                         {
                             let formatted = format_pango_font(trimmed);
                             if !formatted.is_empty() {
-                                let _ = fs::write(
-                                    &cache_path,
-                                    format!("{}|{}", dconf_mtime, formatted),
+                                crate::cache::write_cache(
+                                    crate::cache::CacheScope::PersistentOrRuntime,
+                                    &cache_name,
+                                    &format!("{}|{}", dconf_mtime, formatted),
                                 );
                                 return Some(formatted);
                             }
@@ -1219,7 +1162,11 @@ fn probe_ptyxis_font(home_path: &std::path::Path) -> Option<String> {
         let formatted = format_pango_font(&r);
         if !formatted.is_empty() {
             if dconf_mtime > 0 {
-                let _ = fs::write(&cache_path, format!("{}|{}", dconf_mtime, formatted));
+                crate::cache::write_cache(
+                    crate::cache::CacheScope::PersistentOrRuntime,
+                    &cache_name,
+                    &format!("{}|{}", dconf_mtime, formatted),
+                );
             }
             return Some(formatted);
         }

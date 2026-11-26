@@ -375,31 +375,23 @@ pub fn parse_wsl_version_output(text: &str) -> Option<String> {
 /// Probes the host WSL version from persistent cache or `wsl.exe --version`.
 #[cfg(not(windows))]
 pub fn detect_wsl_version() -> Option<String> {
-    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".cache")))
-        .map(|p| p.join("kkfetch"));
-
-    let cache_file = cache_dir.as_ref().map(|d| d.join("wsl_version.cache"));
-
-    if let Some(ref path) = cache_file {
-        if let Ok(cached) = fs::read_to_string(path) {
-            let trimmed = cached.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
-            }
+    if let Some(cached) =
+        crate::cache::read_cache(crate::cache::CacheScope::Persistent, "wsl_version.cache")
+    {
+        let trimmed = cached.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 
     // Fast-path 1: Read directly from /mnt/wslg/versions.txt without spawning wsl.exe (<0.01ms)
     if let Ok(versions_txt) = fs::read_to_string("/mnt/wslg/versions.txt") {
         if let Some(ver) = parse_wsl_version_output(&versions_txt) {
-            if let Some(ref dir) = cache_dir {
-                let _ = fs::create_dir_all(dir);
-            }
-            if let Some(ref path) = cache_file {
-                let _ = fs::write(path, &ver);
-            }
+            crate::cache::write_cache(
+                crate::cache::CacheScope::Persistent,
+                "wsl_version.cache",
+                &ver,
+            );
             return Some(ver);
         }
     }
@@ -409,16 +401,18 @@ pub fn detect_wsl_version() -> Option<String> {
         "/mnt/c/Windows/System32/wsl.exe",
         "/mnt/c/Program Files/WSL/wsl.exe",
     ] {
-        if let Ok(output) = std::process::Command::new(cmd).arg("--version").output() {
+        if let Ok(output) = crate::modules::system_command(cmd)
+            .arg("--version")
+            .output()
+        {
             if output.status.success() {
                 let text = decode_utf16le_or_utf8(&output.stdout);
                 if let Some(ver) = parse_wsl_version_output(&text) {
-                    if let Some(ref dir) = cache_dir {
-                        let _ = fs::create_dir_all(dir);
-                    }
-                    if let Some(ref path) = cache_file {
-                        let _ = fs::write(path, &ver);
-                    }
+                    crate::cache::write_cache(
+                        crate::cache::CacheScope::Persistent,
+                        "wsl_version.cache",
+                        &ver,
+                    );
                     return Some(ver);
                 }
             }
