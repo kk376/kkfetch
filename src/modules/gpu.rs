@@ -1506,6 +1506,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_detect_gpus_from_sysfs_dir_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1529,6 +1530,7 @@ mod tests {
         assert!(gpus[0].contains("Intel"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_virtio_and_hyperv_sysfs_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1776,6 +1778,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_get_gpu_hardware_fingerprint_from_pci_dir_mock() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1837,6 +1840,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_is_pci_device_suspended_and_display_guard() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1936,6 +1940,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_detect_gpus_from_sysfs_dir_amd_rembrandt_revision_mock() {
         let temp_dir = tempfile::tempdir().unwrap();

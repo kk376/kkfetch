@@ -186,9 +186,10 @@ fn test_duplicate_and_invalid_module_args() {
     let assert = cmd.assert().success();
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
 
-    // OS, Kernel, CPU should appear exactly once
+    // OS, Kernel appear across all OSes; CPU appears on Linux/Windows collectors.
     assert_eq!(stdout.matches("OS:").count(), 1);
     assert_eq!(stdout.matches("Kernel:").count(), 1);
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     assert_eq!(stdout.matches("CPU:").count(), 1);
     assert!(!stdout.contains("invalid_module_xyz"));
 }
@@ -209,6 +210,7 @@ fn test_combine_modules_and_disable_flags() {
 
     assert!(stdout.contains("OS:"));
     assert!(stdout.contains("Kernel:"));
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     assert!(stdout.contains("Memory:"));
     assert!(!stdout.contains("CPU:"));
     assert!(!stdout.contains("Uptime:"));
