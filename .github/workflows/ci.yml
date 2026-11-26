@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -19,8 +21,8 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
-  fmt:
-    name: Code Formatting
+  fmt-and-docs:
+    name: Format, Docs & Packaging
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,8 +34,33 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ubuntu-cargo
+
       - name: Check formatting
         run: cargo fmt --check
+
+      - name: Check rustdoc cleanly
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --no-deps --all-features
+
+      - name: Validate shell scripts & packaging manifests
+        run: |
+          command -v shellcheck >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y shellcheck)
+          shellcheck install.sh packaging/rpm/postinst.sh packaging/debian/postinst
+          shellcheck -s bash packaging/arch/kkfetch.install
+          python3 -c '
+          import json, pathlib, re
+          cargo_ver = re.search(r"^version\s*=\s*\"([^\"]+)\"", pathlib.Path("Cargo.toml").read_text(), re.M).group(1)
+          scoop = json.loads(pathlib.Path("packaging/scoop/kkfetch.json").read_text())
+          ver = scoop["version"]
+          assert ver == cargo_ver, f"Scoop version {ver} != Cargo.toml {cargo_ver}"
+          h = scoop["architecture"]["64bit"]["hash"]
+          assert re.fullmatch(r"[0-9a-f]{64}", h), f"Invalid Scoop SHA-256: {h}"
+          '
 
   clippy:
     name: Clippy Linter
@@ -57,9 +84,13 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   test:
-    name: Test Suite
-    runs-on: ubuntu-latest
+    name: Test Suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,7 +101,7 @@ jobs:
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ubuntu-cargo
+          shared-key: ${{ matrix.os }}-cargo
 
       - name: Run tests
         run: cargo test --all-targets --all-features
@@ -79,7 +110,7 @@ jobs:
     name: Release Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [fmt, clippy, test]
+    needs: [fmt-and-docs, clippy, test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,6 +130,7 @@ jobs:
         run: |
           ./target/release/kkfetch --version
           ./target/release/kkfetch --help
+          ./target/release/kkfetch --json --no-plugins >/dev/null
           test -f completions/kkfetch.bash
           test -f completions/_kkfetch
           test -f completions/kkfetch.fish
@@ -117,6 +149,10 @@ jobs:
             target: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -143,7 +179,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust 1.85.0
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: "1.85.0"
 

@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,8 +14,9 @@ env:
 
 jobs:
   build-and-release:
-    name: Build and Publish Release Artifacts
+    name: Build Linux & Windows Release Artifacts
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,7 +50,11 @@ jobs:
       - name: Package release artifacts
         run: |
           TAG_NAME="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${TAG_NAME#v}"
+          else
+            VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
+          fi
           mkdir -p dist
 
           # 1. Standalone Universal Static Binaries
@@ -143,19 +149,18 @@ jobs:
           (cd "${PKGDIR}" && tar --zstd -cf "../dist/kkfetch-${VERSION}-1-x86_64.pkg.tar.zst" .PKGINFO .INSTALL usr)
           rm -rf "${PKGDIR}"
 
-          # 8. Generate SHA256 checksums
-          (cd dist && sha256sum * > SHA256SUMS.txt)
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Linux & Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: dist/*
-          generate_release_notes: true
+          name: release-linux-win
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
 
   build-macos:
     name: Build macOS Release Artifacts
     runs-on: macos-latest
-    needs: [build-and-release]
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -176,7 +181,11 @@ jobs:
       - name: Package macOS artifacts
         run: |
           TAG_NAME="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${TAG_NAME#v}"
+          else
+            VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
+          fi
           mkdir -p dist-macos
 
           for TARGET in x86_64-apple-darwin aarch64-apple-darwin; do
@@ -192,7 +201,35 @@ jobs:
             rm -rf "${DIR}"
           done
 
-      - name: Upload macOS Release Artifacts
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: dist-macos/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-release:
+    name: Compute Checksums & Publish GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-and-release, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate complete SHA256SUMS.txt
+        run: |
+          cd release-assets
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-macos/*
+          files: release-assets/*
+          generate_release_notes: true

@@ -4,10 +4,14 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   update-formula:
     name: Bump Homebrew Formula Version
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout tap repository
         uses: actions/checkout@v4
@@ -16,34 +20,42 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
 
-      - name: Download source tarball and compute SHA256
+      - name: Download release tarballs and verify SHA256
         run: |
+          set -euo pipefail
           TAG_NAME="${GITHUB_REF#refs/tags/}"
           VERSION="${TAG_NAME#v}"
+
           TARBALL_URL="https://github.com/kk376/kkfetch/archive/refs/tags/${TAG_NAME}.tar.gz"
-          curl -sL "$TARBALL_URL" -o source.tar.gz
-          MACOS_SHA256=$(sha256sum source.tar.gz | awk '{print $1}')
+          curl --proto '=https' --tlsv1.2 -fsSL "$TARBALL_URL" -o source.tar.gz
+          MACOS_SHA256="$(sha256sum source.tar.gz | awk '{print $1}')"
 
           LINUX_URL="https://github.com/kk376/kkfetch/releases/download/${TAG_NAME}/kkfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
-          curl -sL "$LINUX_URL" -o linux.tar.gz || true
-          LINUX_SHA256=$(sha256sum linux.tar.gz 2>/dev/null | awk '{print $1}' || echo "PENDING")
+          curl --proto '=https' --tlsv1.2 -fsSL "$LINUX_URL" -o linux.tar.gz
+          LINUX_SHA256="$(sha256sum linux.tar.gz | awk '{print $1}')"
 
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-          echo "MACOS_SHA256=$MACOS_SHA256" >> $GITHUB_ENV
-          echo "LINUX_SHA256=$LINUX_SHA256" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          echo "MACOS_SHA256=$MACOS_SHA256" >> "$GITHUB_ENV"
+          echo "LINUX_SHA256=$LINUX_SHA256" >> "$GITHUB_ENV"
 
       - name: Update formula
         run: |
+          set -euo pipefail
           cd homebrew-tap
           sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/kkfetch.rb
           sed -i "0,/sha256 \".*\"/s/sha256 \".*\"/sha256 \"$MACOS_SHA256\"/" Formula/kkfetch.rb
           sed -i "s|archive/refs/tags/v.*\.tar\.gz|archive/refs/tags/${TAG_NAME}.tar.gz|" Formula/kkfetch.rb
           sed -i "s|releases/download/v.*/kkfetch-.*-x86_64-unknown-linux-gnu\.tar\.gz|releases/download/${TAG_NAME}/kkfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz|" Formula/kkfetch.rb
-          # Update the second sha256 (Linux block)
-          if [ "$LINUX_SHA256" != "PENDING" ]; then
-            python3 -c "import re, os; f=open('Formula/kkfetch.rb'); c=f.read(); f.close(); p=c.split('sha256'); len(p)>=3 and open('Formula/kkfetch.rb','w').write('sha256'.join([p[0], p[1], re.sub(r'\"[a-f0-9A-Za-z]+\"', f'\"{os.environ[\"LINUX_SHA256\"]}\"', p[2], count=1)] + p[3:]))"
-          fi
+          python3 -c '
+          import os, pathlib, re
+          p = pathlib.Path("Formula/kkfetch.rb")
+          parts = p.read_text().split("sha256")
+          assert len(parts) >= 3, "Expected macOS and Linux sha256 entries in Formula/kkfetch.rb"
+          sha = os.environ["LINUX_SHA256"]
+          parts[2] = re.sub(r"\"[a-f0-9A-Za-z]+\"", f"\"{sha}\"", parts[2], count=1)
+          p.write_text("sha256".join(parts))
+          '
           sed -i "s/assert_match \"kkfetch .*\"/assert_match \"kkfetch $VERSION\"/" Formula/kkfetch.rb
 
       - name: Commit and push formula update

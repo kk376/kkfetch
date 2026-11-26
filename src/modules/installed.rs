@@ -1,6 +1,6 @@
 //! System installation date probe and localized timezone formatting.
 //!
-//! Features and architectural recommendations contributed by @Laynsb (https://github.com/Laynsb):
+//! Features and architectural recommendations contributed by @Laynsb (<https://github.com/Laynsb>):
 //! 1. Probing OS installation timestamp via filesystem root birth time (`statx_btime`) and installer records.
 //! 2. Converting raw UTC epoch seconds into localized wall-clock time according to system timezone and DST.
 
@@ -207,7 +207,7 @@ pub fn epoch_to_datetime(epoch_secs: u64) -> (i32, u8, u8, u8, u8, u8) {
 
 /// Queries the system local timezone offset from UTC in seconds for a given epoch timestamp.
 /// Uses native OS C-FFI (`localtime_r` / `tm_gmtoff` on POSIX, `GetTimeZoneInformation` on Windows).
-/// Implements localized wall-clock date formatting suggested by @Laynsb (https://github.com/Laynsb).
+/// Implements localized wall-clock date formatting suggested by @Laynsb (<https://github.com/Laynsb>).
 #[cfg(not(windows))]
 pub fn get_local_timezone_offset_secs(epoch: u64) -> i64 {
     // SAFETY: localtime_r safely converts the epoch time to a local tm struct, writing into a zeroed tm instance.
@@ -247,7 +247,7 @@ pub fn get_local_timezone_offset_secs(_epoch: u64) -> i64 {
 }
 
 /// Formats installation timestamp into `DD Mon YYYY, hh:mm AM/PM (X days ago)` with explicit timezone offset.
-/// Implements localized wall-clock formatting suggested by @Laynsb (https://github.com/Laynsb).
+/// Implements localized wall-clock formatting suggested by @Laynsb (<https://github.com/Laynsb>).
 pub fn format_install_date_with_offset(timestamp: u64, now_sec: u64, offset_secs: i64) -> String {
     let local_ts = (timestamp as i64 + offset_secs).max(0) as u64;
     let (year, month_num, day, hour, minute, _) = epoch_to_datetime(local_ts);
