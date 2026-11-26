@@ -7,7 +7,8 @@ use std::path::Path;
 /// Fast path: stream-parses status file directly without string allocations or UTF-8 decoding.
 pub fn parse_dpkg_status_bytes(bytes: &[u8]) -> usize {
     let mut count = 0;
-    for line in bytes.split(|&b| b == b'\n') {
+    for raw_line in bytes.split(|&b| b == b'\n') {
+        let line = raw_line.strip_suffix(b"\r").unwrap_or(raw_line);
         if line.starts_with(b"Status:") && line.ends_with(b" installed") {
             count += 1;
         }
@@ -115,7 +116,7 @@ pub fn count_pacman() -> Option<usize> {
 pub fn count_newline_entries(output: &[u8]) -> usize {
     output
         .split(|&b| b == b'\n')
-        .filter(|l| !l.is_empty())
+        .filter(|l| !l.strip_suffix(b"\r").unwrap_or(l).is_empty())
         .count()
 }
 
@@ -1221,5 +1222,11 @@ Section: libs
     #[test]
     fn test_count_rpm_from_paths_nonexistent() {
         assert_eq!(count_rpm_from_paths(&["/nonexistent_rpm_db_12345"]), None);
+    }
+
+    #[test]
+    fn test_parse_dpkg_status_handles_crlf() {
+        let crlf = b"Package: foo\r\nStatus: install ok installed\r\n\r\nPackage: bar\r\nStatus: deinstall ok config-files\r\n";
+        assert_eq!(parse_dpkg_status_bytes(crlf), 1);
     }
 }
