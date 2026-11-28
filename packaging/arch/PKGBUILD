@@ -10,7 +10,7 @@ depends=('glibc')
 makedepends=('cargo' 'rust')
 install=kkfetch.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/kk376/kkfetch/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('7ad4b77f6fc74bae93908e16eff0197c99b3bd4c36c214bb2af0c524d24e47e8')
+sha256sums=('f6d233e67bf96d05dce1efb19ebe4cbe3a2721d800eaf9543af3929cbb6bbb38')
 
 build() {
     cd "$pkgname-$pkgver"

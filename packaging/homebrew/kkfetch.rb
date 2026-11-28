@@ -6,7 +6,7 @@ class Kkfetch < Formula
 
   on_macos do
     url "https://github.com/kk376/kkfetch/archive/refs/tags/v0.29.0.tar.gz"
-    sha256 "7ad4b77f6fc74bae93908e16eff0197c99b3bd4c36c214bb2af0c524d24e47e8"
+    sha256 "f6d233e67bf96d05dce1efb19ebe4cbe3a2721d800eaf9543af3929cbb6bbb38"
     depends_on "rust" => :build
 
     def install
@@ -20,7 +20,7 @@ class Kkfetch < Formula
 
   on_linux do
     url "https://github.com/kk376/kkfetch/releases/download/v0.29.0/kkfetch-0.29.0-x86_64-unknown-linux-gnu.tar.gz"
-    sha256 "1a9a9d9d471995baa4f53fbb8e48e22a83b2311f1130f19d771adedccd82724b"
+    sha256 "465ccf01dff364fbd3304e19ecdc862854b71546abacf0aa608474b6bd7d458e"
 
     def install
       bin.install "kkfetch"

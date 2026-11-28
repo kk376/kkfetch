@@ -9,7 +9,7 @@ license="MIT, Apache-2.0"
 homepage="https://github.com/kk376/kkfetch"
 changelog="https://raw.githubusercontent.com/kk376/kkfetch/main/CHANGELOG.md"
 distfiles="https://github.com/kk376/kkfetch/archive/refs/tags/v${version}.tar.gz"
-checksum=7ad4b77f6fc74bae93908e16eff0197c99b3bd4c36c214bb2af0c524d24e47e8
+checksum=f6d233e67bf96d05dce1efb19ebe4cbe3a2721d800eaf9543af3929cbb6bbb38
 
 post_install() {
 	vlicense LICENSE
