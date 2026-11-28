@@ -37,6 +37,6 @@ nix develop --impure ./packaging/nix
 
 To submit KKFetch to upstream Nixpkgs (`nixpkgs/pkgs/by-name/kk/kkfetch/package.nix`):
 
-1. Set `hash` in `src = fetchFromGitHub { ... }` to the unpacked source NAR SRI hash (`nix-prefetch-github kk376 kkfetch --rev v0.28.0` or `nix flake prefetch` / dummy-hash build output; note this differs from the `.tar.gz` hash).
+1. Set `hash` in `src = fetchFromGitHub { ... }` to the unpacked source NAR SRI hash (`nix-prefetch-github kk376 kkfetch --rev v0.29.0` or `nix flake prefetch` / dummy-hash build output; note this differs from the `.tar.gz` hash).
 2. Replace `cargoLock.lockFile` with `cargoHash = "sha256-...";` (generated using `nix-prefetch-github` or running the build once to obtain the fixed-output derivation hash).
 3. Open a PR against `NixOS/nixpkgs` targeting `master`.

@@ -1,3 +1,9 @@
+kkfetch (0.29.0-1) noble; urgency=medium
+
+  * Release version 0.29.0: UTF-8/XML panic fixes, terminal sanitization, cache isolation, and CI hardening.
+
+ -- Kushagra Kumar <kkushagra86@gmail.com>  Sat, 28 Nov 2026 10:35:00 +0530
+
 kkfetch (0.28.0-1~ppa3~noble) noble; urgency=medium
 
   * Patch clap_builder inspect_err using posix sed for minimal buildd environment.

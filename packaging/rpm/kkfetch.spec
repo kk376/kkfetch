@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           kkfetch
-Version:        0.28.0
+Version:        0.29.0
 Release:        1%{?dist}
 Summary:        Fast, lightweight system information tool in Rust
 
@@ -76,6 +76,9 @@ if [ -n "${SUDO_USER:-}" ]; then
 fi
 
 %changelog
+* Sat Nov 28 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.29.0-1
+- Release version 0.29.0: UTF-8/XML panic fixes, terminal sanitization, cache isolation, and CI hardening
+
 * Fri Nov 20 2026 Kushagra Kumar (kk376) <kk376@users.noreply.github.com> - 0.28.0-1
 - Release version 0.28.0: Dependency unfreezing, MSRV CI verification, and packaging sync
 

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2026-11-28
+
+### Fixed
+- **Security & Robustness**: Fixed UTF-8/XML boundary panics, hardened terminal output sanitization, isolated cache paths, and stripped optional trailing CR in dpkg/newline entry counters.
+
+### CI & Packaging
+- **Supply Chain & Multi-OS CI**: Added `cargo-deny` supply-chain and license checks, expanded multi-OS test coverage, validated docs/packaging/musl builds, and fixed release checksum ordering.
+- **Community & Packaging**: Added Code of Conduct and Accessibility statement, fixed openSUSE Leap 15.6 check step and Ubuntu Noble `clap_builder` compatibility, and synced version 0.29.0 across all distribution manifests.
+
 ## [0.28.0] - 2026-11-20
 
 ### Changed
